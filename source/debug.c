@@ -64,7 +64,7 @@ void match_dump_line(Match *match, int indent);
 void match_dump(Match *match, int indent)
 {
   if (match) {
-    printf("@co2 match ");
+    printf("@o2c match ");
     if (match->next) {
       printf("{\n");
       while (match) {

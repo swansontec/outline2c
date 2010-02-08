@@ -15,7 +15,7 @@
  */
 /*
  * This is a recursive descent parser which scans through the input, building
- * up a tree of "@co2 outline" statements it finds. When it encouters an "@co2
+ * up a tree of "@o2c outline" statements it finds. When it encouters an "@o2c
  * match" statement, it builds a temporary tree describing the match. Then, it
  * immediately processes the tree against the outline, writing the generated
  * code to the output file.
@@ -58,9 +58,9 @@
 void
 info(Context *ctx, char const *message)
 {
-  char *filename = string_to_c(ctx->filename);
+/*  char *filename = string_to_c(ctx->filename);
   printf("%s:%d: info: %s\n", filename, ctx->marker.line + 1, message);
-  free(filename);
+  free(filename);*/
 }
 
 /**
@@ -96,8 +96,8 @@ parser_start(String aIn, String aFilename, FileW *aOut)
   rv = parse_source_file(&ctx);
   ENSURE_SUCCESS(rv);
 
-  printf("--- Outline: ---\n");
-  outline_dump(ctx.root.outline, 0);
+/*  printf("--- Outline: ---\n");
+  outline_dump(ctx.root.outline, 0);*/
   return 0;
 }
 
@@ -133,7 +133,7 @@ int parse_source_file(Context *ctx)
   do {
     advance(ctx, 1);
     /* Escape code: */
-    if (ctx->token == LEX_ESCAPE_CO2) {
+    if (ctx->token == LEX_ESCAPE_O2C) {
       /* Write the input so far: */
       rv = file_w_write(ctx->out, start, ctx->marker.p);
       if (rv) {
@@ -176,7 +176,7 @@ int parse_header_file(Context *ctx)
 }
 
 /**
- * Handles the bit right after an @co2 escape code.
+ * Handles the bit right after an @o2c escape code.
  */
 int parse_co2(Context *ctx)
 {
@@ -298,7 +298,7 @@ int parse_match_top(Context *ctx)
   ENSURE_SUCCESS(rv);
 
   if (match) {
-    match_dump(match, 0);
+    /*match_dump(match, 0);*/
     match_search(match, ctx->root.outline->children, ctx->out);
   }
   return 0;
@@ -387,7 +387,7 @@ int parse_match_entry(Context *ctx, MatchBuilder *b)
   do {
     advance(ctx, 1);
     /* Sub-match expression: */
-    if (ctx->token == LEX_ESCAPE_CO2) {
+    if (ctx->token == LEX_ESCAPE_O2C) {
       rv = match_builder_add_code_code(b, start, ctx->marker.p);
       ENSURE_MEMORY(!rv);
 

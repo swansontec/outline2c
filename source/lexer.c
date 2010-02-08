@@ -152,8 +152,8 @@ Token lex(Cursor *cursor, char const *end)
       if (!advance(cursor, end)) break;
     } while (IS_ALPHANUM(*cursor->p));
     token.end = cursor->p;
-    if (string_equal(token, string_init_l("@co2", 4)))
-      return LEX_ESCAPE_CO2;
+    if (string_equal(token, string_init_l("@o2c", 4)))
+      return LEX_ESCAPE_O2C;
     return LEX_ESCAPE;
   /* Semicolon: */
   } else if (*cursor->p == ';') {

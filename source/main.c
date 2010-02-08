@@ -60,11 +60,11 @@ int main_run(Main *m, int argc, char *argv[])
 
   /* Determine output file name: */
   in_name = string_init_l(argv[1], strlen(argv[1]));
-  if (string_rmatch(in_name, string_init_l(".tree", 5)) != 5) {
-    printf(" Error: The input file name must end with \".tree\".\n");
+  if (string_rmatch(in_name, string_init_l(".o2c", 4)) != 4) {
+    printf(" Error: The input file name must end with \".o2c\".\n");
     return 1;
   }
-  m->name_out = string_to_c(string_init(in_name.p, in_name.end - 5));
+  m->name_out = string_to_c(string_init(in_name.p, in_name.end - 4));
 
   /* Open input file */
   rv = file_r_open(&m->file_in, argv[1]);

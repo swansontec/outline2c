@@ -46,7 +46,7 @@ enum token {
   LEX_NUMBER,           /* C-style integer */
   LEX_IDENTIFIER,       /* [_a-zA-Z][_a-zA-Z0-9]* */
   LEX_ESCAPE,           /* @[_a-zA-Z0-9]+ */
-  LEX_ESCAPE_CO2,       /* @co2 */
+  LEX_ESCAPE_O2C,       /* @o2c */
 
   LEX_SLASH,            /* / */
   LEX_SEMICOLON,        /* ; */
