@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+@o2c include "test.o2c";
+
 /* List the settings in a single location: */
 @o2c outline {
   setting number width;

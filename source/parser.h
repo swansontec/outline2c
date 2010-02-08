@@ -27,7 +27,7 @@ struct context
 {
   /* Current files: */
   String file;
-  String filename;
+  char const *filename;
   FileW *out;
 
   /* Current scanner state: */
@@ -38,19 +38,8 @@ struct context
   /* Outline: */
   OutlineBuilder root;
 };
-Context context_init(String file, String filename, FileW *out);
+Context context_init(String file, char const *filename, FileW *out);
 
-int parser_start(String aIn, String aFilename, FileW *aOut);
-
-int parse_source_file(Context *ctx);
-int parse_header_file(Context *ctx);
-int parse_co2(Context *ctx);
-
-int parse_outline(Context *ctx);
-int parse_outline_node(Context *ctx, OutlineBuilder *b);
-
-int parse_match_top(Context *ctx);
-int parse_match(Context *ctx, Match **match, Match *outer);
-int parse_match_entry(Context *ctx, MatchBuilder *b);
+int parser_start(String aIn, char const *filename, FileW *aOut);
 
 #endif

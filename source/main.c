@@ -54,7 +54,7 @@ int main_run(Main *m, int argc, char *argv[])
 
   /* Count options: */
   if (argc != 2) {
-    printf(" Usage: tree2c <filename>\n");
+    printf(" Usage: %s <filename>\n", argv[0]);
     return 1;
   }
 
@@ -81,7 +81,7 @@ int main_run(Main *m, int argc, char *argv[])
   }
 
   /* Munchify files: */
-  parser_start(string_init(m->file_in.p, m->file_in.end), string_from_c(argv[1]), &m->file_out);
+  parser_start(string_init(m->file_in.p, m->file_in.end), argv[1], &m->file_out);
   return 0;
 }
 

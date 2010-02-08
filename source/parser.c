@@ -40,6 +40,18 @@
 #include "file.h"
 #include <stdio.h>
 
+int parse_source_file(Context *ctx);
+int parse_top(Context *ctx);
+
+int parse_include(Context *ctx);
+
+int parse_outline(Context *ctx);
+int parse_outline_node(Context *ctx, OutlineBuilder *b);
+
+int parse_match_top(Context *ctx);
+int parse_match(Context *ctx, Match **match, Match *outer);
+int parse_match_entry(Context *ctx, MatchBuilder *b);
+
 /**
  * All parser functions return 0 for success and non-zero for failure. This
  * macro checks a return code and bails out if it indicates an error.
@@ -58,9 +70,7 @@
 void
 info(Context *ctx, char const *message)
 {
-/*  char *filename = string_to_c(ctx->filename);
-  printf("%s:%d: info: %s\n", filename, ctx->marker.line + 1, message);
-  free(filename);*/
+/*  printf("%s:%d: info: %s\n", ctx->filename, ctx->marker.line + 1, message);*/
 }
 
 /**
@@ -69,42 +79,13 @@ info(Context *ctx, char const *message)
 void
 error(Context *ctx, char const *message)
 {
-  char *filename = string_to_c(ctx->filename);
-  printf("%s:%d:%d: error: %s\n", filename, ctx->marker.line + 1, ctx->marker.column + 1, message);
-  free(filename);
-}
-
-/**
- * Reads the next token, filtering out atmosphere and converting token types.
- */
-void advance(Context *ctx, int want_space)
-{
-  /* Advance and eat spaces, if requested: */
-  do {
-    ctx->marker = ctx->cursor;
-    ctx->token = lex(&ctx->cursor, ctx->file.end);
-  } while (!want_space &&
-    (ctx->token == LEX_WHITESPACE || ctx->token == LEX_COMMENT));
-}
-
-int
-parser_start(String aIn, String aFilename, FileW *aOut)
-{
-  int rv;
-
-  Context ctx = context_init(aIn, aFilename, aOut);
-  rv = parse_source_file(&ctx);
-  ENSURE_SUCCESS(rv);
-
-/*  printf("--- Outline: ---\n");
-  outline_dump(ctx.root.outline, 0);*/
-  return 0;
+  printf("%s:%d:%d: error: %s\n", ctx->filename, ctx->marker.line + 1, ctx->marker.column + 1, message);
 }
 
 /**
  * Prepares a fresh context structure.
  */
-Context context_init(String file, String filename, FileW *out)
+Context context_init(String file, char const *filename, FileW *out)
 {
   static Outline root = {0};
 
@@ -116,6 +97,33 @@ Context context_init(String file, String filename, FileW *out)
   ctx.cursor = cursor_init(file.p);
   outline_builder_init(&ctx.root, &root);
   return ctx;
+}
+
+/**
+ * Reads the next token, filtering out atmosphere and converting token types.
+ */
+static void advance(Context *ctx, int want_space)
+{
+  /* Advance and eat spaces, if requested: */
+  do {
+    ctx->marker = ctx->cursor;
+    ctx->token = lex(&ctx->cursor, ctx->file.end);
+  } while (!want_space &&
+    (ctx->token == LEX_WHITESPACE || ctx->token == LEX_COMMENT));
+}
+
+int
+parser_start(String aIn, char const *filename, FileW *aOut)
+{
+  int rv;
+
+  Context ctx = context_init(aIn, filename, aOut);
+  rv = parse_source_file(&ctx);
+  ENSURE_SUCCESS(rv);
+
+/*  printf("--- Outline: ---\n");
+  outline_dump(ctx.root.outline, 0);*/
+  return 0;
 }
 
 /**
@@ -144,7 +152,7 @@ int parse_source_file(Context *ctx)
       /* Process the next token: */
       info(ctx, "Got escape code");
       advance(ctx, 0);
-      rv = parse_co2(ctx);
+      rv = parse_top(ctx);
       ENSURE_SUCCESS(rv);
       start = ctx->cursor.p;
     }
@@ -160,25 +168,9 @@ int parse_source_file(Context *ctx)
 }
 
 /**
- * Handles the contents of header files.
- */
-int parse_header_file(Context *ctx)
-{
-  int rv;
-
-  advance(ctx, 0);
-  while (ctx->token != LEX_END) {
-    rv = parse_co2(ctx);
-    ENSURE_SUCCESS(rv);
-    advance(ctx, 0);
-  }
-  return 0;
-}
-
-/**
  * Handles the bit right after an @o2c escape code.
  */
-int parse_co2(Context *ctx)
+int parse_top(Context *ctx)
 {
   int rv;
 
@@ -190,7 +182,7 @@ int parse_co2(Context *ctx)
   } else if (ctx->token == LEX_BRACE_OPEN) {
     advance(ctx, 0);
     while (ctx->token != LEX_BRACE_CLOSE) {
-      rv = parse_co2(ctx);
+      rv = parse_top(ctx);
       ENSURE_SUCCESS(rv);
       advance(ctx, 0);
     }
@@ -198,7 +190,11 @@ int parse_co2(Context *ctx)
   /* Keywords: */
   } else if (ctx->token == LEX_IDENTIFIER) {
     String temp = string_init(ctx->marker.p, ctx->cursor.p);
-    if (string_equal(temp, string_init_l("outline", 7))) {
+    if (string_equal(temp, string_init_l("include", 7))) {
+      info(ctx, "Got include rule");
+      advance(ctx, 0);
+      return parse_include(ctx);
+    } else if (string_equal(temp, string_init_l("outline", 7))) {
       info(ctx, "Got outline rule");
       advance(ctx, 0);
       return parse_outline(ctx);
@@ -214,6 +210,56 @@ int parse_co2(Context *ctx)
     error(ctx, "No idea what token this is.\n");
     return 1;
   }
+}
+
+/**
+ * Handles the "include" directive
+ */
+int parse_include(Context *ctx)
+{
+  int rv;
+  Context c;
+  char *filename;
+  FileR file;
+
+  if (ctx->token != LEX_STRING) {
+    error(ctx, "An include statment expects a quoted filename.");
+    return 1;
+  }
+
+  /* Prepare a context for the new file: */
+  filename = string_to_c(string_init(ctx->marker.p + 1, ctx->cursor.p - 1));
+  rv = file_r_open(&file, filename);
+  if (rv) {
+    error(ctx, "Could not open the included file.");
+    return 1;
+  }
+  c.file = string_init(file.p, file.end);
+  c.filename = filename;
+  c.out = ctx->out;
+  c.cursor = cursor_init(file.p);
+  c.root = ctx->root;
+  printf("The filename is: \"%s\"\n", filename);
+
+  /* Parse the input file: */
+  advance(&c, 0);
+  while (c.token != LEX_END) {
+    rv = parse_top(&c);
+    ENSURE_SUCCESS(rv);
+    advance(&c, 0);
+  }
+
+  /* Free the context stuff: */
+  free(filename);
+  file_r_close(&file);
+  ctx->root = c.root;
+
+  advance(ctx, 0);
+  if (ctx->token != LEX_SEMICOLON) {
+    error(ctx, "An include stament must end with a semicolon.");
+    return 1;
+  }
+  return 0;
 }
 
 /**
