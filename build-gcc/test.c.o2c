@@ -1,0 +1,33 @@
+#include <stdio.h>
+
+/* List the settings in a single location: */
+@o2c outline {
+  setting number width;
+  setting number height;
+  setting number threads;
+  setting string username;
+  setting string save_dir;
+}
+
+/* Generate a structure to hold the settings: */
+typedef struct {
+  @o2c match {
+    setting number <name> { int name; }
+    setting string <name> { char *name; }
+  }
+} Settings;
+
+/* Generate a function to save the settings: */
+#define STRINGIFY(x) #x
+void save_settings(Settings *s, FILE *f)
+{
+  @o2c match {
+    setting number <name> { fprintf(f, "%s=%d\n", STRINGIFY(name), s->name); }
+    setting string <name> { fprintf(f, "%s=%s\n", STRINGIFY(name), s->name); }
+  }
+}
+
+int main(int argc, char *argv[])
+{
+  return 0;
+}
