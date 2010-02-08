@@ -251,7 +251,9 @@ int parse_include(Context *ctx)
 
   /* Free the context stuff: */
   free(filename);
-  file_r_close(&file);
+  /* TODO: Closing the file would invalidate all string pointers in the AST.
+   find some better way to handle this problem. */
+/*  file_r_close(&file); */
   ctx->root = c.root;
 
   advance(ctx, 0);
