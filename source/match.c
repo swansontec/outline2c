@@ -196,16 +196,11 @@ String *match_find_symbol(Match *match, String symbol)
  */
 int match_search(Match *match, Outline *outline, FileW *file)
 {
-  int rv;
-
   while (outline) {
     Match *m = match;
     while (m) {
-      if (match_compare(m, outline)) {
-        rv = match_generate(m, outline->children, file);
-        if (rv) return 1;
-        break;
-      }
+      if (match_compare(m, outline))
+        return match_generate(m, outline->children, file);
       m = m->next;
     }
     outline = outline->next;

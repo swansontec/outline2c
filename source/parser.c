@@ -50,6 +50,7 @@ int parse_outline_node(Context *ctx, OutlineBuilder *b);
 
 int parse_match_top(Context *ctx);
 int parse_match(Context *ctx, Match **match, Match *outer);
+int parse_match_line(Context *ctx, Match **match, Match *outer);
 int parse_match_entry(Context *ctx, MatchBuilder *b);
 
 /**
@@ -70,7 +71,9 @@ int parse_match_entry(Context *ctx, MatchBuilder *b);
 void
 info(Context *ctx, char const *message)
 {
-/*  printf("%s:%d: info: %s\n", ctx->filename, ctx->marker.line + 1, message);*/
+#ifdef DEBUG
+  printf("%s:%d: info: %s\n", ctx->filename, ctx->marker.line + 1, message);
+#endif
 }
 
 /**
@@ -79,7 +82,7 @@ info(Context *ctx, char const *message)
 void
 error(Context *ctx, char const *message)
 {
-  printf("%s:%d:%d: error: %s\n", ctx->filename, ctx->marker.line + 1, ctx->marker.column + 1, message);
+  fprintf(stderr, "%s:%d:%d: error: %s\n", ctx->filename, ctx->marker.line + 1, ctx->marker.column + 1, message);
 }
 
 /**
@@ -121,8 +124,10 @@ parser_start(String aIn, char const *filename, FileW *aOut)
   rv = parse_source_file(&ctx);
   ENSURE_SUCCESS(rv);
 
-/*  printf("--- Outline: ---\n");
-  outline_dump(ctx.root.outline, 0);*/
+#ifdef DEBUG
+  printf("--- Outline: ---\n");
+  outline_dump(ctx.root.outline, 0);
+#endif
   return 0;
 }
 
@@ -239,7 +244,9 @@ int parse_include(Context *ctx)
   c.out = ctx->out;
   c.cursor = cursor_init(file.p);
   c.root = ctx->root;
+#ifdef DEBUG
   printf("The filename is: \"%s\"\n", filename);
+#endif
 
   /* Parse the input file: */
   advance(&c, 0);
@@ -304,7 +311,7 @@ int parse_outline_node(Context *ctx, OutlineBuilder *b)
   int rv;
 
   /* Handle the works making up the node: */
-  while (ctx->token == LEX_IDENTIFIER) {
+  while (ctx->token == LEX_IDENTIFIER || ctx->token == LEX_STRING) {
     rv = outline_builder_add_word(b, ctx->marker.p, ctx->cursor.p);
     ENSURE_MEMORY(!rv);
     advance(ctx, 0);
@@ -340,13 +347,15 @@ int parse_outline_node(Context *ctx, OutlineBuilder *b)
 int parse_match_top(Context *ctx)
 {
   int rv;
-  Match *match;
+  Match *match = 0;
 
-  rv =  parse_match(ctx, &match, 0);
+  rv = parse_match(ctx, &match, 0);
   ENSURE_SUCCESS(rv);
 
   if (match) {
-    /*match_dump(match, 0);*/
+#ifdef DEBUG
+    match_dump(match, 0);
+#endif
     match_search(match, ctx->root.outline->children, ctx->out);
   }
   return 0;
@@ -360,31 +369,41 @@ int parse_match_top(Context *ctx)
 int parse_match(Context *ctx, Match **match, Match *outer)
 {
   int rv;
-  MatchBuilder b;
 
   /* Multiple matches between braces: */
   if (ctx->token == LEX_BRACE_OPEN) {
-    *match = 0;
     advance(ctx, 0);
     while (ctx->token != LEX_BRACE_CLOSE) {
-      rv = match_builder_init(&b, outer);
-      ENSURE_MEMORY(!rv);
-      rv = parse_match_entry(ctx, &b);
+      rv = parse_match_line(ctx, match, outer);
       ENSURE_SUCCESS(rv);
-      b.match->next = *match;
-      *match = b.match;
       advance(ctx, 0);
     }
     return 0;
   /* Single match: */
   } else {
-    rv = match_builder_init(&b, outer);
-    ENSURE_MEMORY(!rv);
-    rv = parse_match_entry(ctx, &b);
+    rv = parse_match_line(ctx, match, outer);
     ENSURE_SUCCESS(rv);
-    *match = b.match;
     return 0;
   }
+}
+
+/**
+ * Parses a line within a match statement. A line must have a pattern and a
+ * code block.
+ */
+int parse_match_line(Context *ctx, Match **match, Match *outer)
+{
+  int rv;
+  MatchBuilder b;
+
+  rv = match_builder_init(&b, outer);
+  ENSURE_MEMORY(!rv);
+  rv = parse_match_entry(ctx, &b);
+  ENSURE_SUCCESS(rv);
+  b.match->next = *match;
+  *match = b.match;
+
+  return 0;
 }
 
 /**
