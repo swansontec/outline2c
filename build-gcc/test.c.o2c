@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-@o2c include "test.o2c";
+@o2c include "test.ol";
 
 /* List the settings in a single location: */
 @o2c outline {
