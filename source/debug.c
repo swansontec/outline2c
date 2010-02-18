@@ -33,7 +33,7 @@ static void space(int indent)
  */
 void outline_dump(Outline *node, int indent)
 {
-  OutlineWord *word = node->words;
+  OutlineItem *word = node->words;
   char *temp;
   space(indent);
   while (word) {
@@ -93,12 +93,12 @@ void match_dump_line(Match *match, int indent)
   while (pattern.p) {
     if (pattern.type == PATTERN_REPLACE) {
       PatternReplace *p = (PatternReplace *)pattern.p;
-      char *temp = string_to_c(string_init(p->p, p->end));
+      char *temp = string_to_c(p->symbol);
       printf("<%s> ", temp);
       free(temp);
     } else if (pattern.type == PATTERN_WORD) {
       PatternWord *p = (PatternWord *)pattern.p;
-      char *temp = string_to_c(string_init(p->p, p->end));
+      char *temp = string_to_c(p->symbol);
       printf("%s ", temp);
       free(temp);
     }

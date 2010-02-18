@@ -29,13 +29,16 @@ typedef struct file_r FileR;
 typedef struct file_w FileW;
 
 /* outline.h */
-typedef struct outline_word OutlineWord;
+typedef struct outline_item OutlineItem;
 typedef struct outline      Outline;
 
-/* match.h */
+/* pattern.h */
 typedef struct pattern          Pattern;
+typedef struct pattern_wild     PatternWild;
 typedef struct pattern_word     PatternWord;
 typedef struct pattern_replace  PatternReplace;
+
+/* match.h */
 typedef struct code             Code;
 typedef struct code_code        CodeCode;
 typedef struct code_replace     CodeReplace;

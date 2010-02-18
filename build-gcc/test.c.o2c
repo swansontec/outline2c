@@ -14,8 +14,8 @@
 /* Generate a structure to hold the settings: */
 typedef struct {
   @o2c match {
-    setting number <name> { int name; }
-    setting string <name> { char *name; }
+    setting number name=<> { int name; }
+    setting string name=<> { char *name; }
   }
 } Settings;
 
@@ -24,8 +24,8 @@ typedef struct {
 void save_settings(Settings *s, FILE *f)
 {
   @o2c match {
-    setting number <name> { fprintf(f, "%s=%d\n", STRINGIFY(name), s->name); }
-    setting string <name> { fprintf(f, "%s=%s\n", STRINGIFY(name), s->name); }
+    setting number name=<> { fprintf(f, "%s=%d\n", STRINGIFY(name), s->name); }
+    setting string name=<> { fprintf(f, "%s=%s\n", STRINGIFY(name), s->name); }
   }
 }
 

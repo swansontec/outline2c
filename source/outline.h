@@ -22,19 +22,19 @@
 /**
  * Represents a single word in an outline.
  */
-struct outline_word {
+struct outline_item {
   char const *p;        /* First character */
   char const *end;      /* One-past the last character */
-  OutlineWord *next;    /* The next word in the outline, if any */
+  OutlineItem *next;    /* The next word in the outline, if any */
 };
-OutlineWord *outline_word_new(char const *p, char const *end);
+OutlineItem *outline_word_new(char const *p, char const *end);
 
 /**
  * Represents a node in an outline. A node consists of several words an an
  * optional list of sub-nodes.
  */
 struct outline {
-  OutlineWord *words;   /* The first word */
+  OutlineItem *words;   /* The first word */
   Outline *children;    /* The first child node, if any */
   Outline *next;        /* The next node at this level, if any */
   int word_n;           /* Number of words in the linked list */
@@ -46,7 +46,7 @@ Outline *outline_new();
  */
 struct outline_builder {
   Outline *outline;
-  OutlineWord *word_last;
+  OutlineItem *word_last;
   Outline *outline_last;
 };
 typedef struct outline_builder OutlineBuilder;

@@ -24,64 +24,6 @@
 #include <stdlib.h>
 
 /**
- * Gets the "next" pointer from any type of pattern structure.
- */
-Pattern pattern_get_next(Pattern pattern)
-{
-  Pattern none = {0};
-  switch (pattern.type) {
-  case PATTERN_WORD:    return ((PatternWord *)pattern.p)->next;
-  case PATTERN_REPLACE: return ((PatternReplace *)pattern.p)->next;
-  }
-  return none;
-}
-
-/**
- * Sets the "next" pointer on any type of pattern structure.
- */
-void pattern_set_next(Pattern pattern, Pattern next)
-{
-  switch (pattern.type) {
-  case PATTERN_WORD:    ((PatternWord *)pattern.p)->next = next;    break;
-  case PATTERN_REPLACE: ((PatternReplace *)pattern.p)->next = next; break;
-  }
-}
-
-/**
- * Allocates and initializes a PatternWord structure.
- */
-Pattern pattern_word_new(char const *p, char const *end)
-{
-  Pattern pattern = {0};
-  PatternWord *temp = malloc(sizeof(PatternWord));
-  if (!temp) return pattern;
-  temp->p = p;
-  temp->end = end;
-  temp->next.p = 0;
-
-  pattern.p = temp;
-  pattern.type = PATTERN_WORD;
-  return pattern;
-}
-
-/**
- * Allocates and initializes a PatternReplace structure.
- */
-Pattern pattern_replace_new(char const *p, char const *end)
-{
-  Pattern pattern = {0};
-  PatternReplace *temp = malloc(sizeof(PatternReplace));
-  if (!temp) return pattern;
-  temp->p = p;
-  temp->end = end;
-  temp->next.p = 0;
-
-  pattern.p = temp;
-  pattern.type = PATTERN_REPLACE;
-  return pattern;
-}
-
-/**
  * Gets the "next" pointer from any type of code-generation template structure.
  */
 Code code_get_next(Code code)
@@ -153,6 +95,49 @@ Code code_match_new(Match *match)
   code.type = CODE_MATCH;
   return code;
 }
+
+/**
+ * Prepares a code builder structure
+ */
+void code_builder_init(CodeBuilder *b)
+{
+  b->first.p = 0;
+  b->last.p = 0;
+}
+
+static void code_builder_append(CodeBuilder *b, Code code)
+{
+  if (b->last.p)
+    code_set_next(b->last, code);
+  else
+    b->first = code;
+  b->last = code;
+}
+
+int code_builder_add_code(CodeBuilder *b, char const *p, char const *end)
+{
+  Code temp = code_code_new(p, end);
+  if (!temp.p) return 1;
+  code_builder_append(b, temp);
+  return 0;
+}
+
+int code_builder_add_replace(CodeBuilder *b, String *symbol)
+{
+  Code temp = code_replace_new(symbol);
+  if (!temp.p) return 1;
+  code_builder_append(b, temp);
+  return 0;
+}
+
+int code_builder_add_match(CodeBuilder *b, Match *match)
+{
+  Code temp = code_match_new(match);
+  if (!temp.p) return 1;
+  code_builder_append(b, temp);
+  return 0;
+}
+
 /**
  * Allocates and initializes an empty Match structure.
  */
@@ -161,7 +146,6 @@ Match *match_new(Match *outer)
   Match *temp = malloc(sizeof(Match));
   if (!temp) return 0;
   temp->pattern.p = 0;
-  temp->pattern_n = 0;
   temp->code.p    = 0;
   temp->outer     = outer;
   temp->next      = 0;
@@ -179,8 +163,8 @@ String *match_find_symbol(Match *match, String symbol)
     while (pattern.p) {
       if (pattern.type == PATTERN_REPLACE) {
         PatternReplace *p = pattern.p;
-        if (string_equal(string_init(p->p, p->end), symbol))
-          return (String*)&p->p;
+        if (string_equal(p->symbol, symbol))
+          return &p->symbol;
       }
       pattern = pattern_get_next(pattern);
     }
@@ -196,47 +180,21 @@ String *match_find_symbol(Match *match, String symbol)
  */
 int match_search(Match *match, Outline *outline, FileW *file)
 {
+  int rv;
+
   while (outline) {
     Match *m = match;
     while (m) {
-      if (match_compare(m, outline))
-        return match_generate(m, outline->children, file);
+      if (pattern_compare(m->pattern, outline)) {
+        rv = match_generate(m, outline->children, file);
+        if (rv) return rv;
+        break;
+      }
       m = m->next;
     }
     outline = outline->next;
   }
   return 0;
-}
-
-/**
- * Compares a match pattern against an outline block.
- * @return non-zero if the two are equal
- */
-int match_compare(Match *match, Outline *outline)
-{
-  Pattern pattern;
-  OutlineWord *word;
-
-  if (outline->word_n != match->pattern_n)
-    return 0;
-
-  pattern = match->pattern;
-  word = outline->words;
-  while (pattern.p) {
-    if (pattern.type == PATTERN_WORD) {
-      PatternWord *p = pattern.p;
-      if (!string_equal(string_init(p->p, p->end), string_init(word->p, word->end)))
-        return 0;
-    } else if (pattern.type == PATTERN_REPLACE) {
-      PatternReplace *p = pattern.p;
-      p->p = word->p;
-      p->end = word->end;
-    }
-    pattern = pattern_get_next(pattern);
-    word = word->next;
-  }
-
-  return 1;
 }
 
 /**
@@ -266,112 +224,5 @@ int match_generate(Match *match, Outline *outline, FileW *file)
     code = code_get_next(code);
   }
   file_w_write(file, end, end+1);
-  return 0;
-}
-
-/**
- * Initializes a match builder, constructing the initial Match structure.
- * @return 0 for success.
- */
-int match_builder_init(MatchBuilder *b, Match *outer)
-{
-  b->match = match_new(outer);
-  if (!b->match) return 1;
-  b->pattern_last.p = 0;
-  b->code_last.p = 0;
-  return 0;
-}
-
-/**
- * Appends an item to the end of the Match structure's pattern.
- */
-static void match_builder_insert_pattern(MatchBuilder *b, Pattern pattern)
-{
-  if (b->pattern_last.p)
-    pattern_set_next(b->pattern_last, pattern);
-  else
-    b->match->pattern = pattern;
-  b->pattern_last = pattern;
-}
-
-/**
- * Appends a new PatternWord structure to the end of the Match structure's
- * pattern.
- * @return 0 for success.
- */
-int match_builder_add_pattern_word(MatchBuilder *b, char const *p, char const *end)
-{
-  Pattern temp = pattern_word_new(p, end);
-  if (!temp.p) return 1;
-  match_builder_insert_pattern(b, temp);
-  ++b->match->pattern_n;
-  return 0;
-}
-
-/**
- * Appends a new PatternReplace structure to the end of the Match structure's
- * pattern.
- * @return 0 for success.
- */
-int match_builder_add_pattern_replace(MatchBuilder *b, char const *p, char const *end)
-{
-  Pattern temp = pattern_replace_new(p, end);
-  if (!temp.p) return 1;
-  match_builder_insert_pattern(b, temp);
-  ++b->match->pattern_n;
-  return 0;
-}
-
-/**
- * Appends an item to the end of the Match structure's code-generation template.
- */
-static void match_builder_insert_code(MatchBuilder *b, Code code)
-{
-  if (b->code_last.p)
-    code_set_next(b->code_last, code);
-  else
-    b->match->code = code;
-  b->code_last = code;
-}
-
-/**
- * Appends a new CodeCode structure to the end of the Match structure's code-
- * generation template.
- * @return 0 for success.
- */
-int match_builder_add_code_code(MatchBuilder *b, char const *p, char const *end)
-{
-  Code temp;
-  if (p == end)
-    return 0;
-  temp = code_code_new(p, end);
-  if (!temp.p) return 1;
-  match_builder_insert_code(b, temp);
-  return 0;
-}
-
-/**
- * Appends a new CodeReplace structure to the end of the Match structure's
- * code-generation template.
- * @return 0 for success.
- */
-int match_builder_add_code_replace(MatchBuilder *b, String *symbol)
-{
-  Code temp = code_replace_new(symbol);
-  if (!temp.p) return 1;
-  match_builder_insert_code(b, temp);
-  return 0;
-}
-
-/**
- * Appends a new CodeMatch structure to the end of the Match structure's code-
- * generation template.
- * @return 0 for success.
- */
-int match_builder_add_code_match(MatchBuilder *b, Match *match)
-{
-  Code temp = code_match_new(match);
-  if (!temp.p) return 1;
-  match_builder_insert_code(b, temp);
   return 0;
 }

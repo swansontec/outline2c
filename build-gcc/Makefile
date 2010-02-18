@@ -14,37 +14,43 @@
 # limitations under the License.
 #
 
+objects = debug.o file.o lexer.o match.o outline.o parser.o pattern.o string.o main.o
+cflags = -g -std=c89 -pedantic
+
 all: outline2c
 
-debug.o: ../source/debug.c ../source/string.h ../source/debug.h ../source/match.h ../source/outline.h ../source/typedefs.h
-	gcc -c -o debug.o ../source/debug.c -g -std=c89 -pedantic
+debug.o: ../source/debug.c ../source/string.h ../source/debug.h ../source/match.h ../source/pattern.h ../source/outline.h ../source/typedefs.h
+	gcc $(cflags) -c -o debug.o ../source/debug.c
 
 file.o: ../source/file.c ../source/file.h ../source/typedefs.h
-	gcc -c -o file.o ../source/file.c -g -std=c89 -pedantic
+	gcc $(cflags) -c -o file.o ../source/file.c
 
 lexer.o: ../source/lexer.c ../source/lexer.h ../source/string.h ../source/typedefs.h
-	gcc -c -o lexer.o ../source/lexer.c -g -std=c89 -pedantic
+	gcc $(cflags) -c -o lexer.o ../source/lexer.c
 
-match.o: ../source/match.c ../source/match.h ../source/file.h ../source/string.h ../source/outline.h ../source/typedefs.h
-	gcc -c -o match.o ../source/match.c -g -std=c89 -pedantic
+match.o: ../source/match.c ../source/match.h ../source/pattern.h ../source/file.h ../source/string.h ../source/outline.h ../source/typedefs.h
+	gcc $(cflags) -c -o match.o ../source/match.c
 
 outline.o: ../source/outline.c ../source/outline.h ../source/typedefs.h
-	gcc -c -o outline.o ../source/outline.c -g -std=c89 -pedantic
+	gcc $(cflags) -c -o outline.o ../source/outline.c
 
-parser.o: ../source/parser.c ../source/parser.h ../source/file.h ../source/string.h ../source/debug.h ../source/lexer.h ../source/match.h ../source/outline.h ../source/typedefs.h
-	gcc -c -o parser.o ../source/parser.c -g -std=c89 -pedantic
+parser.o: ../source/parser.c ../source/parser.h ../source/file.h ../source/string.h ../source/debug.h ../source/lexer.h ../source/match.h  ../source/pattern.h ../source/outline.h ../source/typedefs.h
+	gcc $(cflags) -c -o parser.o ../source/parser.c
+
+pattern.o: ../source/pattern.c ../source/pattern.h ../source/string.h ../source/outline.h ../source/typedefs.h
+	gcc $(cflags) -c -o pattern.o ../source/pattern.c
 
 string.o: ../source/string.c ../source/string.h ../source/typedefs.h
-	gcc -c -o string.o ../source/string.c -g -std=c89 -pedantic
+	gcc $(cflags) -c -o string.o ../source/string.c
 
 main.o: ../source/main.c ../source/lexer.h ../source/parser.h ../source/outline.h ../source/file.h ../source/string.h ../source/typedefs.h
-	gcc -c -o main.o ../source/main.c -g -std=c89 -pedantic
+	gcc $(cflags) -c -o main.o ../source/main.c
 
-outline2c: debug.o file.o lexer.o match.o outline.o parser.o string.o main.o
-	gcc -o outline2c debug.o file.o lexer.o match.o outline.o parser.o string.o main.o -g
+outline2c: $(objects)
+	gcc -g -o outline2c $(objects)
 
 clean: 
-	rm -f debug.o file.o lexer.o match.o outline.o parser.o string.o main.o outline2c
+	rm -f $(objects) outline2c
 
 run: outline2c
 	./outline2c test.c.o2c

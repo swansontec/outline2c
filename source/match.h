@@ -19,54 +19,7 @@
 
 #include "typedefs.h"
 #include "string.h"
-
-typedef struct symbol Symbol;
-/**
- * A symbol is a word which will be replaced with something else.
- */
-struct symbol {
-  char const *p;        /* First letter of the symbol */
-  char const *end;      /* One-past the last character */
-  Symbol *next;         /* The next symbol in the current scope. */
-};
-
-/**
- * Pattern structure types.
- */
-enum pattern_type {
-  PATTERN_WORD,
-  PATTERN_REPLACE
-};
-
-/**
- * A pointer to an item in a pattern.
- */
-struct pattern {
-  void *p;
-  enum pattern_type type;
-};
-Pattern pattern_get_next(Pattern pattern);
-void pattern_set_next(Pattern pattern, Pattern next);
-
-/**
- * A word within a pattern to match exactly.
- */
-struct pattern_word {
-  char const *p;        /* First character */
-  char const *end;      /* One-past the last character */
-  Pattern next;         /* The next pattern in the chain */
-};
-Pattern pattern_word_new(char const *p, char const *end);
-
-/**
- * A word within a pattern to replace.
- */
-struct pattern_replace {
-  char const *p;        /* First character */
-  char const *end;      /* One-past the last character */
-  Pattern next;         /* The next pattern in the chain */
-};
-Pattern pattern_replace_new(char const *p, char const *end);
+#include "pattern.h"
 
 /**
  * Code-generation template structure types.
@@ -119,11 +72,23 @@ struct code_match {
 Code code_match_new(Match *match);
 
 /**
+ * Links code items together into a list.
+ */
+struct code_builder {
+  Code first;
+  Code last;
+};
+typedef struct code_builder CodeBuilder;
+void code_builder_init(CodeBuilder *b);
+int code_builder_add_code(CodeBuilder *b, char const *p, char const *end);
+int code_builder_add_replace(CodeBuilder *b, String *symbol);
+int code_builder_add_match(CodeBuilder *b, Match *match);
+
+/**
  * A code-generation pattern
  */
 struct match {
   Pattern  pattern;     /* The first item in the pattern */
-  int      pattern_n;   /* Number of elements in the pattern list */
   Code     code;        /* The first item in the code-generation template */
   Match   *outer;       /* Enclosing match block, if this block is nested. */
   Match   *next;        /* The next pattern in this group, if any */
@@ -131,22 +96,6 @@ struct match {
 Match *match_new(Match *outer);
 String *match_find_symbol(Match *match, String symbol);
 int match_search(Match *match, Outline *outline, FileW *file);
-int match_compare(Match *match, Outline *outline);
 int match_generate(Match *match, Outline *outline, FileW *file);
-
-/**
- * Builds a Match structure element-by-element.
- */
-struct match_builder {
-  Match   *match;       /* The match structure being built */
-  Pattern pattern_last; /* The last pattern node in the linked list */
-  Code    code_last;    /* The last code node in the linked list. */
-};
-int match_builder_init(MatchBuilder *b, Match *outer);
-int match_builder_add_pattern_word(MatchBuilder *b, char const *p, char const *end);
-int match_builder_add_pattern_replace(MatchBuilder *b, char const *p, char const *end);
-int match_builder_add_code_code(MatchBuilder *b, char const *p, char const *end);
-int match_builder_add_code_replace(MatchBuilder *b, String *symbol);
-int match_builder_add_code_match(MatchBuilder *b, Match *match);
 
 #endif

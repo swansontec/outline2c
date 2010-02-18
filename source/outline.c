@@ -18,11 +18,11 @@
 #include <stdlib.h>
 
 /**
- * Allocates and initializes an OutlineWord structure.
+ * Allocates and initializes an OutlineItem structure.
  */
-OutlineWord *outline_word_new(char const *p, char const *end)
+OutlineItem *outline_word_new(char const *p, char const *end)
 {
-  OutlineWord *temp = malloc(sizeof(OutlineWord));
+  OutlineItem *temp = malloc(sizeof(OutlineItem));
   if (!temp) return 0;
   temp->p = p;
   temp->end = end;
@@ -73,7 +73,7 @@ int outline_builder_init_new(OutlineBuilder *b)
  */
 int outline_builder_add_word(OutlineBuilder *b, char const *p, char const *end)
 {
-  OutlineWord *temp = outline_word_new(p, end);
+  OutlineItem *temp = outline_word_new(p, end);
   if (!temp)
     return 1;
 

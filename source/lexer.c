@@ -160,6 +160,10 @@ Token lex(Cursor *cursor, char const *end)
     advance(cursor, end);
     return LEX_SEMICOLON;
   /* Less-than: */
+  } else if (*cursor->p == '=') {
+    advance(cursor, end);
+    return LEX_EQUALS;
+  /* Less-than: */
   } else if (*cursor->p == '<') {
     advance(cursor, end);
     return LEX_LESS;

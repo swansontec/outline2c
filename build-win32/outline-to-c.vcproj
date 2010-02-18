@@ -224,6 +224,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\source\pattern.c"
+			>
+		</File>
+		<File
+			RelativePath="..\source\pattern.h"
+			>
+		</File>
+		<File
 			RelativePath="..\source\string.c"
 			>
 		</File>

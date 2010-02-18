@@ -30,6 +30,8 @@
  * must call advance() to get the next un-processed token.
  */
 
+/*#define DEBUG */
+
 #include "parser.h"
 #include "outline.h"
 #include "match.h"
@@ -51,7 +53,10 @@ int parse_outline_node(Context *ctx, OutlineBuilder *b);
 int parse_match_top(Context *ctx);
 int parse_match(Context *ctx, Match **match, Match *outer);
 int parse_match_line(Context *ctx, Match **match, Match *outer);
-int parse_match_entry(Context *ctx, MatchBuilder *b);
+int parse_match_code(Context *ctx, CodeBuilder *b, Match *outer);
+
+int parse_match_pattern(Context *ctx, PatternBuilder *b);
+int parse_match_pattern_item(Context *ctx, PatternBuilder *b);
 
 /**
  * All parser functions return 0 for success and non-zero for failure. This
@@ -394,58 +399,47 @@ int parse_match(Context *ctx, Match **match, Match *outer)
 int parse_match_line(Context *ctx, Match **match, Match *outer)
 {
   int rv;
-  MatchBuilder b;
+  PatternBuilder pb;
+  CodeBuilder cb;
+  Match *temp;
 
-  rv = match_builder_init(&b, outer);
-  ENSURE_MEMORY(!rv);
-  rv = parse_match_entry(ctx, &b);
+  /* Parse the pattern: */
+  pattern_builder_init(&pb);
+  rv = parse_match_pattern(ctx, &pb);
   ENSURE_SUCCESS(rv);
-  b.match->next = *match;
-  *match = b.match;
 
+  /* Check for bad closing characters: */
+  if (ctx->token == LEX_BRACE_CLOSE || ctx->token == LEX_SEMICOLON) {
+    error(ctx, "A match rule must end with a code block");
+    return 1;
+  } else if (ctx->token != LEX_BRACE_OPEN) {
+    error(ctx, "A match rule can only contain words and wildcards.");
+    return 1;
+  }
+
+  /* Parse the code: */
+  temp = match_new(outer);
+  ENSURE_MEMORY(temp);
+  temp->pattern = pb.first;
+  code_builder_init(&cb);
+  rv = parse_match_code(ctx, &cb, temp);
+  ENSURE_SUCCESS(rv);
+  temp->code = cb.first;
+
+  /* Assemble the result: */
+  temp->next = *match;
+  *match = temp;
   return 0;
 }
 
 /**
  * Handles individual entries within an outline statement.
  */
-int parse_match_entry(Context *ctx, MatchBuilder *b)
+int parse_match_code(Context *ctx, CodeBuilder *b, Match *outer)
 {
   int rv;
   char const *start;
   int indent;
-
-  do {
-    /* A literal word to match: */
-    if (ctx->token == LEX_IDENTIFIER) {
-      rv = match_builder_add_pattern_word(b, ctx->marker.p, ctx->cursor.p);
-      ENSURE_MEMORY(!rv);
-      advance(ctx, 0);
-    /* A word replacement to match: */
-    } else if (ctx->token == LEX_LESS) {
-      advance(ctx, 0);
-      if (ctx->token == LEX_IDENTIFIER) {
-        rv = match_builder_add_pattern_replace(b, ctx->marker.p, ctx->cursor.p);
-        ENSURE_MEMORY(!rv);
-        advance(ctx, 0);
-        if (ctx->token != LEX_GREATER) {
-          error(ctx, "A replacement rule must end with a > character.");
-          return 1;
-        }
-      } else if (ctx->token == LEX_GREATER) {
-        rv = match_builder_add_pattern_replace(b, 0, 0);
-        ENSURE_MEMORY(!rv);
-      }
-      advance(ctx, 0);
-    /* Bad closing character: */
-    } else if (ctx->token == LEX_BRACE_CLOSE || ctx->token == LEX_SEMICOLON) {
-      error(ctx, "A match rule must end with a code block");
-      return 1;
-    } else if (ctx->token != LEX_BRACE_OPEN) {
-      error(ctx, "A match rule can only contain words and wildcards.");
-      return 1;
-    }
-  } while (ctx->token != LEX_BRACE_OPEN);
 
   /* At this point, the match pattern is now stored as a linked list. The next
    * step is to process the source code block: */
@@ -455,7 +449,7 @@ int parse_match_entry(Context *ctx, MatchBuilder *b)
     advance(ctx, 1);
     /* Sub-match expression: */
     if (ctx->token == LEX_ESCAPE_O2C) {
-      rv = match_builder_add_code_code(b, start, ctx->marker.p);
+      rv = code_builder_add_code(b, start, ctx->marker.p);
       ENSURE_MEMORY(!rv);
 
       advance(ctx, 0);
@@ -469,19 +463,19 @@ int parse_match_entry(Context *ctx, MatchBuilder *b)
       advance(ctx, 0);
       {
         Match *match;
-        rv = parse_match(ctx, &match, b->match);
+        rv = parse_match(ctx, &match, outer);
         ENSURE_SUCCESS(rv);
-        rv = match_builder_add_code_match(b, match);
+        rv = code_builder_add_match(b, match);
         ENSURE_MEMORY(!rv);
       }
       start = ctx->cursor.p;
     /* A symbol to substitute: */
     } else if (ctx->token == LEX_IDENTIFIER) {
-      String *p = match_find_symbol(b->match, string_init(ctx->marker.p, ctx->cursor.p));
+      String *p = match_find_symbol(outer, string_init(ctx->marker.p, ctx->cursor.p));
       if (p) {
-        rv = match_builder_add_code_code(b, start, ctx->marker.p);
+        rv = code_builder_add_code(b, start, ctx->marker.p);
         ENSURE_MEMORY(!rv);
-        rv = match_builder_add_code_replace(b, p);
+        rv = code_builder_add_replace(b, p);
         ENSURE_MEMORY(!rv);
         start = ctx->cursor.p;
       }
@@ -498,8 +492,92 @@ int parse_match_entry(Context *ctx, MatchBuilder *b)
     }
     /* Anything else is C code; continue with the loop. */
   } while (indent);
-  rv = match_builder_add_code_code(b, start, ctx->marker.p);
+  rv = code_builder_add_code(b, start, ctx->marker.p);
   ENSURE_MEMORY(!rv);
 
   return 0;
+}
+
+/**
+ * Handles pattern syntax. The context will be advanced when this function
+ * returns.
+ */
+int parse_match_pattern(Context *ctx, PatternBuilder *b)
+{
+  int rv;
+
+  while (1) {
+    rv = parse_match_pattern_item(ctx, b);
+    if (rv == -1)
+      return 0;
+    else if (rv)
+      return rv;
+  }
+}
+
+/**
+ * Parses a single item within a match pattern. The context will be advanced
+ * when this function returns.
+ */
+int parse_match_pattern_item(Context *ctx, PatternBuilder *b)
+{
+  int rv;
+
+  /* An identifier could be either a literal or a replacement rule: */
+  if (ctx->token == LEX_IDENTIFIER) {
+    String s = string_init(ctx->marker.p, ctx->cursor.p);
+    advance(ctx, 0);
+    /* Replacement rule: */
+    if (ctx->token == LEX_EQUALS) {
+      PatternBuilder temp;
+      pattern_builder_init(&temp);
+      advance(ctx, 0);
+      rv = parse_match_pattern_item(ctx, &temp);
+      if (rv) {
+        error(ctx, "A replacement rule must end with a sub-pattern.");
+        return 1;
+      }
+      if (temp.first.type == PATTERN_REPLACE) {
+        error(ctx, "A replacement rule cannot contain another replacement rule.");
+        return 1;
+      }
+      rv = pattern_builder_add_replace(b, s, temp.first);
+      ENSURE_MEMORY(!rv);
+      return 0;
+    }
+    /* Literal: */
+    rv = pattern_builder_add_word(b, s.p, s.end);
+    ENSURE_MEMORY(!rv);
+    return 0;
+  }
+
+  /* A rule invocation is surrounded by <>: */
+  if (ctx->token == LEX_LESS) {
+    advance(ctx, 0);
+    if (ctx->token == LEX_GREATER) {
+      rv = pattern_builder_add_wild(b);
+      ENSURE_MEMORY(!rv);
+      advance(ctx, 0);
+      return 0;
+    } else if (ctx->token == LEX_IDENTIFIER) {
+      error(ctx, "Rule invocations are not supported at this time.");
+      return 1;
+      /*
+      rv = pattern_builder_add_replace(b, ctx->marker.p, ctx->cursor.p);
+      ENSURE_MEMORY(!rv);
+      advance(ctx, 0);
+      if (ctx->token != LEX_GREATER) {
+        error(ctx, "A rule invocation must end with a > character.");
+        return 1;
+      }
+      advance(ctx, 0);
+      return 0;
+      */
+    } else {
+      error(ctx, "A rule name should appear here.");
+      return 1;
+    }
+  }
+
+  return -1;
 }

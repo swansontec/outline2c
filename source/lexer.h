@@ -50,6 +50,7 @@ enum token {
 
   LEX_SLASH,            /* / */
   LEX_SEMICOLON,        /* ; */
+  LEX_EQUALS,           /* = */
   LEX_LESS,             /* < */
   LEX_GREATER,          /* > */
   LEX_PIPE,             /* | */
