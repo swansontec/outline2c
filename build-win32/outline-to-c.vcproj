@@ -232,6 +232,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\source\pool.c"
+			>
+		</File>
+		<File
+			RelativePath="..\source\pool.h"
+			>
+		</File>
+		<File
 			RelativePath="..\source\string.c"
 			>
 		</File>

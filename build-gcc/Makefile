@@ -17,7 +17,7 @@
 CC = gcc
 CFLAGS = -g -std=c89 -pedantic
 
-objects = debug.o file.o lexer.o main.o match.o outline.o parser.o pattern.o string.o
+objects = debug.o file.o lexer.o main.o match.o outline.o parser.o pattern.o pool.o string.o
 
 # Inter-header dependencies:
 debug_h    = ../source/debug.h $(typedefs_h)
@@ -27,6 +27,7 @@ match_h    = ../source/match.h $(typedefs_h) $(string_h) $(pattern_h)
 outline_h  = ../source/outline.h $(typedefs_h)
 parser_h   = ../source/parser.h $(typedefs_h) $(lexer_h) $(outline_h) $(string_h)
 pattern_h  = ../source/pattern.h $(typedefs_h) $(string_h)
+pool_h     = ../source/pool.h $(typedefs_h)
 string_h   = ../source/string.h $(typedefs_h)
 typedefs_h = ../source/typedefs.h
 
@@ -55,6 +56,9 @@ parser.o: ../source/parser.c $(parser_h) $(outline_h) $(match_h) $(lexer_h) $(fi
 
 pattern.o: ../source/pattern.c $(pattern_h) $(outline_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/pattern.c
+
+pool.o: ../source/pool.c $(pool_h)
+	$(CC) $(CFLAGS) -o $@ -c ../source/pool.c
 
 string.o: ../source/string.c $(string_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/string.c
