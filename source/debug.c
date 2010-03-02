@@ -85,25 +85,10 @@ void match_dump(Match *match, int indent)
  */
 void match_dump_line(Match *match, int indent)
 {
-  Pattern pattern;
   Code code;
 
   /* Pattern: */
-  pattern = match->pattern;
-  while (pattern.p) {
-    if (pattern.type == PATTERN_REPLACE) {
-      PatternReplace *p = (PatternReplace *)pattern.p;
-      char *temp = string_to_c(p->symbol);
-      printf("<%s> ", temp);
-      free(temp);
-    } else if (pattern.type == PATTERN_WORD) {
-      PatternWord *p = (PatternWord *)pattern.p;
-      char *temp = string_to_c(p->symbol);
-      printf("%s ", temp);
-      free(temp);
-    }
-    pattern = pattern_get_next(pattern);
-  }
+  ast_pattern_dump(match->pattern);
 
   /* Code block (the formatting is all wrong, but the info is there): */
   printf("{");
@@ -126,4 +111,59 @@ void match_dump_line(Match *match, int indent)
     code = code_get_next(code);
   }
   printf("}\n");
+}
+
+/*
+ * Formats and displays a pattern
+ */
+void ast_pattern_dump(AstPattern *p)
+{
+  AstPatternItem *item;
+
+  item = p->items;
+  while (item < p->items_end) {
+    if (item != p->items)
+      printf(" ");
+    ast_pattern_item_dump(*item);
+    ++item;
+  }
+}
+
+/**
+ * Formats and displays a single element within a pattern
+ */
+void ast_pattern_item_dump(AstPatternItem item)
+{
+  switch (item.type) {
+  case AST_PATTERN_WILD:
+    ast_pattern_wild_dump((AstPatternWild*)item.p);
+    break;
+  case AST_PATTERN_SYMBOL:
+    ast_pattern_symbol_dump((AstPatternSymbol*)item.p);
+    break;
+  case AST_PATTERN_ASSIGN:
+    ast_pattern_assign_dump((AstPatternAssign*)item.p);
+    break;
+  }
+}
+
+void ast_pattern_wild_dump(AstPatternWild *p)
+{
+  printf("<>");
+}
+
+void ast_pattern_symbol_dump(AstPatternSymbol *p)
+{
+  char *temp = string_to_c(p->symbol);
+  printf("%s", temp);
+  free(temp);
+}
+
+void ast_pattern_assign_dump(AstPatternAssign *p)
+{
+  char *temp = string_to_c(p->symbol);
+  printf("%s=(", temp);
+  free(temp);
+  ast_pattern_item_dump(p->pattern);
+  printf(")");
 }

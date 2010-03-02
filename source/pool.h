@@ -69,4 +69,6 @@ void   *pool_aligned_alloc      (Pool *p, size_t size, size_t align);
 void   *pool_aligned_alloc_sys  (Pool *p, size_t size, size_t align);
 size_t  pool_aligned_unused     (Pool *p, size_t align);
 
+String  pool_string_copy        (Pool *p, String string);
+
 #endif

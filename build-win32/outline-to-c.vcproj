@@ -172,6 +172,22 @@
 	</References>
 	<Files>
 		<File
+			RelativePath="..\source\ast-builder.c"
+			>
+		</File>
+		<File
+			RelativePath="..\source\ast-builder.h"
+			>
+		</File>
+		<File
+			RelativePath="..\source\ast.c"
+			>
+		</File>
+		<File
+			RelativePath="..\source\ast.h"
+			>
+		</File>
+		<File
 			RelativePath="..\source\debug.c"
 			>
 		</File>
@@ -224,19 +240,19 @@
 			>
 		</File>
 		<File
-			RelativePath="..\source\pattern.c"
-			>
-		</File>
-		<File
-			RelativePath="..\source\pattern.h"
-			>
-		</File>
-		<File
 			RelativePath="..\source\pool.c"
 			>
 		</File>
 		<File
 			RelativePath="..\source\pool.h"
+			>
+		</File>
+		<File
+			RelativePath="..\source\search.c"
+			>
+		</File>
+		<File
+			RelativePath="..\source\search.h"
 			>
 		</File>
 		<File

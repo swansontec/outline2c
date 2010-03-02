@@ -40,6 +40,7 @@
 #include "string.h"
 #include "debug.h"
 #include "file.h"
+#include "ast-builder.h"
 #include <stdio.h>
 
 int parse_source_file(Context *ctx);
@@ -55,8 +56,8 @@ int parse_match(Context *ctx, Match **match, Match *outer);
 int parse_match_line(Context *ctx, Match **match, Match *outer);
 int parse_match_code(Context *ctx, CodeBuilder *b, Match *outer);
 
-int parse_match_pattern(Context *ctx, PatternBuilder *b);
-int parse_match_pattern_item(Context *ctx, PatternBuilder *b);
+int parse_match_pattern(Context *ctx, AstBuilder *b);
+int parse_match_pattern_item(Context *ctx, AstBuilder *b);
 
 /**
  * All parser functions return 0 for success and non-zero for failure. This
@@ -69,6 +70,11 @@ int parse_match_pattern_item(Context *ctx, PatternBuilder *b);
  * message and bails.
  */
 #define ENSURE_MEMORY(p) do { if (!p) { printf("Out of memory!\n"); return 1; } } while(0)
+
+/**
+ * Verifies that a call to the AstBuilder succeeded.
+ */
+#define ENSURE_BUILD(b) do { if (b) { printf("Out of memory!\n"); return 1; } } while(0)
 
 /**
  * Prints an informative message.
@@ -399,13 +405,14 @@ int parse_match(Context *ctx, Match **match, Match *outer)
 int parse_match_line(Context *ctx, Match **match, Match *outer)
 {
   int rv;
-  PatternBuilder pb;
+  AstBuilder b;
   CodeBuilder cb;
   Match *temp;
 
   /* Parse the pattern: */
-  pattern_builder_init(&pb);
-  rv = parse_match_pattern(ctx, &pb);
+  rv = ast_builder_init(&b); /* TODO: Stop this memory from being leaked. */
+  ENSURE_MEMORY(!rv);
+  rv = parse_match_pattern(ctx, &b);
   ENSURE_SUCCESS(rv);
 
   /* Check for bad closing characters: */
@@ -420,7 +427,7 @@ int parse_match_line(Context *ctx, Match **match, Match *outer)
   /* Parse the code: */
   temp = match_new(outer);
   ENSURE_MEMORY(temp);
-  temp->pattern = pb.first;
+  temp->pattern = ast_builder_pop(&b).p;
   code_builder_init(&cb);
   rv = parse_match_code(ctx, &cb, temp);
   ENSURE_SUCCESS(rv);
@@ -502,24 +509,30 @@ int parse_match_code(Context *ctx, CodeBuilder *b, Match *outer)
  * Handles pattern syntax. The context will be advanced when this function
  * returns.
  */
-int parse_match_pattern(Context *ctx, PatternBuilder *b)
+int parse_match_pattern(Context *ctx, AstBuilder *b)
 {
   int rv;
+  int items = 0;
 
   while (1) {
     rv = parse_match_pattern_item(ctx, b);
-    if (rv == -1)
+    if (rv == -1) {
+      ENSURE_BUILD(ast_build_pattern(b, items));
       return 0;
-    else if (rv)
+    } else if (rv) {
       return rv;
+    } else {
+      ++items;
+    }
   }
 }
 
 /**
  * Parses a single item within a match pattern. The context will be advanced
  * when this function returns.
+ * @return 0 for success, -1 for unknown symbol, 1 for definite errors
  */
-int parse_match_pattern_item(Context *ctx, PatternBuilder *b)
+int parse_match_pattern_item(Context *ctx, AstBuilder *b)
 {
   int rv;
 
@@ -529,25 +542,21 @@ int parse_match_pattern_item(Context *ctx, PatternBuilder *b)
     advance(ctx, 0);
     /* Replacement rule: */
     if (ctx->token == LEX_EQUALS) {
-      PatternBuilder temp;
-      pattern_builder_init(&temp);
       advance(ctx, 0);
-      rv = parse_match_pattern_item(ctx, &temp);
+      rv = parse_match_pattern_item(ctx, b);
       if (rv) {
         error(ctx, "A replacement rule must end with a sub-pattern.");
         return 1;
       }
-      if (temp.first.type == PATTERN_REPLACE) {
+      if (ast_builder_peek(b).type == AST_PATTERN_ASSIGN) {
         error(ctx, "A replacement rule cannot contain another replacement rule.");
         return 1;
       }
-      rv = pattern_builder_add_replace(b, s, temp.first);
-      ENSURE_MEMORY(!rv);
+      ENSURE_BUILD(ast_build_pattern_assign(b, s));
       return 0;
     }
     /* Literal: */
-    rv = pattern_builder_add_word(b, s.p, s.end);
-    ENSURE_MEMORY(!rv);
+    ENSURE_BUILD(ast_build_pattern_symbol(b, s));
     return 0;
   }
 
@@ -555,8 +564,7 @@ int parse_match_pattern_item(Context *ctx, PatternBuilder *b)
   if (ctx->token == LEX_LESS) {
     advance(ctx, 0);
     if (ctx->token == LEX_GREATER) {
-      rv = pattern_builder_add_wild(b);
-      ENSURE_MEMORY(!rv);
+      ENSURE_BUILD(ast_build_pattern_wild(b));
       advance(ctx, 0);
       return 0;
     } else if (ctx->token == LEX_IDENTIFIER) {

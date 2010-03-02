@@ -15,7 +15,9 @@
  */
 
 #include "pool.h"
+#include "string.h"
 #include <stdlib.h>
+#include <string.h>
 
 /* Choose an alignment technique based on the platform: */
 #if defined(WIN32)
@@ -173,4 +175,20 @@ size_t pool_aligned_unused(Pool *p, size_t align)
   if (p->end < start || !start)
     return 0;
   return p->end - start;
+}
+
+/**
+ * Copies a string.
+ */
+String pool_string_copy(Pool *p, String string)
+{
+  size_t size;
+  char *start;
+  if (!string.p) return string_null();
+
+  size  = string_size(string);
+  start = pool_aligned_alloc(p, size, 1);
+  if (!start) return string_null();
+  memcpy(start, string.p, size);
+  return string_init_l(start, size);
 }

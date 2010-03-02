@@ -13,19 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * Implements the search algorithm for comparing patterns against outlines.
+ */
+#ifndef SEARCH_H_INCLUDED
+#define SEARCH_H_INCLUDED
 
-#ifndef DEBUG_H_INCLUDED
-#define DEBUG_H_INCLUDED
-
-#include "typedefs.h"
 #include "ast.h"
 
-void outline_dump(Outline *node, int indent);
-void match_dump(Match *match, int indent);
-void ast_pattern_dump(AstPattern *pattern);
-void ast_pattern_item_dump(AstPatternItem item);
-void ast_pattern_wild_dump(AstPatternWild *p);
-void ast_pattern_symbol_dump(AstPatternSymbol *p);
-void ast_pattern_assign_dump(AstPatternAssign *p);
+String *ast_pattern_has_assign(AstPattern *pattern, String symbol);
+int ast_pattern_compare(AstPattern *pattern, Outline *outline);
 
 #endif

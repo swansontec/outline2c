@@ -19,7 +19,7 @@
 
 #include "typedefs.h"
 #include "string.h"
-#include "pattern.h"
+#include "ast.h"
 
 /**
  * Code-generation template structure types.
@@ -88,7 +88,7 @@ int code_builder_add_match(CodeBuilder *b, Match *match);
  * A code-generation pattern
  */
 struct match {
-  Pattern  pattern;     /* The first item in the pattern */
+  AstPattern *pattern;  /* The search pattern */
   Code     code;        /* The first item in the code-generation template */
   Match   *outer;       /* Enclosing match block, if this block is nested. */
   Match   *next;        /* The next pattern in this group, if any */

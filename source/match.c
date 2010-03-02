@@ -21,6 +21,7 @@
 #include "string.h"
 #include "outline.h"
 #include "file.h"
+#include "search.h"
 #include <stdlib.h>
 
 /**
@@ -145,7 +146,7 @@ Match *match_new(Match *outer)
 {
   Match *temp = malloc(sizeof(Match));
   if (!temp) return 0;
-  temp->pattern.p = 0;
+  temp->pattern   = 0;
   temp->code.p    = 0;
   temp->outer     = outer;
   temp->next      = 0;
@@ -157,17 +158,11 @@ Match *match_new(Match *outer)
  */
 String *match_find_symbol(Match *match, String symbol)
 {
+  String *rv;
   Match *m = match;
   while (m) {
-    Pattern pattern = m->pattern;
-    while (pattern.p) {
-      if (pattern.type == PATTERN_REPLACE) {
-        PatternReplace *p = pattern.p;
-        if (string_equal(p->symbol, symbol))
-          return &p->symbol;
-      }
-      pattern = pattern_get_next(pattern);
-    }
+    rv = ast_pattern_has_assign(m->pattern, symbol);
+    if (rv) return rv;
     m = m->outer;
   }
   return 0;
@@ -185,7 +180,7 @@ int match_search(Match *match, Outline *outline, FileW *file)
   while (outline) {
     Match *m = match;
     while (m) {
-      if (pattern_compare(m->pattern, outline)) {
+      if (ast_pattern_compare(m->pattern, outline)) {
         rv = match_generate(m, outline->children, file);
         if (rv) return rv;
         break;
