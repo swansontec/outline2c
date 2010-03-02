@@ -42,7 +42,6 @@ typedef struct ast_pattern_string       AstPatternString;
 typedef struct ast_pattern_number       AstPatternNumber;
 typedef struct ast_pattern_assign       AstPatternAssign;
 typedef struct ast_code                 AstCode;
-typedef struct ast_code_c               AstCodeC;
 typedef struct ast_code_symbol          AstCodeSymbol;
 typedef struct ast_code_upper           AstCodeUpper;
 typedef struct ast_code_lower           AstCodeLower;
@@ -83,7 +82,6 @@ enum ast_type {
   AST_PATTERN_NUMBER,
   AST_PATTERN_ASSIGN,
   AST_CODE,
-  AST_CODE_C,
   AST_CODE_SYMBOL,
   AST_CODE_UPPER,
   AST_CODE_LOWER,
@@ -144,7 +142,8 @@ struct ast_pattern_item {
 
 /**
  * Points to one of:
- *  AstCodeC
+ *  AstC
+ *  AstMatch
  *  AstCodeSymbol
  *  AstCodeUpper
  *  AstCodeLower
@@ -174,11 +173,18 @@ struct ast_code_symbol_item {
  * Type-checking functions
  */
 int ast_is_pattern_item(AstItem item);
+int ast_is_code_item(AstItem item);
+int ast_is_code_symbol_item(AstItem item);
 
 /*
  * Type-conversion functions
  */
-AstPatternItem ast_to_pattern_item(AstItem item);
+AstPatternItem      ast_to_pattern_item(AstItem item);
+AstCodeItem         ast_to_code_item(AstItem item);
+AstCodeSymbolItem   ast_to_code_symbol_item(AstItem item);
+AstMatchLine       *ast_to_match_line(AstItem item);
+AstPattern         *ast_to_pattern(AstItem item);
+AstCode            *ast_to_code(AstItem item);
 
 /* Top-level elements */
 struct ast_file {
@@ -202,13 +208,13 @@ struct ast_outline {
 };
 
 struct ast_rule {
-  AstRuleLine *lines;
-  AstRuleLine *lines_end;
+  AstRuleLine **lines;
+  AstRuleLine **lines_end;
 };
 
 struct ast_match {
   AstMatchLine **lines;
-  int line_n;
+  AstMatchLine **lines_end;
 };
 
 /* Elements within keywords */
@@ -284,10 +290,6 @@ struct ast_code {
   AstCodeItem *items_end;
 };
 
-struct ast_code_c { /* Untransformed code */
-  String code;
-};
-
 struct ast_code_symbol { /* Replacement symbol from pattern */
   AstPatternAssign *symbol;
 };
@@ -312,15 +314,15 @@ struct ast_code_string { /* Stringification */
   AstCodeSymbolItem symbol;
 };
 
-/*int ast_file_new(Pool *p);
-int ast_c_new(Pool *p, String code);
-int ast_include_new(Pool *p);
+/*AstFile          *ast_file_new                (Pool *p);*/
+AstC               *ast_c_new                   (Pool *p, String code);
+/*int ast_include_new(Pool *p);
 int ast_outline_new(Pool *p);
-int ast_rule_new(Pool *p);
-int ast_match_new(Pool *p);
-int ast_rule_line_new(Pool *p);
-int ast_match_line_new(Pool *p);
-int ast_outline_symbol_new(Pool *p, String symbol);
+int ast_rule_new(Pool *p);*/
+AstMatch           *ast_match_new               (Pool *p, AstMatchLine **lines, AstMatchLine **lines_end);
+/*int ast_rule_line_new(Pool *p);*/
+AstMatchLine       *ast_match_line_new          (Pool *p, AstPattern *pattern, AstCode *code);
+/*int ast_outline_symbol_new(Pool *p, String symbol);
 int ast_outline_string_new(Pool *p, String string);
 int ast_outline_number_new(Pool *p, String number);*/
 AstPattern         *ast_pattern_new             (Pool *p, AstPatternItem *items, AstPatternItem *items_end);
@@ -333,13 +335,12 @@ AstPatternSymbol   *ast_pattern_symbol_new      (Pool *p, String symbol);
 AstPatternString   *ast_pattern_string_new      (Pool *p, String string);
 AstPatternNumber   *ast_pattern_number_new      (Pool *p, String number);
 AstPatternAssign   *ast_pattern_assign_new      (Pool *p, String symbol, AstPatternItem pattern);
-/*AstCode            *ast_code_new                (Pool *p, AstCodeItem *items, AstCodeItem *items_end);
-AstCodeC           *ast_code_c_new              (Pool *p, String code);
-AstCodeSymbol      *ast_code_symbol_new         (Pool *p, String symbol);
+AstCode            *ast_code_new                (Pool *p, AstCodeItem *items, AstCodeItem *items_end);
+AstCodeSymbol      *ast_code_symbol_new         (Pool *p, AstPatternAssign *symbol);
 AstCodeUpper       *ast_code_upper_new          (Pool *p, AstCodeSymbolItem symbol);
 AstCodeLower       *ast_code_lower_new          (Pool *p, AstCodeSymbolItem symbol);
 AstCodeCamel       *ast_code_camel_new          (Pool *p, AstCodeSymbolItem symbol);
 AstCodeMixed       *ast_code_mixed_new          (Pool *p, AstCodeSymbolItem symbol);
-AstCodeString      *ast_code_string_new         (Pool *p, AstCodeSymbolItem symbol);*/
+AstCodeString      *ast_code_string_new         (Pool *p, AstCodeSymbolItem symbol);
 
 #endif

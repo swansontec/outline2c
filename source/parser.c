@@ -33,14 +33,13 @@
 /*#define DEBUG */
 
 #include "parser.h"
-#include "outline.h"
-#include "match.h"
 #include "lexer.h"
-#include "file.h"
-#include "string.h"
+#include "ast-builder.h"
+#include "outline.h"
+#include "search.h"
 #include "debug.h"
 #include "file.h"
-#include "ast-builder.h"
+#include "string.h"
 #include <stdio.h>
 
 int parse_source_file(Context *ctx);
@@ -52,9 +51,9 @@ int parse_outline(Context *ctx);
 int parse_outline_node(Context *ctx, OutlineBuilder *b);
 
 int parse_match_top(Context *ctx);
-int parse_match(Context *ctx, Match **match, Match *outer);
-int parse_match_line(Context *ctx, Match **match, Match *outer);
-int parse_match_code(Context *ctx, CodeBuilder *b, Match *outer);
+int parse_match(Context *ctx, AstBuilder *b);
+int parse_match_line(Context *ctx, AstBuilder *b);
+int parse_match_code(Context *ctx, AstBuilder *b);
 
 int parse_match_pattern(Context *ctx, AstBuilder *b);
 int parse_match_pattern_item(Context *ctx, AstBuilder *b);
@@ -192,7 +191,7 @@ int parse_top(Context *ctx)
 
   /* Unexpected end of input: */
   if (ctx->token == LEX_END) {
-    printf("Unexpected end of input.");
+    error(ctx, "Unexpected end of input.");
     return 1;
   /* Nested {} block: */
   } else if (ctx->token == LEX_BRACE_OPEN) {
@@ -207,15 +206,12 @@ int parse_top(Context *ctx)
   } else if (ctx->token == LEX_IDENTIFIER) {
     String temp = string_init(ctx->marker.p, ctx->cursor.p);
     if (string_equal(temp, string_init_l("include", 7))) {
-      info(ctx, "Got include rule");
       advance(ctx, 0);
       return parse_include(ctx);
     } else if (string_equal(temp, string_init_l("outline", 7))) {
-      info(ctx, "Got outline rule");
       advance(ctx, 0);
       return parse_outline(ctx);
     } else if (string_equal(temp, string_init_l("match", 5))) {
-      info(ctx, "Got match rule");
       advance(ctx, 0);
       return parse_match_top(ctx);
     } else {
@@ -358,17 +354,22 @@ int parse_outline_node(Context *ctx, OutlineBuilder *b)
 int parse_match_top(Context *ctx)
 {
   int rv;
-  Match *match = 0;
+  AstMatch *match;
 
-  rv = parse_match(ctx, &match, 0);
+  AstBuilder b;
+  rv = ast_builder_init(&b);
+  ENSURE_MEMORY(!rv);
+
+  rv = parse_match(ctx, &b);
   ENSURE_SUCCESS(rv);
 
-  if (match) {
+  match = ast_builder_pop(&b).p;
 #ifdef DEBUG
-    match_dump(match, 0);
+  ast_match_dump(match, 0);
 #endif
-    match_search(match, ctx->root.outline->children, ctx->out);
-  }
+  ast_match_search(match, ctx->root.outline->children, ctx->out);
+
+  ast_builder_free(&b);
   return 0;
 }
 
@@ -377,23 +378,27 @@ int parse_match_top(Context *ctx)
  * structures representing the entries in the pattern. Then, return the list to
  * the caller.
  */
-int parse_match(Context *ctx, Match **match, Match *outer)
+int parse_match(Context *ctx, AstBuilder *b)
 {
   int rv;
 
   /* Multiple matches between braces: */
   if (ctx->token == LEX_BRACE_OPEN) {
+    size_t lines = 0;
     advance(ctx, 0);
     while (ctx->token != LEX_BRACE_CLOSE) {
-      rv = parse_match_line(ctx, match, outer);
+      rv = parse_match_line(ctx, b);
       ENSURE_SUCCESS(rv);
       advance(ctx, 0);
+      ++lines;
     }
+    ENSURE_BUILD(ast_build_match(b, lines));
     return 0;
   /* Single match: */
   } else {
-    rv = parse_match_line(ctx, match, outer);
+    rv = parse_match_line(ctx, b);
     ENSURE_SUCCESS(rv);
+    ENSURE_BUILD(ast_build_match(b, 1));
     return 0;
   }
 }
@@ -402,17 +407,12 @@ int parse_match(Context *ctx, Match **match, Match *outer)
  * Parses a line within a match statement. A line must have a pattern and a
  * code block.
  */
-int parse_match_line(Context *ctx, Match **match, Match *outer)
+int parse_match_line(Context *ctx, AstBuilder *b)
 {
   int rv;
-  AstBuilder b;
-  CodeBuilder cb;
-  Match *temp;
 
   /* Parse the pattern: */
-  rv = ast_builder_init(&b); /* TODO: Stop this memory from being leaked. */
-  ENSURE_MEMORY(!rv);
-  rv = parse_match_pattern(ctx, &b);
+  rv = parse_match_pattern(ctx, b);
   ENSURE_SUCCESS(rv);
 
   /* Check for bad closing characters: */
@@ -425,39 +425,30 @@ int parse_match_line(Context *ctx, Match **match, Match *outer)
   }
 
   /* Parse the code: */
-  temp = match_new(outer);
-  ENSURE_MEMORY(temp);
-  temp->pattern = ast_builder_pop(&b).p;
-  code_builder_init(&cb);
-  rv = parse_match_code(ctx, &cb, temp);
+  rv = parse_match_code(ctx, b);
   ENSURE_SUCCESS(rv);
-  temp->code = cb.first;
 
-  /* Assemble the result: */
-  temp->next = *match;
-  *match = temp;
+  ENSURE_BUILD(ast_build_match_line(b));
   return 0;
 }
 
 /**
- * Handles individual entries within an outline statement.
+ * Parses a block of code within a match statement.
  */
-int parse_match_code(Context *ctx, CodeBuilder *b, Match *outer)
+int parse_match_code(Context *ctx, AstBuilder *b)
 {
   int rv;
   char const *start;
   int indent;
+  size_t items = 0;
 
-  /* At this point, the match pattern is now stored as a linked list. The next
-   * step is to process the source code block: */
   start = ctx->cursor.p;
   indent = 1;
   do {
     advance(ctx, 1);
     /* Sub-match expression: */
     if (ctx->token == LEX_ESCAPE_O2C) {
-      rv = code_builder_add_code(b, start, ctx->marker.p);
-      ENSURE_MEMORY(!rv);
+      ENSURE_BUILD(ast_build_c(b, string_init(start, ctx->marker.p))); ++items;
 
       advance(ctx, 0);
       {
@@ -468,22 +459,16 @@ int parse_match_code(Context *ctx, CodeBuilder *b, Match *outer)
         }
       }
       advance(ctx, 0);
-      {
-        Match *match;
-        rv = parse_match(ctx, &match, outer);
-        ENSURE_SUCCESS(rv);
-        rv = code_builder_add_match(b, match);
-        ENSURE_MEMORY(!rv);
-      }
+      rv = parse_match(ctx, b); ++items;
+      ENSURE_SUCCESS(rv);
       start = ctx->cursor.p;
+
     /* A symbol to substitute: */
     } else if (ctx->token == LEX_IDENTIFIER) {
-      String *p = match_find_symbol(outer, string_init(ctx->marker.p, ctx->cursor.p));
+      AstPatternAssign *p = ast_builder_find_assign(b, string_init(ctx->marker.p, ctx->cursor.p));
       if (p) {
-        rv = code_builder_add_code(b, start, ctx->marker.p);
-        ENSURE_MEMORY(!rv);
-        rv = code_builder_add_replace(b, p);
-        ENSURE_MEMORY(!rv);
+        ENSURE_BUILD(ast_build_c(b, string_init(start, ctx->marker.p))); ++items;
+        ENSURE_BUILD(ast_build_code_symbol(b, p)); ++items;
         start = ctx->cursor.p;
       }
     /* Opening brace: */
@@ -499,8 +484,8 @@ int parse_match_code(Context *ctx, CodeBuilder *b, Match *outer)
     }
     /* Anything else is C code; continue with the loop. */
   } while (indent);
-  rv = code_builder_add_code(b, start, ctx->marker.p);
-  ENSURE_MEMORY(!rv);
+  ENSURE_BUILD(ast_build_c(b, string_init(start, ctx->marker.p))); ++items;
+  ENSURE_BUILD(ast_build_code(b, items));
 
   return 0;
 }
@@ -512,7 +497,7 @@ int parse_match_code(Context *ctx, CodeBuilder *b, Match *outer)
 int parse_match_pattern(Context *ctx, AstBuilder *b)
 {
   int rv;
-  int items = 0;
+  size_t items = 0;
 
   while (1) {
     rv = parse_match_pattern_item(ctx, b);

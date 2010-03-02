@@ -19,9 +19,11 @@
 #ifndef SEARCH_H_INCLUDED
 #define SEARCH_H_INCLUDED
 
+#include "typedefs.h"
 #include "ast.h"
 
-String *ast_pattern_has_assign(AstPattern *pattern, String symbol);
+int ast_match_search(AstMatch *match, Outline *outline, FileW *file);
 int ast_pattern_compare(AstPattern *pattern, Outline *outline);
+int ast_code_generate(AstCode *code, Outline *outline, FileW *file);
 
 #endif

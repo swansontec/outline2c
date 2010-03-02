@@ -32,6 +32,30 @@ int ast_is_pattern_item(AstItem item)
     item.type == AST_PATTERN_ASSIGN;
 }
 
+int ast_is_code_item(AstItem item)
+{
+  return
+    item.type == AST_C ||
+    item.type == AST_MATCH ||
+    item.type == AST_CODE_SYMBOL ||
+    item.type == AST_CODE_UPPER ||
+    item.type == AST_CODE_LOWER ||
+    item.type == AST_CODE_CAMEL ||
+    item.type == AST_CODE_MIXED ||
+    item.type == AST_CODE_STRING;
+}
+
+int ast_is_code_symbol_item(AstItem item)
+{
+  return
+    item.type == AST_CODE_SYMBOL ||
+    item.type == AST_CODE_UPPER ||
+    item.type == AST_CODE_LOWER ||
+    item.type == AST_CODE_CAMEL ||
+    item.type == AST_CODE_MIXED ||
+    item.type == AST_CODE_STRING;
+}
+
 AstPatternItem ast_to_pattern_item(AstItem item)
 {
   AstPatternItem temp;
@@ -39,6 +63,78 @@ AstPatternItem ast_to_pattern_item(AstItem item)
   temp.p = item.p;
   temp.type = item.type;
   return temp;
+}
+
+AstCodeItem ast_to_code_item(AstItem item)
+{
+  AstCodeItem temp;
+  assert(ast_is_code_item(item));
+  temp.p = item.p;
+  temp.type = item.type;
+  return temp;
+}
+
+AstCodeSymbolItem ast_to_code_symbol_item(AstItem item)
+{
+  AstCodeSymbolItem temp;
+  assert(ast_is_code_symbol_item(item));
+  temp.p = item.p;
+  temp.type = item.type;
+  return temp;
+}
+
+AstMatchLine *ast_to_match_line(AstItem item)
+{
+  assert(item.type == AST_MATCH_LINE);
+  return item.p;
+}
+
+AstPattern *ast_to_pattern(AstItem item)
+{
+  assert(item.type == AST_PATTERN);
+  return item.p;
+}
+
+AstCode *ast_to_code(AstItem item)
+{
+  assert(item.type == AST_CODE);
+  return item.p;
+}
+
+AstC *ast_c_new(Pool *p, String code)
+{
+  AstC *self;
+  if (!code.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstC));
+  if (!self) return 0;
+  self->code = code;
+  return self;
+}
+
+AstMatch *ast_match_new(Pool *p, AstMatchLine **lines, AstMatchLine **lines_end)
+{
+  AstMatch *self;
+  if (!lines) return 0;
+
+  self = pool_alloc(p, sizeof(AstMatch));
+  if (!self) return 0;
+  self->lines = lines;
+  self->lines_end = lines_end;
+  return self;
+}
+
+AstMatchLine *ast_match_line_new(Pool *p, AstPattern *pattern, AstCode *code)
+{
+  AstMatchLine *self;
+  if (!pattern) return 0;
+  if (!code) return 0;
+
+  self = pool_alloc(p, sizeof(AstMatchLine));
+  if (!self) return 0;
+  self->pattern = pattern;
+  self->code = code;
+  return self;
 }
 
 AstPattern *ast_pattern_new(Pool *p, AstPatternItem *items, AstPatternItem *items_end)
@@ -131,5 +227,83 @@ AstPatternAssign *ast_pattern_assign_new(Pool *p, String symbol, AstPatternItem 
   if (!self) return 0;
   self->symbol = symbol;
   self->pattern = pattern;
+  return self;
+}
+
+AstCode *ast_code_new(Pool *p, AstCodeItem *items, AstCodeItem *items_end)
+{
+  AstCode *self;
+  if (!items) return 0;
+
+  self = pool_alloc(p, sizeof(AstCode));
+  if (!self) return 0;
+  self->items = items;
+  self->items_end = items_end;
+  return self;
+}
+
+AstCodeSymbol *ast_code_symbol_new(Pool *p, AstPatternAssign *symbol)
+{
+  AstCodeSymbol *self;
+  if (!symbol) return 0;
+
+  self = pool_alloc(p, sizeof(AstCodeSymbol));
+  if (!self) return 0;
+  self->symbol = symbol;
+  return self;
+}
+
+AstCodeUpper *ast_code_upper_new(Pool *p, AstCodeSymbolItem symbol)
+{
+  AstCodeUpper *self;
+  if (!symbol.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstCodeUpper));
+  if (!self) return 0;
+  self->symbol = symbol;
+  return self;
+}
+
+AstCodeLower *ast_code_lower_new(Pool *p, AstCodeSymbolItem symbol)
+{
+  AstCodeLower *self;
+  if (!symbol.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstCodeLower));
+  if (!self) return 0;
+  self->symbol = symbol;
+  return self;
+}
+
+AstCodeCamel *ast_code_camel_new(Pool *p, AstCodeSymbolItem symbol)
+{
+  AstCodeCamel *self;
+  if (!symbol.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstCodeCamel));
+  if (!self) return 0;
+  self->symbol = symbol;
+  return self;
+}
+
+AstCodeMixed *ast_code_mixed_new(Pool *p, AstCodeSymbolItem symbol)
+{
+  AstCodeMixed *self;
+  if (!symbol.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstCodeMixed));
+  if (!self) return 0;
+  self->symbol = symbol;
+  return self;
+}
+
+AstCodeString *ast_code_string_new(Pool *p, AstCodeSymbolItem symbol)
+{
+  AstCodeString *self;
+  if (!symbol.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstCodeString));
+  if (!self) return 0;
+  self->symbol = symbol;
   return self;
 }

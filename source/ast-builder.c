@@ -69,9 +69,81 @@ AstItem ast_builder_peek(AstBuilder *b)
   return (b->stack[b->stack_top - 1]);
 }
 
+/**
+ * Searches for an assignment statement in scope which has a name matching the
+ * given symbol. This search is insanely inefficient, and could really use
+ * some sort of fast data structure to accelerate it.
+ * @return a pointer to the found item, or 0 for no match
+ */
+AstPatternAssign *ast_builder_find_assign(AstBuilder *b, String symbol)
+{
+  size_t top = b->stack_top;
+  AstPatternAssign *temp;
+
+  while (top) {
+    --top;
+    if (b->stack[top].type == AST_PATTERN) {
+      temp = ast_pattern_find_assign(b->stack[top].p, symbol);
+      if (temp) return temp;
+    }
+  }
+  return 0;
+}
+
+/**
+ * Returns non-zero if a pattern has the specified symbol in its assignment
+ * list.
+ */
+AstPatternAssign *ast_pattern_find_assign(AstPattern *pattern, String symbol)
+{
+  AstPatternItem *item;
+
+  item = pattern->items;
+  while (item < pattern->items_end) {
+    if (item->type == AST_PATTERN_ASSIGN) {
+      AstPatternAssign *p = item->p;
+      if (string_equal(p->symbol, symbol))
+        return p;
+    }
+    ++item;
+  }
+  return 0;
+}
+
 /*
  * Functions for assembling an AST. All functions return 0 on success.
  */
+int ast_build_c(AstBuilder *b, String code)
+{
+  return ast_builder_push(b, AST_C,
+    ast_c_new(&b->pool,
+      pool_string_copy(&b->pool, code)));
+}
+
+int ast_build_match(AstBuilder *b, size_t line_n)
+{
+  size_t i;
+  AstMatchLine **lines;
+
+  lines = pool_alloc(&b->pool, line_n*sizeof(AstMatchLine **));
+  if (!lines) return 1;
+
+  b->stack_top -= line_n;
+  for (i = 0; i < line_n; ++i)
+    lines[i] = ast_to_match_line(b->stack[b->stack_top + i]);
+
+  return ast_builder_push(b, AST_MATCH,
+    ast_match_new(&b->pool, lines, lines + line_n));
+}
+
+int ast_build_match_line(AstBuilder *b)
+{
+  return ast_builder_push(b, AST_MATCH_LINE,
+    ast_match_line_new(&b->pool,
+      ast_to_pattern(ast_builder_pop(b)),
+      ast_to_code(ast_builder_pop(b))));
+}
+
 int ast_build_pattern(AstBuilder *b, size_t item_n)
 {
   size_t i;
@@ -146,4 +218,62 @@ int ast_build_pattern_assign(AstBuilder *b, String symbol)
     ast_pattern_assign_new(&b->pool,
       pool_string_copy(&b->pool, symbol),
       ast_to_pattern_item(ast_builder_pop(b))));
+}
+
+int ast_build_code(AstBuilder *b, size_t item_n)
+{
+  size_t i;
+  AstCodeItem *items;
+
+  items = pool_alloc(&b->pool, item_n*sizeof(AstCodeItem));
+  if (!items) return 1;
+
+  b->stack_top -= item_n;
+  for (i = 0; i < item_n; ++i)
+    items[i] = ast_to_code_item(b->stack[b->stack_top + i]);
+
+  return ast_builder_push(b, AST_CODE,
+    ast_code_new(&b->pool, items, items + item_n));
+}
+
+int ast_build_code_symbol(AstBuilder *b, AstPatternAssign *symbol)
+{
+  return ast_builder_push(b, AST_CODE_SYMBOL,
+    ast_code_symbol_new(&b->pool,
+      symbol));
+}
+
+int ast_build_code_upper(AstBuilder *b)
+{
+  return ast_builder_push(b, AST_CODE_UPPER,
+    ast_code_upper_new(&b->pool,
+      ast_to_code_symbol_item(ast_builder_pop(b))));
+}
+
+int ast_build_code_lower(AstBuilder *b)
+{
+  return ast_builder_push(b, AST_CODE_LOWER,
+    ast_code_lower_new(&b->pool,
+      ast_to_code_symbol_item(ast_builder_pop(b))));
+}
+
+int ast_build_code_camel(AstBuilder *b)
+{
+  return ast_builder_push(b, AST_CODE_CAMEL,
+    ast_code_camel_new(&b->pool,
+      ast_to_code_symbol_item(ast_builder_pop(b))));
+}
+
+int ast_build_code_mixed(AstBuilder *b)
+{
+  return ast_builder_push(b, AST_CODE_MIXED,
+    ast_code_mixed_new(&b->pool,
+      ast_to_code_symbol_item(ast_builder_pop(b))));
+}
+
+int ast_build_code_string(AstBuilder *b)
+{
+  return ast_builder_push(b, AST_CODE_STRING,
+    ast_code_string_new(&b->pool,
+      ast_to_code_symbol_item(ast_builder_pop(b))));
 }

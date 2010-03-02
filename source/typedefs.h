@@ -32,20 +32,6 @@ typedef struct file_w FileW;
 typedef struct outline_item OutlineItem;
 typedef struct outline      Outline;
 
-/* match.h */
-typedef struct code             Code;
-typedef struct code_code        CodeCode;
-typedef struct code_replace     CodeReplace;
-typedef struct code_match       CodeMatch;
-typedef struct match            Match;
-typedef struct match_builder    MatchBuilder;
-
-/* pattern.h */
-typedef struct pattern          Pattern;
-typedef struct pattern_wild     PatternWild;
-typedef struct pattern_word     PatternWord;
-typedef struct pattern_replace  PatternReplace;
-
 /* pool.h */
 typedef struct pool Pool;
 

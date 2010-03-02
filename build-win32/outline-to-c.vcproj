@@ -216,14 +216,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\source\match.c"
-			>
-		</File>
-		<File
-			RelativePath="..\source\match.h"
-			>
-		</File>
-		<File
 			RelativePath="..\source\outline.c"
 			>
 		</File>

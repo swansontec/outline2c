@@ -16,7 +16,6 @@
 
 #include "debug.h"
 #include "outline.h"
-#include "match.h"
 #include "string.h"
 #include <stdio.h>
 
@@ -56,60 +55,37 @@ void outline_dump(Outline *node, int indent)
   }
 }
 
-void match_dump_line(Match *match, int indent);
-
 /**
  * Dumps a match for debugging purposes.
  */
-void match_dump(Match *match, int indent)
+void ast_match_dump(AstMatch *match, int indent)
 {
-  if (match) {
-    printf("@o2c match ");
-    if (match->next) {
-      printf("{\n");
-      while (match) {
-        space(indent + 1);
-        match_dump_line(match, indent + 1);
-        match = match->next;
-      }
-      space(indent);
-      printf("}\n");
-    } else {
-      match_dump_line(match, indent);
+  printf("@o2c match ");
+  if (match->lines_end - match->lines == 1) {
+    ast_match_line_dump(*match->lines, indent);
+  } else {
+    AstMatchLine **line;
+
+    printf("{\n");
+    line = match->lines;
+    while (line < match->lines_end) {
+      space(indent + 1);
+      ast_match_line_dump(*line, indent + 1);
+      ++line;
     }
+    space(indent);
+    printf("}\n");
   }
 }
 
 /**
  * Dumps a single pattern line within a match.
  */
-void match_dump_line(Match *match, int indent)
+void ast_match_line_dump(AstMatchLine *p, int indent)
 {
-  Code code;
-
-  /* Pattern: */
-  ast_pattern_dump(match->pattern);
-
-  /* Code block (the formatting is all wrong, but the info is there): */
+  ast_pattern_dump(p->pattern);
   printf("{");
-  code = match->code;
-  while (code.p) {
-    if (code.type == CODE_CODE) {
-      CodeCode *p = (CodeCode *)code.p;
-      char *temp = string_to_c(string_init(p->p, p->end));
-      printf("%s", temp);
-      free(temp);
-    } else if (code.type == CODE_REPLACE) {
-      CodeReplace *p = (CodeReplace *)code.p;
-      char *s = string_to_c(*p->symbol);
-      printf("<%s>", s);
-      free(s);
-    } else if (code.type == CODE_MATCH) {
-      CodeMatch *p = (CodeMatch *)code.p;
-      match_dump(p->match, indent);
-    }
-    code = code_get_next(code);
-  }
+  ast_code_dump(p->code, indent);
   printf("}\n");
 }
 
@@ -144,6 +120,8 @@ void ast_pattern_item_dump(AstPatternItem item)
   case AST_PATTERN_ASSIGN:
     ast_pattern_assign_dump((AstPatternAssign*)item.p);
     break;
+  default:
+    printf("(Unknown pattern item %d)", item.type);
   }
 }
 
@@ -166,4 +144,30 @@ void ast_pattern_assign_dump(AstPatternAssign *p)
   free(temp);
   ast_pattern_item_dump(p->pattern);
   printf(")");
+}
+
+void ast_code_dump(AstCode *p, int indent)
+{
+  AstCodeItem *item;
+
+  item = p->items;
+  while (item < p->items_end) {
+    if (item->type == AST_C) {
+      AstC *p = item->p;
+      char *temp = string_to_c(string_init(p->code.p, p->code.end));
+      printf("%s", temp);
+      free(temp);
+    } else if (item->type == AST_MATCH) {
+      AstMatch *p = item->p;
+      ast_match_dump(p, indent);
+    } else if (item->type == AST_CODE_SYMBOL) {
+      AstCodeSymbol *p = item->p;
+      char *s = string_to_c(p->symbol->symbol);
+      printf("<%s>", s);
+      free(s);
+    } else {
+      printf("(Unknown code item %d)", item->type);
+    }
+    ++item;
+  }
 }

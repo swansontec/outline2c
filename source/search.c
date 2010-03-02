@@ -21,26 +21,31 @@
 
 #include "search.h"
 #include "outline.h"
+#include "file.h"
 #include <assert.h>
 
 int ast_pattern_item_match(AstPatternItem pattern, OutlineItem *o);
 
 /**
- * Returns non-zero if a pattern has the specified symbol in its assignment
- * list.
+ * Compares a match and its siblings against an outline and its siblings.
+ * Generates code for the first match to to match against a particular outline.
+ * @return 0 for success
  */
-String *ast_pattern_has_assign(AstPattern *pattern, String symbol)
+int ast_match_search(AstMatch *match, Outline *outline, FileW *file)
 {
-  AstPatternItem *item;
+  int rv;
 
-  item = pattern->items;
-  while (item < pattern->items_end) {
-    if (item->type == AST_PATTERN_ASSIGN) {
-      AstPatternAssign *p = item->p;
-      if (string_equal(p->symbol, symbol))
-        return &p->symbol;
+  while (outline) {
+    AstMatchLine **line = match->lines;
+    while (line < match->lines_end) {
+      if (ast_pattern_compare((*line)->pattern, outline)) {
+        rv = ast_code_generate((*line)->code, outline->children, file);
+        if (rv) return rv;
+        break;
+      }
+      ++line;
     }
-    ++item;
+    outline = outline->next;
   }
   return 0;
 }
@@ -102,4 +107,37 @@ int ast_pattern_assign_match(AstPatternAssign *p, OutlineItem *o)
     return 0;
   p->symbol = string_init(o->p, o->end);
   return 1;
+}
+
+/**
+ * Generates code for a match block.
+ * @return 0 for success
+ */
+int ast_code_generate(AstCode *code, Outline *outline, FileW *file)
+{
+  int rv;
+  char end[] = "\n";
+  AstCodeItem *item;
+
+  item = code->items;
+  while (item < code->items_end) {
+    if (item->type == AST_C) {
+      AstC *p = item->p;
+      rv = file_w_write(file, p->code.p, p->code.end);
+      if (rv) return rv;
+    } else if (item->type == AST_MATCH) {
+      AstMatch *p = item->p;
+      rv = ast_match_search(p, outline, file);
+      if (rv) return rv;
+    } else if (item->type == AST_CODE_SYMBOL) {
+      AstCodeSymbol *p = item->p;
+      rv = file_w_write(file, p->symbol->symbol.p, p->symbol->symbol.end);
+      if (rv) return rv;
+    } else {
+      assert(0);
+    }
+    ++item;
+  }
+  file_w_write(file, end, end+1);
+  return 0;
 }
