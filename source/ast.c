@@ -18,6 +18,14 @@
 #include "pool.h"
 #include <assert.h>
 
+int ast_is_outline_item(AstItem item)
+{
+  return
+    item.type == AST_OUTLINE_SYMBOL ||
+    item.type == AST_OUTLINE_STRING ||
+    item.type == AST_OUTLINE_NUMBER;
+}
+
 int ast_is_pattern_item(AstItem item)
 {
   return
@@ -56,6 +64,15 @@ int ast_is_code_symbol_item(AstItem item)
     item.type == AST_CODE_STRING;
 }
 
+AstOutlineItem ast_to_outline_item(AstItem item)
+{
+  AstOutlineItem temp;
+  assert(ast_is_outline_item(item));
+  temp.p = item.p;
+  temp.type = item.type;
+  return temp;
+}
+
 AstPatternItem ast_to_pattern_item(AstItem item)
 {
   AstPatternItem temp;
@@ -81,6 +98,12 @@ AstCodeSymbolItem ast_to_code_symbol_item(AstItem item)
   temp.p = item.p;
   temp.type = item.type;
   return temp;
+}
+
+AstOutline *ast_to_outline(AstItem item)
+{
+  assert(item.type == AST_OUTLINE);
+  return item.p;
 }
 
 AstMatchLine *ast_to_match_line(AstItem item)
@@ -136,6 +159,55 @@ AstMatchLine *ast_match_line_new(Pool *p, AstPattern *pattern, AstCode *code)
   self->code = code;
   return self;
 }
+
+AstOutline *ast_outline_new(Pool *p, AstOutlineItem *items, AstOutlineItem *items_end, AstOutline **children, AstOutline **children_end)
+{
+  AstOutline *self;
+  if (!items) return 0;
+  if (!children) return 0;
+
+  self = pool_alloc(p, sizeof(AstOutline));
+  if (!self) return 0;
+  self->items = items;
+  self->items_end = items_end;
+  self->children = children;
+  self->children_end = children_end;
+  return self;
+}
+
+AstOutlineSymbol *ast_outline_symbol_new(Pool *p, String symbol)
+{
+  AstOutlineSymbol *self;
+  if (!symbol.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstOutlineSymbol));
+  if (!self) return 0;
+  self->symbol = symbol;
+  return self;
+}
+
+AstOutlineString *ast_outline_string_new(Pool *p, String string)
+{
+  AstOutlineString *self;
+  if (!string.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstOutlineString));
+  if (!self) return 0;
+  self->string = string;
+  return self;
+}
+
+AstOutlineNumber *ast_outline_number_new(Pool *p, String number)
+{
+  AstOutlineNumber *self;
+  if (!number.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstOutlineNumber));
+  if (!self) return 0;
+  self->number = number;
+  return self;
+}
+
 
 AstPattern *ast_pattern_new(Pool *p, AstPatternItem *items, AstPatternItem *items_end)
 {

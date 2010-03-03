@@ -22,8 +22,30 @@
 #include "typedefs.h"
 #include "ast.h"
 
-int ast_match_search(AstMatch *match, Outline *outline, FileW *file);
-int ast_pattern_compare(AstPattern *pattern, Outline *outline);
-int ast_code_generate(AstCode *code, Outline *outline, FileW *file);
+typedef struct outline_list OutlineList;
+
+/**
+ * A list of all outlines in-scope. The search algorithm works against this
+ * list while generating code. The list can either be extracted from the top-
+ * level file, or it can be taken from the children of a matching outline. In
+ * the second case, it might make sense to create a parent pointer within this
+ * structure, providing the ability to navigate up a level.
+ */
+struct outline_list {
+  AstOutline **p;
+  AstOutline **end;
+};
+void outline_list_free(OutlineList *self);
+int outline_list_from_file(OutlineList *self, AstItem *items, AstItem *items_end);
+OutlineList outline_list_from_outline(AstOutline *outline);
+
+int ast_match_search(AstMatch *match, OutlineList outlines, FileW *file);
+int ast_code_generate(AstCode *code, OutlineList outlines, FileW *file);
+
+int match_pattern(AstPattern *pattern, AstOutline *outline);
+int match_pattern_item(AstPatternItem pi, AstOutlineItem oi);
+int match_pattern_wild(AstPatternWild *p, AstOutlineItem oi);
+int match_pattern_symbol(AstPatternSymbol *p, AstOutlineItem oi);
+int match_pattern_assign(AstPatternAssign *p, AstOutlineItem oi);
 
 #endif

@@ -35,28 +35,27 @@
 #include "parser.h"
 #include "lexer.h"
 #include "ast-builder.h"
-#include "outline.h"
 #include "search.h"
 #include "debug.h"
 #include "file.h"
 #include "string.h"
 #include <stdio.h>
 
-int parse_source_file(Context *ctx);
-int parse_top(Context *ctx);
+int parse_source_file(Context *ctx, AstBuilder *b);
+int parse_top(Context *ctx, AstBuilder *b);
 
-int parse_include(Context *ctx);
+int parse_include(Context *ctx, AstBuilder *b);
 
-int parse_outline(Context *ctx);
-int parse_outline_node(Context *ctx, OutlineBuilder *b);
+int parse_outline_top(Context *ctx, AstBuilder *b);
+int parse_outline(Context *ctx, AstBuilder *b);
 
-int parse_match_top(Context *ctx);
+int parse_match_top(Context *ctx, AstBuilder *b);
 int parse_match(Context *ctx, AstBuilder *b);
 int parse_match_line(Context *ctx, AstBuilder *b);
 int parse_match_code(Context *ctx, AstBuilder *b);
 
-int parse_match_pattern(Context *ctx, AstBuilder *b);
-int parse_match_pattern_item(Context *ctx, AstBuilder *b);
+int parse_pattern(Context *ctx, AstBuilder *b);
+int parse_pattern_item(Context *ctx, AstBuilder *b);
 
 /**
  * All parser functions return 0 for success and non-zero for failure. This
@@ -100,15 +99,12 @@ error(Context *ctx, char const *message)
  */
 Context context_init(String file, char const *filename, FileW *out)
 {
-  static Outline root = {0};
-
   Context ctx;
   ctx.file = file;
   ctx.filename = filename;
   ctx.out = out;
 
   ctx.cursor = cursor_init(file.p);
-  outline_builder_init(&ctx.root, &root);
   return ctx;
 }
 
@@ -131,13 +127,29 @@ parser_start(String aIn, char const *filename, FileW *aOut)
   int rv;
 
   Context ctx = context_init(aIn, filename, aOut);
-  rv = parse_source_file(&ctx);
+  AstBuilder b;
+  rv = ast_builder_init(&b);
+  ENSURE_MEMORY(!rv);
+
+  rv = parse_source_file(&ctx, &b);
   ENSURE_SUCCESS(rv);
 
 #ifdef DEBUG
   printf("--- Outline: ---\n");
-  outline_dump(ctx.root.outline, 0);
+  {
+    OutlineList list;
+    AstOutline **outline;
+    outline_list_from_file(&list, b.stack, b.stack + b.stack_top);
+    outline = list.p;
+    while (outline < list.end) {
+      ast_outline_dump(*outline, 0);
+      ++outline;
+    }
+    outline_list_free(&list);
+  }
 #endif
+
+  ast_builder_free(&b);
   return 0;
 }
 
@@ -147,7 +159,7 @@ parser_start(String aIn, char const *filename, FileW *aOut)
  * the other parser methods, it is incorrect to advance the cursor before
  * calling.
  */
-int parse_source_file(Context *ctx)
+int parse_source_file(Context *ctx, AstBuilder *b)
 {
   int rv;
   char const *start;
@@ -167,7 +179,7 @@ int parse_source_file(Context *ctx)
       /* Process the next token: */
       info(ctx, "Got escape code");
       advance(ctx, 0);
-      rv = parse_top(ctx);
+      rv = parse_top(ctx, b);
       ENSURE_SUCCESS(rv);
       start = ctx->cursor.p;
     }
@@ -185,7 +197,7 @@ int parse_source_file(Context *ctx)
 /**
  * Handles the bit right after an @o2c escape code.
  */
-int parse_top(Context *ctx)
+int parse_top(Context *ctx, AstBuilder *b)
 {
   int rv;
 
@@ -197,7 +209,7 @@ int parse_top(Context *ctx)
   } else if (ctx->token == LEX_BRACE_OPEN) {
     advance(ctx, 0);
     while (ctx->token != LEX_BRACE_CLOSE) {
-      rv = parse_top(ctx);
+      rv = parse_top(ctx, b);
       ENSURE_SUCCESS(rv);
       advance(ctx, 0);
     }
@@ -207,13 +219,13 @@ int parse_top(Context *ctx)
     String temp = string_init(ctx->marker.p, ctx->cursor.p);
     if (string_equal(temp, string_init_l("include", 7))) {
       advance(ctx, 0);
-      return parse_include(ctx);
+      return parse_include(ctx, b);
     } else if (string_equal(temp, string_init_l("outline", 7))) {
       advance(ctx, 0);
-      return parse_outline(ctx);
+      return parse_outline_top(ctx, b);
     } else if (string_equal(temp, string_init_l("match", 5))) {
       advance(ctx, 0);
-      return parse_match_top(ctx);
+      return parse_match_top(ctx, b);
     } else {
       error(ctx, "No idea what this keyword is.\n");
       return 1;
@@ -227,7 +239,7 @@ int parse_top(Context *ctx)
 /**
  * Handles the "include" directive
  */
-int parse_include(Context *ctx)
+int parse_include(Context *ctx, AstBuilder *b)
 {
   int rv;
   Context c;
@@ -250,7 +262,6 @@ int parse_include(Context *ctx)
   c.filename = filename;
   c.out = ctx->out;
   c.cursor = cursor_init(file.p);
-  c.root = ctx->root;
 #ifdef DEBUG
   printf("The filename is: \"%s\"\n", filename);
 #endif
@@ -258,7 +269,7 @@ int parse_include(Context *ctx)
   /* Parse the input file: */
   advance(&c, 0);
   while (c.token != LEX_END) {
-    rv = parse_top(&c);
+    rv = parse_top(&c, b);
     ENSURE_SUCCESS(rv);
     advance(&c, 0);
   }
@@ -268,7 +279,6 @@ int parse_include(Context *ctx)
   /* TODO: Closing the file would invalidate all string pointers in the AST.
    find some better way to handle this problem. */
 /*  file_r_close(&file); */
-  ctx->root = c.root;
 
   advance(ctx, 0);
   if (ctx->token != LEX_SEMICOLON) {
@@ -279,9 +289,10 @@ int parse_include(Context *ctx)
 }
 
 /**
- * Handles the outline keyword.
+ * Handles the outline top-level keyword, which may contain several actual
+ * outlines.
  */
-int parse_outline(Context *ctx)
+int parse_outline_top(Context *ctx, AstBuilder *b)
 {
   int rv;
 
@@ -289,23 +300,15 @@ int parse_outline(Context *ctx)
   if (ctx->token == LEX_BRACE_OPEN) {
     advance(ctx, 0);
     while (ctx->token != LEX_BRACE_CLOSE) {
-      OutlineBuilder temp;
-      rv = outline_builder_init_new(&temp);
-      ENSURE_MEMORY(!rv);
-      rv = parse_outline_node(ctx, &temp);
+      rv = parse_outline(ctx, b);
       ENSURE_SUCCESS(rv);
-      outline_builder_insert_outline(&ctx->root, temp.outline);
       advance(ctx, 0);
     }
     return 0;
   /* Single outline: */
   } else {
-    OutlineBuilder temp;
-    rv = outline_builder_init_new(&temp);
-    ENSURE_MEMORY(!rv);
-    rv = parse_outline_node(ctx, &temp);
+    rv = parse_outline(ctx, b);
     ENSURE_SUCCESS(rv);
-    outline_builder_insert_outline(&ctx->root, temp.outline);
     return 0;
   }
 }
@@ -313,31 +316,38 @@ int parse_outline(Context *ctx)
 /**
  * Handles individual entries within an outline statement.
  */
-int parse_outline_node(Context *ctx, OutlineBuilder *b)
+int parse_outline(Context *ctx, AstBuilder *b)
 {
   int rv;
+  size_t item_n = 0, child_n = 0;
 
   /* Handle the works making up the node: */
-  while (ctx->token == LEX_IDENTIFIER || ctx->token == LEX_STRING) {
-    rv = outline_builder_add_word(b, ctx->marker.p, ctx->cursor.p);
-    ENSURE_MEMORY(!rv);
+  while (1) {
+    if (ctx->token == LEX_IDENTIFIER) {
+      ENSURE_BUILD(ast_build_outline_symbol(b, string_init(ctx->marker.p, ctx->cursor.p))); ++item_n;
+    } else if (ctx->token == LEX_STRING) {
+      ENSURE_BUILD(ast_build_outline_string(b, string_init(ctx->marker.p, ctx->cursor.p))); ++item_n;
+    } else if (ctx->token == LEX_NUMBER) {
+      ENSURE_BUILD(ast_build_outline_number(b, string_init(ctx->marker.p, ctx->cursor.p))); ++item_n;
+    } else {
+      break;
+    }
     advance(ctx, 0);
   }
+
   /* Handle any sub-nodes: */
   if (ctx->token == LEX_BRACE_OPEN) {
     advance(ctx, 0);
     while (ctx->token != LEX_BRACE_CLOSE) {
-      OutlineBuilder temp;
-      rv = outline_builder_init_new(&temp);
-      ENSURE_MEMORY(!rv);
-      rv = parse_outline_node(ctx, &temp);
+      rv = parse_outline(ctx, b); ++child_n;
       ENSURE_SUCCESS(rv);
-      outline_builder_insert_outline(b, temp.outline);
       advance(ctx, 0);
     }
+    ENSURE_BUILD(ast_build_outline(b, item_n, child_n));
     return 0;
   /* Otherwise, the node must end with a semicolon: */
   } else if (ctx->token == LEX_SEMICOLON) {
+    ENSURE_BUILD(ast_build_outline(b, item_n, child_n));
     return 0;
   /* Anything else is an error: */
   } else {
@@ -351,25 +361,24 @@ int parse_outline_node(Context *ctx, OutlineBuilder *b)
  * perform the actual parsing. Then, it feeds the return value into the code-
  * generation algorithm.
  */
-int parse_match_top(Context *ctx)
+int parse_match_top(Context *ctx, AstBuilder *b)
 {
   int rv;
-  AstMatch *match;
 
-  AstBuilder b;
-  rv = ast_builder_init(&b);
-  ENSURE_MEMORY(!rv);
-
-  rv = parse_match(ctx, &b);
+  rv = parse_match(ctx, b);
   ENSURE_SUCCESS(rv);
 
-  match = ast_builder_pop(&b).p;
+  /* Process the match straight away, popping it off the stack in the process. */
+  {
+    OutlineList list;
+    AstMatch *match = ast_builder_pop(b).p;
 #ifdef DEBUG
-  ast_match_dump(match, 0);
+    ast_match_dump(match, 0);
 #endif
-  ast_match_search(match, ctx->root.outline->children, ctx->out);
-
-  ast_builder_free(&b);
+    outline_list_from_file(&list, b->stack, b->stack + b->stack_top);
+    ast_match_search(match, list, ctx->out);
+    outline_list_free(&list);
+  }
   return 0;
 }
 
@@ -412,7 +421,7 @@ int parse_match_line(Context *ctx, AstBuilder *b)
   int rv;
 
   /* Parse the pattern: */
-  rv = parse_match_pattern(ctx, b);
+  rv = parse_pattern(ctx, b);
   ENSURE_SUCCESS(rv);
 
   /* Check for bad closing characters: */
@@ -494,13 +503,13 @@ int parse_match_code(Context *ctx, AstBuilder *b)
  * Handles pattern syntax. The context will be advanced when this function
  * returns.
  */
-int parse_match_pattern(Context *ctx, AstBuilder *b)
+int parse_pattern(Context *ctx, AstBuilder *b)
 {
   int rv;
   size_t items = 0;
 
   while (1) {
-    rv = parse_match_pattern_item(ctx, b);
+    rv = parse_pattern_item(ctx, b);
     if (rv == -1) {
       ENSURE_BUILD(ast_build_pattern(b, items));
       return 0;
@@ -517,18 +526,18 @@ int parse_match_pattern(Context *ctx, AstBuilder *b)
  * when this function returns.
  * @return 0 for success, -1 for unknown symbol, 1 for definite errors
  */
-int parse_match_pattern_item(Context *ctx, AstBuilder *b)
+int parse_pattern_item(Context *ctx, AstBuilder *b)
 {
   int rv;
 
-  /* An identifier could be either a literal or a replacement rule: */
+  /* An identifier could be either a terminal symbol or an assignmen rule: */
   if (ctx->token == LEX_IDENTIFIER) {
     String s = string_init(ctx->marker.p, ctx->cursor.p);
     advance(ctx, 0);
     /* Replacement rule: */
     if (ctx->token == LEX_EQUALS) {
       advance(ctx, 0);
-      rv = parse_match_pattern_item(ctx, b);
+      rv = parse_pattern_item(ctx, b);
       if (rv) {
         error(ctx, "A replacement rule must end with a sub-pattern.");
         return 1;

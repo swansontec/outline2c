@@ -15,7 +15,6 @@
  */
 
 #include "debug.h"
-#include "outline.h"
 #include "string.h"
 #include <stdio.h>
 
@@ -30,29 +29,75 @@ static void space(int indent)
  * Dumps a node for debugging purposes. Indent sets the indentation level for
  * the printout.
  */
-void outline_dump(Outline *node, int indent)
+void ast_outline_dump(AstOutline *outline, int indent)
 {
-  OutlineItem *word = node->words;
-  char *temp;
+  AstOutlineItem *item;
+  AstOutline **child;
+
+  /* Words: */
   space(indent);
-  while (word) {
-    temp = string_to_c(string_init(word->p, word->end));
-    printf("%s ", temp);
-    free(temp);
-    word = word->next;
+  item = outline->items;
+  while (item < outline->items_end) {
+    if (item != outline->items)
+      printf(" ");
+    ast_outline_item_dump(*item);
+    ++item;
   }
-  if (node->children) {
-    printf("{\n");
-    node = node->children;
-    while (node) {
-      outline_dump(node, indent + 1);
-      node = node->next;
+
+  /* Children: */
+  child = outline->children;
+  if (child != outline->children_end) {
+    printf(" {\n");
+    while (child != outline->children_end) {
+      ast_outline_dump(*child, indent + 1);
+      ++child;
     }
     space(indent);
     printf("}\n");
   } else {
     printf(";\n");
   }
+}
+
+/**
+ * Dumps a single item within an outline.
+ */
+void ast_outline_item_dump(AstOutlineItem item)
+{
+  switch (item.type) {
+  case AST_OUTLINE_SYMBOL:
+    ast_outline_symbol_dump((AstOutlineSymbol*)item.p);
+    break;
+  case AST_OUTLINE_STRING:
+    ast_outline_string_dump((AstOutlineString*)item.p);
+    break;
+  case AST_OUTLINE_NUMBER:
+    ast_outline_number_dump((AstOutlineNumber*)item.p);
+    break;
+  default:
+    printf("(Unknown outline item %d)", item.type);
+  }
+}
+
+void ast_outline_symbol_dump(AstOutlineSymbol *p)
+{
+  char *temp = string_to_c(p->symbol);
+  printf("%s", temp);
+  free(temp);
+}
+
+void ast_outline_string_dump(AstOutlineString *p)
+{
+  char *temp = string_to_c(p->string);
+  printf("%s", temp);
+  free(temp);
+}
+
+void ast_outline_number_dump(AstOutlineNumber *p)
+{
+  char *temp = string_to_c(p->number);
+  printf("%s", temp);
+  free(temp);
 }
 
 /**

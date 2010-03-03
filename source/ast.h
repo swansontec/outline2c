@@ -24,13 +24,13 @@ typedef struct ast_file                 AstFile;
 typedef struct ast_c                    AstC;
 typedef struct ast_include              AstInclude;
 typedef struct ast_outline              AstOutline;
-typedef struct ast_rule                 AstRule;
-typedef struct ast_match                AstMatch;
-typedef struct ast_rule_line            AstRuleLine;
-typedef struct ast_match_line           AstMatchLine;
 typedef struct ast_outline_symbol       AstOutlineSymbol;
 typedef struct ast_outline_string       AstOutlineString;
 typedef struct ast_outline_number       AstOutlineNumber;
+typedef struct ast_rule                 AstRule;
+typedef struct ast_rule_line            AstRuleLine;
+typedef struct ast_match                AstMatch;
+typedef struct ast_match_line           AstMatchLine;
 typedef struct ast_pattern              AstPattern;
 typedef struct ast_pattern_wild         AstPatternWild;
 typedef struct ast_pattern_any_symbol   AstPatternAnySymbol;
@@ -172,6 +172,7 @@ struct ast_code_symbol_item {
 /*
  * Type-checking functions
  */
+int ast_is_outline_item(AstItem item);
 int ast_is_pattern_item(AstItem item);
 int ast_is_code_item(AstItem item);
 int ast_is_code_symbol_item(AstItem item);
@@ -179,9 +180,11 @@ int ast_is_code_symbol_item(AstItem item);
 /*
  * Type-conversion functions
  */
+AstOutlineItem      ast_to_outline_item(AstItem item);
 AstPatternItem      ast_to_pattern_item(AstItem item);
 AstCodeItem         ast_to_code_item(AstItem item);
 AstCodeSymbolItem   ast_to_code_symbol_item(AstItem item);
+AstOutline         *ast_to_outline(AstItem item);
 AstMatchLine       *ast_to_match_line(AstItem item);
 AstPattern         *ast_to_pattern(AstItem item);
 AstCode            *ast_to_code(AstItem item);
@@ -200,35 +203,14 @@ struct ast_include {
   AstFile *file;
 };
 
+/* Outline elements */
 struct ast_outline {
   AstOutlineItem *items;
   AstOutlineItem *items_end;
-  AstOutline *children;
-  AstOutline *children_end;
+  AstOutline **children;
+  AstOutline **children_end;
 };
 
-struct ast_rule {
-  AstRuleLine **lines;
-  AstRuleLine **lines_end;
-};
-
-struct ast_match {
-  AstMatchLine **lines;
-  AstMatchLine **lines_end;
-};
-
-/* Elements within keywords */
-struct ast_rule_line {
-  AstPattern *pattern;
-  AstCode *code;
-};
-
-struct ast_match_line {
-  AstPattern *pattern;
-  AstCode *code;
-};
-
-/* Outline elements */
 struct ast_outline_symbol {
   String symbol;
 };
@@ -241,7 +223,29 @@ struct ast_outline_number {
   String number;
 };
 
-/* Pattern-matching elements  */
+/* Rule elements */
+struct ast_rule {
+  AstRuleLine **lines;
+  AstRuleLine **lines_end;
+};
+
+struct ast_rule_line {
+  AstPattern *pattern;
+  AstCode *code;
+};
+
+/* Match elements */
+struct ast_match {
+  AstMatchLine **lines;
+  AstMatchLine **lines_end;
+};
+
+struct ast_match_line {
+  AstPattern *pattern;
+  AstCode *code;
+};
+
+/* Pattern elements */
 struct ast_pattern {
   AstPatternItem *items;
   AstPatternItem *items_end;
@@ -316,15 +320,15 @@ struct ast_code_string { /* Stringification */
 
 /*AstFile          *ast_file_new                (Pool *p);*/
 AstC               *ast_c_new                   (Pool *p, String code);
-/*int ast_include_new(Pool *p);
-int ast_outline_new(Pool *p);
-int ast_rule_new(Pool *p);*/
+/*int ast_include_new(Pool *p);*/
+AstOutline         *ast_outline_new             (Pool *p, AstOutlineItem *items, AstOutlineItem *items_end, AstOutline **children, AstOutline **children_end);
+AstOutlineSymbol   *ast_outline_symbol_new      (Pool *p, String symbol);
+AstOutlineString   *ast_outline_string_new      (Pool *p, String string);
+AstOutlineNumber   *ast_outline_number_new      (Pool *p, String number);
+/*int ast_rule_new(Pool *p);
+int ast_rule_line_new(Pool *p);*/
 AstMatch           *ast_match_new               (Pool *p, AstMatchLine **lines, AstMatchLine **lines_end);
-/*int ast_rule_line_new(Pool *p);*/
 AstMatchLine       *ast_match_line_new          (Pool *p, AstPattern *pattern, AstCode *code);
-/*int ast_outline_symbol_new(Pool *p, String symbol);
-int ast_outline_string_new(Pool *p, String string);
-int ast_outline_number_new(Pool *p, String number);*/
 AstPattern         *ast_pattern_new             (Pool *p, AstPatternItem *items, AstPatternItem *items_end);
 AstPatternWild     *ast_pattern_wild_new        (Pool *p);
 AstPatternAnySymbol*ast_pattern_any_symbol_new  (Pool *p);

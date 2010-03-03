@@ -216,14 +216,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\source\outline.c"
-			>
-		</File>
-		<File
-			RelativePath="..\source\outline.h"
-			>
-		</File>
-		<File
 			RelativePath="..\source\parser.c"
 			>
 		</File>

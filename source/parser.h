@@ -21,7 +21,6 @@
 typedef struct context Context;
 
 #include "lexer.h"
-#include "outline.h"
 #include "string.h"
 struct context
 {
@@ -34,9 +33,6 @@ struct context
   Cursor cursor;
   Cursor marker;
   Token token;
-
-  /* Outline: */
-  OutlineBuilder root;
 };
 Context context_init(String file, char const *filename, FileW *out);
 

@@ -120,12 +120,57 @@ int ast_build_c(AstBuilder *b, String code)
       pool_string_copy(&b->pool, code)));
 }
 
+int ast_build_outline(AstBuilder *b, size_t item_n, size_t child_n)
+{
+  size_t i;
+  AstOutlineItem *items;
+  AstOutline **children;
+
+  items = pool_alloc(&b->pool, item_n*sizeof(AstOutlineItem));
+  if (!items) return 1;
+
+  children = pool_alloc(&b->pool, item_n*sizeof(AstOutline *));
+  if (!children) return 1;
+
+  b->stack_top -= child_n;
+  for (i = 0; i < child_n; ++i)
+    children[i] = ast_to_outline(b->stack[b->stack_top + i]);
+
+  b->stack_top -= item_n;
+  for (i = 0; i < item_n; ++i)
+    items[i] = ast_to_outline_item(b->stack[b->stack_top + i]);
+
+  return ast_builder_push(b, AST_OUTLINE,
+    ast_outline_new(&b->pool, items, items + item_n, children, children + child_n));
+}
+
+int ast_build_outline_symbol(AstBuilder *b, String symbol)
+{
+  return ast_builder_push(b, AST_OUTLINE_SYMBOL,
+    ast_outline_symbol_new(&b->pool,
+      pool_string_copy(&b->pool, symbol)));
+}
+
+int ast_build_outline_string(AstBuilder *b, String string)
+{
+  return ast_builder_push(b, AST_OUTLINE_STRING,
+    ast_outline_string_new(&b->pool,
+      pool_string_copy(&b->pool, string)));
+}
+
+int ast_build_outline_number(AstBuilder *b, String number)
+{
+  return ast_builder_push(b, AST_OUTLINE_NUMBER,
+    ast_outline_number_new(&b->pool,
+      pool_string_copy(&b->pool, number)));
+}
+
 int ast_build_match(AstBuilder *b, size_t line_n)
 {
   size_t i;
   AstMatchLine **lines;
 
-  lines = pool_alloc(&b->pool, line_n*sizeof(AstMatchLine **));
+  lines = pool_alloc(&b->pool, line_n*sizeof(AstMatchLine *));
   if (!lines) return 1;
 
   b->stack_top -= line_n;

@@ -20,7 +20,11 @@
 #include "typedefs.h"
 #include "ast.h"
 
-void outline_dump(Outline *node, int indent);
+void ast_outline_dump(AstOutline *outline, int indent);
+void ast_outline_item_dump(AstOutlineItem item);
+void ast_outline_symbol_dump(AstOutlineSymbol *p);
+void ast_outline_string_dump(AstOutlineString *p);
+void ast_outline_number_dump(AstOutlineNumber *p);
 void ast_match_dump(AstMatch *match, int indent);
 void ast_match_line_dump(AstMatchLine *p, int indent);
 void ast_pattern_dump(AstPattern *p);

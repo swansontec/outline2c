@@ -48,15 +48,15 @@ AstPatternAssign *ast_pattern_find_assign(AstPattern *pattern, String symbol);
  */
 /*int ast_build_file(AstBuilder *b);*/
 int ast_build_c(AstBuilder *b, String code);
-/*int ast_build_include(AstBuilder *b);
-int ast_build_outline(AstBuilder *b);
-int ast_build_rule(AstBuilder *b);*/
-int ast_build_match(AstBuilder *b, size_t line_n);
-/*int ast_build_rule_line(AstBuilder *b);*/
-int ast_build_match_line(AstBuilder *b);
-/*int ast_build_outline_symbol(AstBuilder *b, String symbol);
+/*int ast_build_include(AstBuilder *b);*/
+int ast_build_outline(AstBuilder *b, size_t item_n, size_t child_n);
+int ast_build_outline_symbol(AstBuilder *b, String symbol);
 int ast_build_outline_string(AstBuilder *b, String string);
-int ast_build_outline_number(AstBuilder *b, String number);*/
+int ast_build_outline_number(AstBuilder *b, String number);
+/*int ast_build_rule(AstBuilder *b);
+int ast_build_rule_line(AstBuilder *b);*/
+int ast_build_match(AstBuilder *b, size_t line_n);
+int ast_build_match_line(AstBuilder *b);
 int ast_build_pattern(AstBuilder *b, size_t item_n);
 int ast_build_pattern_wild(AstBuilder *b);
 int ast_build_pattern_any_symbol(AstBuilder *b);
