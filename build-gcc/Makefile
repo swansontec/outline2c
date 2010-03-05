@@ -74,3 +74,4 @@ install:
 
 run: outline2c
 	./outline2c test.c.o2c
+	diff test.c test.c.ref
