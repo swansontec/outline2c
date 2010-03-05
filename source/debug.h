@@ -21,14 +21,14 @@
 #include "ast.h"
 
 void ast_outline_dump(AstOutline *outline, int indent);
-void ast_outline_item_dump(AstOutlineItem item);
+void ast_outline_item_dump(AstOutlineNode node);
 void ast_outline_symbol_dump(AstOutlineSymbol *p);
 void ast_outline_string_dump(AstOutlineString *p);
 void ast_outline_number_dump(AstOutlineNumber *p);
 void ast_match_dump(AstMatch *match, int indent);
 void ast_match_line_dump(AstMatchLine *p, int indent);
 void ast_pattern_dump(AstPattern *p);
-void ast_pattern_item_dump(AstPatternItem item);
+void ast_pattern_item_dump(AstPatternNode node);
 void ast_pattern_wild_dump(AstPatternWild *p);
 void ast_pattern_symbol_dump(AstPatternSymbol *p);
 void ast_pattern_assign_dump(AstPatternAssign *p);

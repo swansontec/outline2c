@@ -28,7 +28,7 @@ typedef struct ast_builder AstBuilder;
  */
 struct ast_builder {
   Pool pool;
-  AstItem *stack;
+  AstNode *stack;
   size_t stack_size;
   size_t stack_top;
 };
@@ -37,8 +37,8 @@ int ast_builder_init(AstBuilder *b);
 void ast_builder_free(AstBuilder *b);
 
 int ast_builder_push(AstBuilder *b, AstType type, void *p);
-AstItem ast_builder_pop(AstBuilder *b);
-AstItem ast_builder_peek(AstBuilder *b);
+AstNode ast_builder_pop(AstBuilder *b);
+AstNode ast_builder_peek(AstBuilder *b);
 
 AstPatternAssign *ast_builder_find_assign(AstBuilder *b, String symbol);
 AstPatternAssign *ast_pattern_find_assign(AstPattern *pattern, String symbol);

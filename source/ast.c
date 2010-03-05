@@ -18,110 +18,110 @@
 #include "pool.h"
 #include <assert.h>
 
-int ast_is_outline_item(AstItem item)
+int ast_is_outline_node(AstNode node)
 {
   return
-    item.type == AST_OUTLINE_SYMBOL ||
-    item.type == AST_OUTLINE_STRING ||
-    item.type == AST_OUTLINE_NUMBER;
+    node.type == AST_OUTLINE_SYMBOL ||
+    node.type == AST_OUTLINE_STRING ||
+    node.type == AST_OUTLINE_NUMBER;
 }
 
-int ast_is_pattern_item(AstItem item)
+int ast_is_pattern_node(AstNode node)
 {
   return
-    item.type == AST_PATTERN_WILD ||
-    item.type == AST_PATTERN_ANY_SYMBOL ||
-    item.type == AST_PATTERN_ANY_STRING ||
-    item.type == AST_PATTERN_ANY_NUMBER ||
-    item.type == AST_PATTERN_RULE ||
-    item.type == AST_PATTERN_SYMBOL ||
-    item.type == AST_PATTERN_STRING ||
-    item.type == AST_PATTERN_NUMBER ||
-    item.type == AST_PATTERN_ASSIGN;
+    node.type == AST_PATTERN_WILD ||
+    node.type == AST_PATTERN_ANY_SYMBOL ||
+    node.type == AST_PATTERN_ANY_STRING ||
+    node.type == AST_PATTERN_ANY_NUMBER ||
+    node.type == AST_PATTERN_RULE ||
+    node.type == AST_PATTERN_SYMBOL ||
+    node.type == AST_PATTERN_STRING ||
+    node.type == AST_PATTERN_NUMBER ||
+    node.type == AST_PATTERN_ASSIGN;
 }
 
-int ast_is_code_item(AstItem item)
+int ast_is_code_node(AstNode node)
 {
   return
-    item.type == AST_C ||
-    item.type == AST_MATCH ||
-    item.type == AST_CODE_SYMBOL ||
-    item.type == AST_CODE_UPPER ||
-    item.type == AST_CODE_LOWER ||
-    item.type == AST_CODE_CAMEL ||
-    item.type == AST_CODE_MIXED ||
-    item.type == AST_CODE_STRING;
+    node.type == AST_C ||
+    node.type == AST_MATCH ||
+    node.type == AST_CODE_SYMBOL ||
+    node.type == AST_CODE_UPPER ||
+    node.type == AST_CODE_LOWER ||
+    node.type == AST_CODE_CAMEL ||
+    node.type == AST_CODE_MIXED ||
+    node.type == AST_CODE_STRING;
 }
 
-int ast_is_code_symbol_item(AstItem item)
+int ast_is_code_symbol_node(AstNode node)
 {
   return
-    item.type == AST_CODE_SYMBOL ||
-    item.type == AST_CODE_UPPER ||
-    item.type == AST_CODE_LOWER ||
-    item.type == AST_CODE_CAMEL ||
-    item.type == AST_CODE_MIXED ||
-    item.type == AST_CODE_STRING;
+    node.type == AST_CODE_SYMBOL ||
+    node.type == AST_CODE_UPPER ||
+    node.type == AST_CODE_LOWER ||
+    node.type == AST_CODE_CAMEL ||
+    node.type == AST_CODE_MIXED ||
+    node.type == AST_CODE_STRING;
 }
 
-AstOutlineItem ast_to_outline_item(AstItem item)
+AstOutlineNode ast_to_outline_node(AstNode node)
 {
-  AstOutlineItem temp;
-  assert(ast_is_outline_item(item));
-  temp.p = item.p;
-  temp.type = item.type;
+  AstOutlineNode temp;
+  assert(ast_is_outline_node(node));
+  temp.p = node.p;
+  temp.type = node.type;
   return temp;
 }
 
-AstPatternItem ast_to_pattern_item(AstItem item)
+AstPatternNode ast_to_pattern_node(AstNode node)
 {
-  AstPatternItem temp;
-  assert(ast_is_pattern_item(item));
-  temp.p = item.p;
-  temp.type = item.type;
+  AstPatternNode temp;
+  assert(ast_is_pattern_node(node));
+  temp.p = node.p;
+  temp.type = node.type;
   return temp;
 }
 
-AstCodeItem ast_to_code_item(AstItem item)
+AstCodeNode ast_to_code_node(AstNode node)
 {
-  AstCodeItem temp;
-  assert(ast_is_code_item(item));
-  temp.p = item.p;
-  temp.type = item.type;
+  AstCodeNode temp;
+  assert(ast_is_code_node(node));
+  temp.p = node.p;
+  temp.type = node.type;
   return temp;
 }
 
-AstCodeSymbolItem ast_to_code_symbol_item(AstItem item)
+AstCodeSymbolNode ast_to_code_symbol_node(AstNode node)
 {
-  AstCodeSymbolItem temp;
-  assert(ast_is_code_symbol_item(item));
-  temp.p = item.p;
-  temp.type = item.type;
+  AstCodeSymbolNode temp;
+  assert(ast_is_code_symbol_node(node));
+  temp.p = node.p;
+  temp.type = node.type;
   return temp;
 }
 
-AstOutline *ast_to_outline(AstItem item)
+AstOutline *ast_to_outline(AstNode node)
 {
-  assert(item.type == AST_OUTLINE);
-  return item.p;
+  assert(node.type == AST_OUTLINE);
+  return node.p;
 }
 
-AstMatchLine *ast_to_match_line(AstItem item)
+AstMatchLine *ast_to_match_line(AstNode node)
 {
-  assert(item.type == AST_MATCH_LINE);
-  return item.p;
+  assert(node.type == AST_MATCH_LINE);
+  return node.p;
 }
 
-AstPattern *ast_to_pattern(AstItem item)
+AstPattern *ast_to_pattern(AstNode node)
 {
-  assert(item.type == AST_PATTERN);
-  return item.p;
+  assert(node.type == AST_PATTERN);
+  return node.p;
 }
 
-AstCode *ast_to_code(AstItem item)
+AstCode *ast_to_code(AstNode node)
 {
-  assert(item.type == AST_CODE);
-  return item.p;
+  assert(node.type == AST_CODE);
+  return node.p;
 }
 
 AstC *ast_c_new(Pool *p, String code)
@@ -160,16 +160,16 @@ AstMatchLine *ast_match_line_new(Pool *p, AstPattern *pattern, AstCode *code)
   return self;
 }
 
-AstOutline *ast_outline_new(Pool *p, AstOutlineItem *items, AstOutlineItem *items_end, AstOutline **children, AstOutline **children_end)
+AstOutline *ast_outline_new(Pool *p, AstOutlineNode *nodes, AstOutlineNode *nodes_end, AstOutline **children, AstOutline **children_end)
 {
   AstOutline *self;
-  if (!items) return 0;
+  if (!nodes) return 0;
   if (!children) return 0;
 
   self = pool_alloc(p, sizeof(AstOutline));
   if (!self) return 0;
-  self->items = items;
-  self->items_end = items_end;
+  self->nodes = nodes;
+  self->nodes_end = nodes_end;
   self->children = children;
   self->children_end = children_end;
   return self;
@@ -209,15 +209,15 @@ AstOutlineNumber *ast_outline_number_new(Pool *p, String number)
 }
 
 
-AstPattern *ast_pattern_new(Pool *p, AstPatternItem *items, AstPatternItem *items_end)
+AstPattern *ast_pattern_new(Pool *p, AstPatternNode *nodes, AstPatternNode *nodes_end)
 {
   AstPattern *self;
-  if (!items) return 0;
+  if (!nodes) return 0;
 
   self = pool_alloc(p, sizeof(AstPattern));
   if (!self) return 0;
-  self->items = items;
-  self->items_end = items_end;
+  self->nodes = nodes;
+  self->nodes_end = nodes_end;
   return self;
 }
 
@@ -289,7 +289,7 @@ AstPatternNumber *ast_pattern_number_new(Pool *p, String number)
   return self;
 }
 
-AstPatternAssign *ast_pattern_assign_new(Pool *p, String symbol, AstPatternItem pattern)
+AstPatternAssign *ast_pattern_assign_new(Pool *p, String symbol, AstPatternNode pattern)
 {
   AstPatternAssign *self;
   if (!symbol.p) return 0;
@@ -302,15 +302,15 @@ AstPatternAssign *ast_pattern_assign_new(Pool *p, String symbol, AstPatternItem 
   return self;
 }
 
-AstCode *ast_code_new(Pool *p, AstCodeItem *items, AstCodeItem *items_end)
+AstCode *ast_code_new(Pool *p, AstCodeNode *nodes, AstCodeNode *nodes_end)
 {
   AstCode *self;
-  if (!items) return 0;
+  if (!nodes) return 0;
 
   self = pool_alloc(p, sizeof(AstCode));
   if (!self) return 0;
-  self->items = items;
-  self->items_end = items_end;
+  self->nodes = nodes;
+  self->nodes_end = nodes_end;
   return self;
 }
 
@@ -325,7 +325,7 @@ AstCodeSymbol *ast_code_symbol_new(Pool *p, AstPatternAssign *symbol)
   return self;
 }
 
-AstCodeUpper *ast_code_upper_new(Pool *p, AstCodeSymbolItem symbol)
+AstCodeUpper *ast_code_upper_new(Pool *p, AstCodeSymbolNode symbol)
 {
   AstCodeUpper *self;
   if (!symbol.p) return 0;
@@ -336,7 +336,7 @@ AstCodeUpper *ast_code_upper_new(Pool *p, AstCodeSymbolItem symbol)
   return self;
 }
 
-AstCodeLower *ast_code_lower_new(Pool *p, AstCodeSymbolItem symbol)
+AstCodeLower *ast_code_lower_new(Pool *p, AstCodeSymbolNode symbol)
 {
   AstCodeLower *self;
   if (!symbol.p) return 0;
@@ -347,7 +347,7 @@ AstCodeLower *ast_code_lower_new(Pool *p, AstCodeSymbolItem symbol)
   return self;
 }
 
-AstCodeCamel *ast_code_camel_new(Pool *p, AstCodeSymbolItem symbol)
+AstCodeCamel *ast_code_camel_new(Pool *p, AstCodeSymbolNode symbol)
 {
   AstCodeCamel *self;
   if (!symbol.p) return 0;
@@ -358,7 +358,7 @@ AstCodeCamel *ast_code_camel_new(Pool *p, AstCodeSymbolItem symbol)
   return self;
 }
 
-AstCodeMixed *ast_code_mixed_new(Pool *p, AstCodeSymbolItem symbol)
+AstCodeMixed *ast_code_mixed_new(Pool *p, AstCodeSymbolNode symbol)
 {
   AstCodeMixed *self;
   if (!symbol.p) return 0;
@@ -369,7 +369,7 @@ AstCodeMixed *ast_code_mixed_new(Pool *p, AstCodeSymbolItem symbol)
   return self;
 }
 
-AstCodeString *ast_code_string_new(Pool *p, AstCodeSymbolItem symbol)
+AstCodeString *ast_code_string_new(Pool *p, AstCodeSymbolNode symbol)
 {
   AstCodeString *self;
   if (!symbol.p) return 0;

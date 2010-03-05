@@ -21,7 +21,7 @@ int ast_builder_init(AstBuilder *b)
 {
   pool_init(&b->pool, 0x10000); /* 64K block size */
   b->stack_size = 32;
-  b->stack = malloc(b->stack_size*sizeof(AstItem));
+  b->stack = malloc(b->stack_size*sizeof(AstNode));
   if (!b->stack) return 1;
   b->stack_top = 0;
   return 0;
@@ -34,37 +34,37 @@ void ast_builder_free(AstBuilder *b)
 }
 
 /**
- * Pushes an item onto the stack.
+ * Pushes an node onto the stack.
  * @return 0 for success
  */
 int ast_builder_push(AstBuilder *b, AstType type, void *p)
 {
-  AstItem item;
-  item.p = p;
-  item.type = type;
+  AstNode node;
+  node.p = p;
+  node.type = type;
 
   if (!p) return 1;
 
   /* Grow, if needed: */
   if (b->stack_size <= b->stack_top) {
     size_t new_size = 2*b->stack_size;
-    AstItem *new_stack = realloc(b->stack, new_size*sizeof(AstItem));
+    AstNode *new_stack = realloc(b->stack, new_size*sizeof(AstNode));
     if (!new_stack) return 1;
     b->stack_size = new_size;
     b->stack = new_stack;
   }
-  b->stack[b->stack_top] = item;
+  b->stack[b->stack_top] = node;
   ++b->stack_top;
   return 0;
 }
 
-AstItem ast_builder_pop(AstBuilder *b)
+AstNode ast_builder_pop(AstBuilder *b)
 {
   --b->stack_top;
   return b->stack[b->stack_top];
 }
 
-AstItem ast_builder_peek(AstBuilder *b)
+AstNode ast_builder_peek(AstBuilder *b)
 {
   return (b->stack[b->stack_top - 1]);
 }
@@ -73,7 +73,7 @@ AstItem ast_builder_peek(AstBuilder *b)
  * Searches for an assignment statement in scope which has a name matching the
  * given symbol. This search is insanely inefficient, and could really use
  * some sort of fast data structure to accelerate it.
- * @return a pointer to the found item, or 0 for no match
+ * @return a pointer to the found node, or 0 for no match
  */
 AstPatternAssign *ast_builder_find_assign(AstBuilder *b, String symbol)
 {
@@ -96,16 +96,16 @@ AstPatternAssign *ast_builder_find_assign(AstBuilder *b, String symbol)
  */
 AstPatternAssign *ast_pattern_find_assign(AstPattern *pattern, String symbol)
 {
-  AstPatternItem *item;
+  AstPatternNode *node;
 
-  item = pattern->items;
-  while (item < pattern->items_end) {
-    if (item->type == AST_PATTERN_ASSIGN) {
-      AstPatternAssign *p = item->p;
+  node = pattern->nodes;
+  while (node < pattern->nodes_end) {
+    if (node->type == AST_PATTERN_ASSIGN) {
+      AstPatternAssign *p = node->p;
       if (string_equal(p->symbol, symbol))
         return p;
     }
-    ++item;
+    ++node;
   }
   return 0;
 }
@@ -123,11 +123,11 @@ int ast_build_c(AstBuilder *b, String code)
 int ast_build_outline(AstBuilder *b, size_t item_n, size_t child_n)
 {
   size_t i;
-  AstOutlineItem *items;
+  AstOutlineNode *nodes;
   AstOutline **children;
 
-  items = pool_alloc(&b->pool, item_n*sizeof(AstOutlineItem));
-  if (!items) return 1;
+  nodes = pool_alloc(&b->pool, item_n*sizeof(AstOutlineNode));
+  if (!nodes) return 1;
 
   children = pool_alloc(&b->pool, item_n*sizeof(AstOutline *));
   if (!children) return 1;
@@ -138,10 +138,10 @@ int ast_build_outline(AstBuilder *b, size_t item_n, size_t child_n)
 
   b->stack_top -= item_n;
   for (i = 0; i < item_n; ++i)
-    items[i] = ast_to_outline_item(b->stack[b->stack_top + i]);
+    nodes[i] = ast_to_outline_node(b->stack[b->stack_top + i]);
 
   return ast_builder_push(b, AST_OUTLINE,
-    ast_outline_new(&b->pool, items, items + item_n, children, children + child_n));
+    ast_outline_new(&b->pool, nodes, nodes + item_n, children, children + child_n));
 }
 
 int ast_build_outline_symbol(AstBuilder *b, String symbol)
@@ -192,17 +192,17 @@ int ast_build_match_line(AstBuilder *b)
 int ast_build_pattern(AstBuilder *b, size_t item_n)
 {
   size_t i;
-  AstPatternItem *items;
+  AstPatternNode *nodes;
 
-  items = pool_alloc(&b->pool, item_n*sizeof(AstPatternItem));
-  if (!items) return 1;
+  nodes = pool_alloc(&b->pool, item_n*sizeof(AstPatternNode));
+  if (!nodes) return 1;
 
   b->stack_top -= item_n;
   for (i = 0; i < item_n; ++i)
-    items[i] = ast_to_pattern_item(b->stack[b->stack_top + i]);
+    nodes[i] = ast_to_pattern_node(b->stack[b->stack_top + i]);
 
   return ast_builder_push(b, AST_PATTERN,
-    ast_pattern_new(&b->pool, items, items + item_n));
+    ast_pattern_new(&b->pool, nodes, nodes + item_n));
 }
 
 int ast_build_pattern_wild(AstBuilder *b)
@@ -262,23 +262,23 @@ int ast_build_pattern_assign(AstBuilder *b, String symbol)
   return ast_builder_push(b, AST_PATTERN_ASSIGN,
     ast_pattern_assign_new(&b->pool,
       pool_string_copy(&b->pool, symbol),
-      ast_to_pattern_item(ast_builder_pop(b))));
+      ast_to_pattern_node(ast_builder_pop(b))));
 }
 
 int ast_build_code(AstBuilder *b, size_t item_n)
 {
   size_t i;
-  AstCodeItem *items;
+  AstCodeNode *nodes;
 
-  items = pool_alloc(&b->pool, item_n*sizeof(AstCodeItem));
-  if (!items) return 1;
+  nodes = pool_alloc(&b->pool, item_n*sizeof(AstCodeNode));
+  if (!nodes) return 1;
 
   b->stack_top -= item_n;
   for (i = 0; i < item_n; ++i)
-    items[i] = ast_to_code_item(b->stack[b->stack_top + i]);
+    nodes[i] = ast_to_code_node(b->stack[b->stack_top + i]);
 
   return ast_builder_push(b, AST_CODE,
-    ast_code_new(&b->pool, items, items + item_n));
+    ast_code_new(&b->pool, nodes, nodes + item_n));
 }
 
 int ast_build_code_symbol(AstBuilder *b, AstPatternAssign *symbol)
@@ -292,33 +292,33 @@ int ast_build_code_upper(AstBuilder *b)
 {
   return ast_builder_push(b, AST_CODE_UPPER,
     ast_code_upper_new(&b->pool,
-      ast_to_code_symbol_item(ast_builder_pop(b))));
+      ast_to_code_symbol_node(ast_builder_pop(b))));
 }
 
 int ast_build_code_lower(AstBuilder *b)
 {
   return ast_builder_push(b, AST_CODE_LOWER,
     ast_code_lower_new(&b->pool,
-      ast_to_code_symbol_item(ast_builder_pop(b))));
+      ast_to_code_symbol_node(ast_builder_pop(b))));
 }
 
 int ast_build_code_camel(AstBuilder *b)
 {
   return ast_builder_push(b, AST_CODE_CAMEL,
     ast_code_camel_new(&b->pool,
-      ast_to_code_symbol_item(ast_builder_pop(b))));
+      ast_to_code_symbol_node(ast_builder_pop(b))));
 }
 
 int ast_build_code_mixed(AstBuilder *b)
 {
   return ast_builder_push(b, AST_CODE_MIXED,
     ast_code_mixed_new(&b->pool,
-      ast_to_code_symbol_item(ast_builder_pop(b))));
+      ast_to_code_symbol_node(ast_builder_pop(b))));
 }
 
 int ast_build_code_string(AstBuilder *b)
 {
   return ast_builder_push(b, AST_CODE_STRING,
     ast_code_string_new(&b->pool,
-      ast_to_code_symbol_item(ast_builder_pop(b))));
+      ast_to_code_symbol_node(ast_builder_pop(b))));
 }

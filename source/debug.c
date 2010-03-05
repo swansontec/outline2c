@@ -31,17 +31,17 @@ static void space(int indent)
  */
 void ast_outline_dump(AstOutline *outline, int indent)
 {
-  AstOutlineItem *item;
+  AstOutlineNode *node;
   AstOutline **child;
 
   /* Words: */
   space(indent);
-  item = outline->items;
-  while (item < outline->items_end) {
-    if (item != outline->items)
+  node = outline->nodes;
+  while (node < outline->nodes_end) {
+    if (node != outline->nodes)
       printf(" ");
-    ast_outline_item_dump(*item);
-    ++item;
+    ast_outline_item_dump(*node);
+    ++node;
   }
 
   /* Children: */
@@ -60,22 +60,22 @@ void ast_outline_dump(AstOutline *outline, int indent)
 }
 
 /**
- * Dumps a single item within an outline.
+ * Dumps a single node within an outline.
  */
-void ast_outline_item_dump(AstOutlineItem item)
+void ast_outline_item_dump(AstOutlineNode node)
 {
-  switch (item.type) {
+  switch (node.type) {
   case AST_OUTLINE_SYMBOL:
-    ast_outline_symbol_dump((AstOutlineSymbol*)item.p);
+    ast_outline_symbol_dump((AstOutlineSymbol*)node.p);
     break;
   case AST_OUTLINE_STRING:
-    ast_outline_string_dump((AstOutlineString*)item.p);
+    ast_outline_string_dump((AstOutlineString*)node.p);
     break;
   case AST_OUTLINE_NUMBER:
-    ast_outline_number_dump((AstOutlineNumber*)item.p);
+    ast_outline_number_dump((AstOutlineNumber*)node.p);
     break;
   default:
-    printf("(Unknown outline item %d)", item.type);
+    printf("(Unknown outline node %d)", node.type);
   }
 }
 
@@ -139,34 +139,34 @@ void ast_match_line_dump(AstMatchLine *p, int indent)
  */
 void ast_pattern_dump(AstPattern *p)
 {
-  AstPatternItem *item;
+  AstPatternNode *node;
 
-  item = p->items;
-  while (item < p->items_end) {
-    if (item != p->items)
+  node = p->nodes;
+  while (node < p->nodes_end) {
+    if (node != p->nodes)
       printf(" ");
-    ast_pattern_item_dump(*item);
-    ++item;
+    ast_pattern_item_dump(*node);
+    ++node;
   }
 }
 
 /**
  * Formats and displays a single element within a pattern
  */
-void ast_pattern_item_dump(AstPatternItem item)
+void ast_pattern_item_dump(AstPatternNode node)
 {
-  switch (item.type) {
+  switch (node.type) {
   case AST_PATTERN_WILD:
-    ast_pattern_wild_dump((AstPatternWild*)item.p);
+    ast_pattern_wild_dump((AstPatternWild*)node.p);
     break;
   case AST_PATTERN_SYMBOL:
-    ast_pattern_symbol_dump((AstPatternSymbol*)item.p);
+    ast_pattern_symbol_dump((AstPatternSymbol*)node.p);
     break;
   case AST_PATTERN_ASSIGN:
-    ast_pattern_assign_dump((AstPatternAssign*)item.p);
+    ast_pattern_assign_dump((AstPatternAssign*)node.p);
     break;
   default:
-    printf("(Unknown pattern item %d)", item.type);
+    printf("(Unknown pattern node %d)", node.type);
   }
 }
 
@@ -193,26 +193,26 @@ void ast_pattern_assign_dump(AstPatternAssign *p)
 
 void ast_code_dump(AstCode *p, int indent)
 {
-  AstCodeItem *item;
+  AstCodeNode *node;
 
-  item = p->items;
-  while (item < p->items_end) {
-    if (item->type == AST_C) {
-      AstC *p = item->p;
+  node = p->nodes;
+  while (node < p->nodes_end) {
+    if (node->type == AST_C) {
+      AstC *p = node->p;
       char *temp = string_to_c(string_init(p->code.p, p->code.end));
       printf("%s", temp);
       free(temp);
-    } else if (item->type == AST_MATCH) {
-      AstMatch *p = item->p;
+    } else if (node->type == AST_MATCH) {
+      AstMatch *p = node->p;
       ast_match_dump(p, indent);
-    } else if (item->type == AST_CODE_SYMBOL) {
-      AstCodeSymbol *p = item->p;
+    } else if (node->type == AST_CODE_SYMBOL) {
+      AstCodeSymbol *p = node->p;
       char *s = string_to_c(p->symbol->symbol);
       printf("<%s>", s);
       free(s);
     } else {
-      printf("(Unknown code item %d)", item->type);
+      printf("(Unknown code node %d)", node->type);
     }
-    ++item;
+    ++node;
   }
 }

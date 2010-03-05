@@ -449,7 +449,7 @@ int parse_match_code(Context *ctx, AstBuilder *b)
   int rv;
   char const *start;
   int indent;
-  size_t items = 0;
+  size_t nodes = 0;
 
   start = ctx->cursor.p;
   indent = 1;
@@ -457,7 +457,7 @@ int parse_match_code(Context *ctx, AstBuilder *b)
     advance(ctx, 1);
     /* Sub-match expression: */
     if (ctx->token == LEX_ESCAPE_O2C) {
-      ENSURE_BUILD(ast_build_c(b, string_init(start, ctx->marker.p))); ++items;
+      ENSURE_BUILD(ast_build_c(b, string_init(start, ctx->marker.p))); ++nodes;
 
       advance(ctx, 0);
       {
@@ -468,7 +468,7 @@ int parse_match_code(Context *ctx, AstBuilder *b)
         }
       }
       advance(ctx, 0);
-      rv = parse_match(ctx, b); ++items;
+      rv = parse_match(ctx, b); ++nodes;
       ENSURE_SUCCESS(rv);
       start = ctx->cursor.p;
 
@@ -476,8 +476,8 @@ int parse_match_code(Context *ctx, AstBuilder *b)
     } else if (ctx->token == LEX_IDENTIFIER) {
       AstPatternAssign *p = ast_builder_find_assign(b, string_init(ctx->marker.p, ctx->cursor.p));
       if (p) {
-        ENSURE_BUILD(ast_build_c(b, string_init(start, ctx->marker.p))); ++items;
-        ENSURE_BUILD(ast_build_code_symbol(b, p)); ++items;
+        ENSURE_BUILD(ast_build_c(b, string_init(start, ctx->marker.p))); ++nodes;
+        ENSURE_BUILD(ast_build_code_symbol(b, p)); ++nodes;
         start = ctx->cursor.p;
       }
     /* Opening brace: */
@@ -493,8 +493,8 @@ int parse_match_code(Context *ctx, AstBuilder *b)
     }
     /* Anything else is C code; continue with the loop. */
   } while (indent);
-  ENSURE_BUILD(ast_build_c(b, string_init(start, ctx->marker.p))); ++items;
-  ENSURE_BUILD(ast_build_code(b, items));
+  ENSURE_BUILD(ast_build_c(b, string_init(start, ctx->marker.p))); ++nodes;
+  ENSURE_BUILD(ast_build_code(b, nodes));
 
   return 0;
 }
@@ -506,23 +506,23 @@ int parse_match_code(Context *ctx, AstBuilder *b)
 int parse_pattern(Context *ctx, AstBuilder *b)
 {
   int rv;
-  size_t items = 0;
+  size_t nodes = 0;
 
   while (1) {
     rv = parse_pattern_item(ctx, b);
     if (rv == -1) {
-      ENSURE_BUILD(ast_build_pattern(b, items));
+      ENSURE_BUILD(ast_build_pattern(b, nodes));
       return 0;
     } else if (rv) {
       return rv;
     } else {
-      ++items;
+      ++nodes;
     }
   }
 }
 
 /**
- * Parses a single item within a match pattern. The context will be advanced
+ * Parses a single node within a match pattern. The context will be advanced
  * when this function returns.
  * @return 0 for success, -1 for unknown symbol, 1 for definite errors
  */
