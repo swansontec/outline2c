@@ -142,7 +142,7 @@ parser_start(String aIn, char const *filename, FileW *aOut)
     outline_list_from_file(&list, b.stack, b.stack + b.stack_top);
     outline = list.p;
     while (outline < list.end) {
-      ast_outline_dump(*outline, 0);
+      dump_outline(*outline, 0);
       ++outline;
     }
     outline_list_free(&list);
@@ -373,7 +373,7 @@ int parse_match_top(Context *ctx, AstBuilder *b)
     OutlineList list;
     AstMatch *match = ast_builder_pop(b).p;
 #ifdef DEBUG
-    ast_match_dump(match, 0);
+    dump_match(match, 0);
 #endif
     outline_list_from_file(&list, b->stack, b->stack + b->stack_top);
     ast_match_search(match, list, ctx->out);

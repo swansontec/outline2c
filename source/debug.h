@@ -13,6 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * Routines to display the contents of the AST for debugging purposes. The
+ * indent parameter sets the indentation level for the printout.
+ */
 
 #ifndef DEBUG_H_INCLUDED
 #define DEBUG_H_INCLUDED
@@ -20,18 +24,21 @@
 #include "typedefs.h"
 #include "ast.h"
 
-void ast_outline_dump(AstOutline *outline, int indent);
-void ast_outline_item_dump(AstOutlineNode node);
-void ast_outline_symbol_dump(AstOutlineSymbol *p);
-void ast_outline_string_dump(AstOutlineString *p);
-void ast_outline_number_dump(AstOutlineNumber *p);
-void ast_match_dump(AstMatch *match, int indent);
-void ast_match_line_dump(AstMatchLine *p, int indent);
-void ast_pattern_dump(AstPattern *p);
-void ast_pattern_item_dump(AstPatternNode node);
-void ast_pattern_wild_dump(AstPatternWild *p);
-void ast_pattern_symbol_dump(AstPatternSymbol *p);
-void ast_pattern_assign_dump(AstPatternAssign *p);
-void ast_code_dump(AstCode *p, int indent);
+void dump_outline(AstOutline *outline, int indent);
+void dump_outline_node(AstOutlineNode node);
+void dump_outline_symbol(AstOutlineSymbol *p);
+void dump_outline_string(AstOutlineString *p);
+void dump_outline_number(AstOutlineNumber *p);
+
+void dump_match(AstMatch *match, int indent);
+void dump_match_line(AstMatchLine *p, int indent);
+
+void dump_pattern(AstPattern *p);
+void dump_pattern_node(AstPatternNode node);
+void dump_pattern_wild(AstPatternWild *p);
+void dump_pattern_symbol(AstPatternSymbol *p);
+void dump_pattern_assign(AstPatternAssign *p);
+
+void dump_code(AstCode *p, int indent);
 
 #endif
