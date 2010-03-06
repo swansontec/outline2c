@@ -46,8 +46,9 @@ int parse_top(Context *ctx, AstBuilder *b);
 
 int parse_include(Context *ctx, AstBuilder *b);
 
-int parse_outline_top(Context *ctx, AstBuilder *b);
 int parse_outline(Context *ctx, AstBuilder *b);
+int parse_outline_list(Context *ctx, AstBuilder *b);
+int parse_outline_item(Context *ctx, AstBuilder *b);
 
 int parse_match_top(Context *ctx, AstBuilder *b);
 int parse_match(Context *ctx, AstBuilder *b);
@@ -137,15 +138,12 @@ parser_start(String aIn, char const *filename, FileW *aOut)
 #ifdef DEBUG
   printf("--- Outline: ---\n");
   {
-    OutlineList list;
-    AstOutline **outline;
-    outline_list_from_file(&list, b.stack, b.stack + b.stack_top);
-    outline = list.p;
-    while (outline < list.end) {
-      dump_outline(*outline, 0);
-      ++outline;
+    AstNode *node = b.stack;
+    while (node < b.stack + b.stack_top) {
+      if (node->type == AST_OUTLINE)
+        dump_outline(node->p);
+      ++node;
     }
-    outline_list_free(&list);
   }
 #endif
 
@@ -222,7 +220,7 @@ int parse_top(Context *ctx, AstBuilder *b)
       return parse_include(ctx, b);
     } else if (string_equal(temp, string_init_l("outline", 7))) {
       advance(ctx, 0);
-      return parse_outline_top(ctx, b);
+      return parse_outline(ctx, b);
     } else if (string_equal(temp, string_init_l("match", 5))) {
       advance(ctx, 0);
       return parse_match_top(ctx, b);
@@ -289,39 +287,54 @@ int parse_include(Context *ctx, AstBuilder *b)
 }
 
 /**
- * Handles the outline top-level keyword, which may contain several actual
- * outlines.
- */
-int parse_outline_top(Context *ctx, AstBuilder *b)
-{
-  int rv;
-
-  /* Multiple outlines between braces: */
-  if (ctx->token == LEX_BRACE_OPEN) {
-    advance(ctx, 0);
-    while (ctx->token != LEX_BRACE_CLOSE) {
-      rv = parse_outline(ctx, b);
-      ENSURE_SUCCESS(rv);
-      advance(ctx, 0);
-    }
-    return 0;
-  /* Single outline: */
-  } else {
-    rv = parse_outline(ctx, b);
-    ENSURE_SUCCESS(rv);
-    return 0;
-  }
-}
-
-/**
- * Handles individual entries within an outline statement.
+ * Handles the top-level outline keyword.
  */
 int parse_outline(Context *ctx, AstBuilder *b)
 {
   int rv;
-  size_t item_n = 0, child_n = 0;
 
-  /* Handle the works making up the node: */
+  /* Opening brace: */
+  if (ctx->token != LEX_BRACE_OPEN) {
+    error(ctx, "An opening { must come after the name of an outline.");
+    return 1;
+  }
+
+  /* Outline: */
+  rv = parse_outline_list(ctx, b);
+  ENSURE_SUCCESS(rv);
+  ENSURE_BUILD(ast_build_outline(b));
+  return 0;
+}
+
+/**
+ * Handles a list of outline items.
+ */
+int parse_outline_list(Context *ctx, AstBuilder *b)
+{
+  int rv;
+  size_t child_n = 0;
+
+  advance(ctx, 0);
+  while (ctx->token != LEX_BRACE_CLOSE) {
+    rv = parse_outline_item(ctx, b); ++child_n;
+    ENSURE_SUCCESS(rv);
+    advance(ctx, 0);
+  }
+  ENSURE_BUILD(ast_build_outline_list(b, child_n));
+
+  return 0;
+}
+
+/**
+ * Handles an individual item within an outline, including its tags and
+ * children.
+ */
+int parse_outline_item(Context *ctx, AstBuilder *b)
+{
+  int rv;
+  size_t item_n = 0;
+
+  /* Handle the words making up the item: */
   while (1) {
     if (ctx->token == LEX_IDENTIFIER) {
       ENSURE_BUILD(ast_build_outline_symbol(b, string_init(ctx->marker.p, ctx->cursor.p))); ++item_n;
@@ -335,19 +348,16 @@ int parse_outline(Context *ctx, AstBuilder *b)
     advance(ctx, 0);
   }
 
-  /* Handle any sub-nodes: */
+  /* Handle any sub-items: */
   if (ctx->token == LEX_BRACE_OPEN) {
-    advance(ctx, 0);
-    while (ctx->token != LEX_BRACE_CLOSE) {
-      rv = parse_outline(ctx, b); ++child_n;
-      ENSURE_SUCCESS(rv);
-      advance(ctx, 0);
-    }
-    ENSURE_BUILD(ast_build_outline(b, item_n, child_n));
+    rv = parse_outline_list(ctx, b);
+    ENSURE_SUCCESS(rv);
+    ENSURE_BUILD(ast_build_outline_item(b, item_n));
     return 0;
-  /* Otherwise, the node must end with a semicolon: */
+  /* Otherwise, the item must end with a semicolon: */
   } else if (ctx->token == LEX_SEMICOLON) {
-    ENSURE_BUILD(ast_build_outline(b, item_n, child_n));
+    ENSURE_BUILD(ast_build_outline_list(b, 0));
+    ENSURE_BUILD(ast_build_outline_item(b, item_n));
     return 0;
   /* Anything else is an error: */
   } else {
@@ -370,7 +380,7 @@ int parse_match_top(Context *ctx, AstBuilder *b)
 
   /* Process the match straight away, popping it off the stack in the process. */
   {
-    OutlineList list;
+    AstOutlineList list;
     AstMatch *match = ast_builder_pop(b).p;
 #ifdef DEBUG
     dump_match(match, 0);

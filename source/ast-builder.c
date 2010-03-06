@@ -120,28 +120,46 @@ int ast_build_c(AstBuilder *b, String code)
       pool_string_copy(&b->pool, code)));
 }
 
-int ast_build_outline(AstBuilder *b, size_t item_n, size_t child_n)
+int ast_build_outline(AstBuilder *b)
+{
+  return ast_builder_push(b, AST_OUTLINE,
+    ast_outline_new(&b->pool,
+      ast_to_outline_list(ast_builder_pop(b))));
+}
+
+int ast_build_outline_list(AstBuilder *b, size_t item_n)
 {
   size_t i;
-  AstOutlineNode *nodes;
-  AstOutline **children;
+  AstOutlineItem **items;
 
-  nodes = pool_alloc(&b->pool, item_n*sizeof(AstOutlineNode));
-  if (!nodes) return 1;
-
-  children = pool_alloc(&b->pool, item_n*sizeof(AstOutline *));
-  if (!children) return 1;
-
-  b->stack_top -= child_n;
-  for (i = 0; i < child_n; ++i)
-    children[i] = ast_to_outline(b->stack[b->stack_top + i]);
+  items = pool_alloc(&b->pool, item_n*sizeof(AstOutlineItem *));
+  if (!items) return 1;
 
   b->stack_top -= item_n;
   for (i = 0; i < item_n; ++i)
+    items[i] = ast_to_outline_item(b->stack[b->stack_top + i]);
+
+  return ast_builder_push(b, AST_OUTLINE_LIST,
+    ast_outline_list_new(&b->pool, items, items + item_n));
+}
+
+int ast_build_outline_item(AstBuilder *b, size_t node_n)
+{
+  size_t i;
+  AstOutlineNode *nodes;
+  AstOutlineList *children;
+
+  children = ast_to_outline_list(ast_builder_pop(b));
+
+  nodes = pool_alloc(&b->pool, node_n*sizeof(AstOutlineNode));
+  if (!nodes) return 1;
+
+  b->stack_top -= node_n;
+  for (i = 0; i < node_n; ++i)
     nodes[i] = ast_to_outline_node(b->stack[b->stack_top + i]);
 
-  return ast_builder_push(b, AST_OUTLINE,
-    ast_outline_new(&b->pool, nodes, nodes + item_n, children, children + child_n));
+  return ast_builder_push(b, AST_OUTLINE_ITEM,
+    ast_outline_item_new(&b->pool, nodes, nodes + node_n, children));
 }
 
 int ast_build_outline_symbol(AstBuilder *b, String symbol)
@@ -189,20 +207,20 @@ int ast_build_match_line(AstBuilder *b)
       ast_to_code(ast_builder_pop(b))));
 }
 
-int ast_build_pattern(AstBuilder *b, size_t item_n)
+int ast_build_pattern(AstBuilder *b, size_t node_n)
 {
   size_t i;
   AstPatternNode *nodes;
 
-  nodes = pool_alloc(&b->pool, item_n*sizeof(AstPatternNode));
+  nodes = pool_alloc(&b->pool, node_n*sizeof(AstPatternNode));
   if (!nodes) return 1;
 
-  b->stack_top -= item_n;
-  for (i = 0; i < item_n; ++i)
+  b->stack_top -= node_n;
+  for (i = 0; i < node_n; ++i)
     nodes[i] = ast_to_pattern_node(b->stack[b->stack_top + i]);
 
   return ast_builder_push(b, AST_PATTERN,
-    ast_pattern_new(&b->pool, nodes, nodes + item_n));
+    ast_pattern_new(&b->pool, nodes, nodes + node_n));
 }
 
 int ast_build_pattern_wild(AstBuilder *b)
@@ -265,20 +283,20 @@ int ast_build_pattern_assign(AstBuilder *b, String symbol)
       ast_to_pattern_node(ast_builder_pop(b))));
 }
 
-int ast_build_code(AstBuilder *b, size_t item_n)
+int ast_build_code(AstBuilder *b, size_t node_n)
 {
   size_t i;
   AstCodeNode *nodes;
 
-  nodes = pool_alloc(&b->pool, item_n*sizeof(AstCodeNode));
+  nodes = pool_alloc(&b->pool, node_n*sizeof(AstCodeNode));
   if (!nodes) return 1;
 
-  b->stack_top -= item_n;
-  for (i = 0; i < item_n; ++i)
+  b->stack_top -= node_n;
+  for (i = 0; i < node_n; ++i)
     nodes[i] = ast_to_code_node(b->stack[b->stack_top + i]);
 
   return ast_builder_push(b, AST_CODE,
-    ast_code_new(&b->pool, nodes, nodes + item_n));
+    ast_code_new(&b->pool, nodes, nodes + node_n));
 }
 
 int ast_build_code_symbol(AstBuilder *b, AstPatternAssign *symbol)

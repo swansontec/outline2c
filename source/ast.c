@@ -100,9 +100,15 @@ AstCodeSymbolNode ast_to_code_symbol_node(AstNode node)
   return temp;
 }
 
-AstOutline *ast_to_outline(AstNode node)
+AstOutlineList *ast_to_outline_list(AstNode node)
 {
-  assert(node.type == AST_OUTLINE);
+  assert(node.type == AST_OUTLINE_LIST);
+  return node.p;
+}
+
+AstOutlineItem *ast_to_outline_item(AstNode node)
+{
+  assert(node.type == AST_OUTLINE_ITEM);
   return node.p;
 }
 
@@ -135,43 +141,40 @@ AstC *ast_c_new(Pool *p, String code)
   return self;
 }
 
-AstMatch *ast_match_new(Pool *p, AstMatchLine **lines, AstMatchLine **lines_end)
-{
-  AstMatch *self;
-  if (!lines) return 0;
-
-  self = pool_alloc(p, sizeof(AstMatch));
-  if (!self) return 0;
-  self->lines = lines;
-  self->lines_end = lines_end;
-  return self;
-}
-
-AstMatchLine *ast_match_line_new(Pool *p, AstPattern *pattern, AstCode *code)
-{
-  AstMatchLine *self;
-  if (!pattern) return 0;
-  if (!code) return 0;
-
-  self = pool_alloc(p, sizeof(AstMatchLine));
-  if (!self) return 0;
-  self->pattern = pattern;
-  self->code = code;
-  return self;
-}
-
-AstOutline *ast_outline_new(Pool *p, AstOutlineNode *nodes, AstOutlineNode *nodes_end, AstOutline **children, AstOutline **children_end)
+AstOutline *ast_outline_new(Pool *p, AstOutlineList *children)
 {
   AstOutline *self;
-  if (!nodes) return 0;
   if (!children) return 0;
 
   self = pool_alloc(p, sizeof(AstOutline));
   if (!self) return 0;
+  self->children = children;
+  return self;
+}
+
+AstOutlineList *ast_outline_list_new(Pool *p, AstOutlineItem **items, AstOutlineItem **items_end)
+{
+  AstOutlineList *self;
+  if (!items) return 0;
+
+  self = pool_alloc(p, sizeof(AstOutlineList));
+  if (!self) return 0;
+  self->items = items;
+  self->items_end = items_end;
+  return self;
+}
+
+AstOutlineItem *ast_outline_item_new(Pool *p, AstOutlineNode *nodes, AstOutlineNode *nodes_end, AstOutlineList *children)
+{
+  AstOutlineItem *self;
+  if (!nodes) return 0;
+  if (!children) return 0; /* TODO: Let this be NULL */
+
+  self = pool_alloc(p, sizeof(AstOutlineItem));
+  if (!self) return 0;
   self->nodes = nodes;
   self->nodes_end = nodes_end;
   self->children = children;
-  self->children_end = children_end;
   return self;
 }
 
@@ -208,6 +211,30 @@ AstOutlineNumber *ast_outline_number_new(Pool *p, String number)
   return self;
 }
 
+AstMatch *ast_match_new(Pool *p, AstMatchLine **lines, AstMatchLine **lines_end)
+{
+  AstMatch *self;
+  if (!lines) return 0;
+
+  self = pool_alloc(p, sizeof(AstMatch));
+  if (!self) return 0;
+  self->lines = lines;
+  self->lines_end = lines_end;
+  return self;
+}
+
+AstMatchLine *ast_match_line_new(Pool *p, AstPattern *pattern, AstCode *code)
+{
+  AstMatchLine *self;
+  if (!pattern) return 0;
+  if (!code) return 0;
+
+  self = pool_alloc(p, sizeof(AstMatchLine));
+  if (!self) return 0;
+  self->pattern = pattern;
+  self->code = code;
+  return self;
+}
 
 AstPattern *ast_pattern_new(Pool *p, AstPatternNode *nodes, AstPatternNode *nodes_end)
 {

@@ -28,34 +28,47 @@ static void space(int indent)
 /**
  * Prints a top-level outline statement.
  */
-void dump_outline(AstOutline *outline, int indent)
+void dump_outline(AstOutline *p)
+{
+  printf("outline");
+  dump_outline_list(p->children, 0);
+}
+
+/**
+ * Prints a list of outline items
+ */
+void dump_outline_list(AstOutlineList *p, int indent)
+{
+  AstOutlineItem **item;
+
+  printf(" {\n");
+  for (item = p->items; item != p->items_end; ++item) {
+    dump_outline_item(*item, indent + 1);
+  }
+  space(indent);
+  printf("}\n");
+}
+
+/**
+ * Prints a single item within an outline.
+ */
+void dump_outline_item(AstOutlineItem *p, int indent)
 {
   AstOutlineNode *node;
-  AstOutline **child;
 
   /* Words: */
   space(indent);
-  node = outline->nodes;
-  while (node < outline->nodes_end) {
-    if (node != outline->nodes)
+  for (node = p->nodes; node != p->nodes_end; ++node) {
+    if (node != p->nodes)
       printf(" ");
     dump_outline_node(*node);
-    ++node;
   }
 
   /* Children: */
-  child = outline->children;
-  if (child != outline->children_end) {
-    printf(" {\n");
-    while (child != outline->children_end) {
-      dump_outline(*child, indent + 1);
-      ++child;
-    }
-    space(indent);
-    printf("}\n");
-  } else {
+  if (p->children && p->children->items != p->children->items_end)
+    dump_outline_list(p->children, indent);
+  else
     printf(";\n");
-  }
 }
 
 /**

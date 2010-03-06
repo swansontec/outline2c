@@ -22,27 +22,19 @@
 #include "typedefs.h"
 #include "ast.h"
 
-typedef struct outline_list OutlineList;
-
-/**
- * A list of all outlines in-scope. The search algorithm works against this
- * list while generating code. The list can either be extracted from the top-
- * level file, or it can be taken from the children of a matching outline. In
- * the second case, it might make sense to create a parent pointer within this
- * structure, providing the ability to navigate up a level.
+/*
+ * Outline elements within the AST can contain lists of children, and the
+ * search algorithms take these lists as parameters. To enable processing the
+ * top-level outlines in a file, the following functions build one of these
+ * lists for the file as a whole.
  */
-struct outline_list {
-  AstOutline **p;
-  AstOutline **end;
-};
-void outline_list_free(OutlineList *self);
-int outline_list_from_file(OutlineList *self, AstNode *nodes, AstNode *nodes_end);
-OutlineList outline_list_from_outline(AstOutline *outline);
+void outline_list_free(AstOutlineList *self);
+int outline_list_from_file(AstOutlineList *self, AstNode *nodes, AstNode *nodes_end);
 
-int ast_match_search(AstMatch *match, OutlineList outlines, FileW *file);
-int ast_code_generate(AstCode *code, OutlineList outlines, FileW *file);
+int ast_match_search(AstMatch *match, AstOutlineList outlines, FileW *file);
+int ast_code_generate(AstCode *code, AstOutlineList outlines, FileW *file);
 
-int match_pattern(AstPattern *pattern, AstOutline *outline);
+int match_pattern(AstPattern *pattern, AstOutlineItem *outline);
 int match_pattern_item(AstPatternNode pn, AstOutlineNode on);
 int match_pattern_wild(AstPatternWild *p, AstOutlineNode on);
 int match_pattern_symbol(AstPatternSymbol *p, AstOutlineNode on);

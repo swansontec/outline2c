@@ -24,7 +24,9 @@
 #include "typedefs.h"
 #include "ast.h"
 
-void dump_outline(AstOutline *outline, int indent);
+void dump_outline(AstOutline *p);
+void dump_outline_list(AstOutlineList *p, int indent);
+void dump_outline_item(AstOutlineItem *p, int indent);
 void dump_outline_node(AstOutlineNode node);
 void dump_outline_symbol(AstOutlineSymbol *p);
 void dump_outline_string(AstOutlineString *p);
