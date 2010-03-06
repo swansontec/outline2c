@@ -48,32 +48,24 @@ int outline_list_from_file(AstOutlineList *self, AstNode *nodes, AstNode *nodes_
   self->items_end = 0;
 
   /* Count the outlines: */
-  node = nodes;
-  while (node < nodes_end) {
+  for (node = nodes; node != nodes_end; ++node)
     if (node->type == AST_OUTLINE) {
       AstOutlineList *children = ((AstOutline*)node->p)->children;
       list_n += children->items_end - children->items;
     }
-    ++node;
-  }
 
   /* Build the list: */
   if (!list_n) return 0;
   list = malloc(list_n*sizeof(AstOutlineItem*));
   if (!list) return 1;
 
-  node = nodes;
-  while (node < nodes_end) {
+  for (node = nodes; node != nodes_end; ++node)
     if (node->type == AST_OUTLINE) {
       AstOutlineList *children = ((AstOutline*)node->p)->children;
-      AstOutlineItem **child = children->items;
-      while (child < children->items_end) {
+      AstOutlineItem **child;
+      for (child = children->items; child < children->items_end; ++child)
         list[i++] = *child;
-        ++child;
-      }
     }
-    ++node;
-  }
 
   self->items = list;
   self->items_end = list + list_n;
@@ -89,19 +81,16 @@ int ast_match_search(AstMatch *match, AstOutlineList outlines, FileW *file)
 {
   int rv;
   AstOutlineItem **outline;
+  AstMatchLine **line;
 
-  outline = outlines.items;
-  while (outline < outlines.items_end) {
-    AstMatchLine **line = match->lines;
-    while (line < match->lines_end) {
+  for (outline = outlines.items; outline != outlines.items_end; ++outline) {
+    for (line = match->lines; line != match->lines_end; ++line) {
       if (match_pattern((*line)->pattern, *outline)) {
         rv = ast_code_generate((*line)->code, *(*outline)->children, file);
         if (rv) return rv;
         break;
       }
-      ++line;
     }
-    ++outline;
   }
   return 0;
 }
@@ -116,8 +105,7 @@ int ast_code_generate(AstCode *code, AstOutlineList outlines, FileW *file)
   char end[] = "\n";
   AstCodeNode *node;
 
-  node = code->nodes;
-  while (node < code->nodes_end) {
+  for (node = code->nodes; node != code->nodes_end; ++node) {
     if (node->type == AST_C) {
       AstC *p = node->p;
       rv = file_w_write(file, p->code.p, p->code.end);
@@ -133,7 +121,6 @@ int ast_code_generate(AstCode *code, AstOutlineList outlines, FileW *file)
     } else {
       assert(0);
     }
-    ++node;
   }
   file_w_write(file, end, end+1);
   return 0;

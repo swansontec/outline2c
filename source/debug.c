@@ -126,11 +126,9 @@ void dump_match(AstMatch *match, int indent)
     AstMatchLine **line;
 
     printf("{\n");
-    line = match->lines;
-    while (line < match->lines_end) {
+    for (line = match->lines; line != match->lines_end; ++line) {
       space(indent + 1);
       dump_match_line(*line, indent + 1);
-      ++line;
     }
     space(indent);
     printf("}\n");
@@ -155,12 +153,10 @@ void dump_pattern(AstPattern *p)
 {
   AstPatternNode *node;
 
-  node = p->nodes;
-  while (node < p->nodes_end) {
+  for (node = p->nodes; node != p->nodes_end; ++node) {
     if (node != p->nodes)
       printf(" ");
     dump_pattern_node(*node);
-    ++node;
   }
 }
 
@@ -209,8 +205,7 @@ void dump_code(AstCode *p, int indent)
 {
   AstCodeNode *node;
 
-  node = p->nodes;
-  while (node < p->nodes_end) {
+  for (node = p->nodes; node != p->nodes_end; ++node) {
     if (node->type == AST_C) {
       AstC *p = node->p;
       char *temp = string_to_c(string_init(p->code.p, p->code.end));
@@ -227,6 +222,5 @@ void dump_code(AstCode *p, int indent)
     } else {
       printf("(Unknown code node %d)", node->type);
     }
-    ++node;
   }
 }

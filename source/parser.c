@@ -138,11 +138,10 @@ parser_start(String aIn, char const *filename, FileW *aOut)
 #ifdef DEBUG
   printf("--- Outline: ---\n");
   {
-    AstNode *node = b.stack;
-    while (node < b.stack + b.stack_top) {
+    AstNode *node;
+    for (node = b.stack; node < b.stack + b.stack_top; ++node) {
       if (node->type == AST_OUTLINE)
         dump_outline(node->p);
-      ++node;
     }
   }
 #endif

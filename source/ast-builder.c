@@ -98,14 +98,12 @@ AstPatternAssign *ast_pattern_find_assign(AstPattern *pattern, String symbol)
 {
   AstPatternNode *node;
 
-  node = pattern->nodes;
-  while (node < pattern->nodes_end) {
+  for (node = pattern->nodes; node != pattern->nodes_end; ++node) {
     if (node->type == AST_PATTERN_ASSIGN) {
       AstPatternAssign *p = node->p;
       if (string_equal(p->symbol, symbol))
         return p;
     }
-    ++node;
   }
   return 0;
 }
