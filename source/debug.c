@@ -30,7 +30,9 @@ static void space(int indent)
  */
 void dump_outline(AstOutline *p)
 {
-  printf("outline");
+  char *temp = string_to_c(p->name);
+  printf("outline %s", temp);
+  free(temp);
   dump_outline_list(p->children, 0);
 }
 

@@ -120,10 +120,11 @@ int ast_build_c(AstBuilder *b, String code)
       pool_string_copy(&b->pool, code)));
 }
 
-int ast_build_outline(AstBuilder *b)
+int ast_build_outline(AstBuilder *b, String name)
 {
   return ast_builder_push(b, AST_OUTLINE,
     ast_outline_new(&b->pool,
+      name,
       ast_to_outline_list(ast_builder_pop(b))));
 }
 

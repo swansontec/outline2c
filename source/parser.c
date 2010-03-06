@@ -292,6 +292,15 @@ int parse_include(Context *ctx, AstBuilder *b)
 int parse_outline(Context *ctx, AstBuilder *b)
 {
   int rv;
+  String name;
+
+  /* Outline name: */
+  if (ctx->token != LEX_IDENTIFIER) {
+    error(ctx, "An outline stament must begin with a name.");
+    return 1;
+  }
+  name = string_init(ctx->marker.p, ctx->cursor.p);
+  advance(ctx, 0);
 
   /* Opening brace: */
   if (ctx->token != LEX_BRACE_OPEN) {
@@ -302,7 +311,7 @@ int parse_outline(Context *ctx, AstBuilder *b)
   /* Outline: */
   rv = parse_outline_list(ctx, b);
   ENSURE_SUCCESS(rv);
-  ENSURE_BUILD(ast_build_outline(b));
+  ENSURE_BUILD(ast_build_outline(b, name));
   return 0;
 }
 

@@ -3,7 +3,7 @@
 @o2c include "test.ol";
 
 /* List the settings in a single location: */
-@o2c outline {
+@o2c outline settings {
   setting number width;
   setting number height;
   setting number threads;

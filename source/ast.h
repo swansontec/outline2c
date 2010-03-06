@@ -210,6 +210,7 @@ struct ast_include {
 
 /* Outline elements */
 struct ast_outline {
+  String name;
   AstOutlineList *children;
 };
 
@@ -334,7 +335,7 @@ struct ast_code_string { /* Stringification */
 /*AstFile          *ast_file_new                (Pool *p);*/
 AstC               *ast_c_new                   (Pool *p, String code);
 /*int ast_include_new(Pool *p);*/
-AstOutline         *ast_outline_new             (Pool *p, AstOutlineList *children);
+AstOutline         *ast_outline_new             (Pool *p, String name, AstOutlineList *children);
 AstOutlineList     *ast_outline_list_new        (Pool *p, AstOutlineItem **items, AstOutlineItem **items_end);
 AstOutlineItem     *ast_outline_item_new        (Pool *p, AstOutlineNode *nodes, AstOutlineNode *nodes_end, AstOutlineList *children);
 AstOutlineSymbol   *ast_outline_symbol_new      (Pool *p, String symbol);

@@ -141,13 +141,15 @@ AstC *ast_c_new(Pool *p, String code)
   return self;
 }
 
-AstOutline *ast_outline_new(Pool *p, AstOutlineList *children)
+AstOutline *ast_outline_new(Pool *p, String name, AstOutlineList *children)
 {
   AstOutline *self;
+  if (!name.p) return 0;
   if (!children) return 0;
 
   self = pool_alloc(p, sizeof(AstOutline));
   if (!self) return 0;
+  self->name = name;
   self->children = children;
   return self;
 }
