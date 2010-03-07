@@ -148,7 +148,8 @@ int ast_build_outline_item(AstBuilder *b, size_t node_n)
   AstOutlineNode *nodes;
   AstOutlineList *children;
 
-  children = ast_to_outline_list(ast_builder_pop(b));
+  children = ast_builder_peek(b).type == AST_OUTLINE_LIST ?
+    ast_to_outline_list(ast_builder_pop(b)) : 0;
 
   nodes = pool_alloc(&b->pool, node_n*sizeof(AstOutlineNode));
   if (!nodes) return 1;
@@ -294,7 +295,7 @@ int ast_build_code(AstBuilder *b, size_t node_n)
   for (i = 0; i < node_n; ++i)
     nodes[i] = ast_to_code_node(b->stack[b->stack_top + i]);
 
-  return ast_builder_push(b, AST_CODE,
+  return ast_builder_push(b, AST_C,
     ast_code_new(&b->pool, nodes, nodes + node_n));
 }
 

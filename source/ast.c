@@ -170,7 +170,7 @@ AstOutlineItem *ast_outline_item_new(Pool *p, AstOutlineNode *nodes, AstOutlineN
 {
   AstOutlineItem *self;
   if (!nodes) return 0;
-  if (!children) return 0; /* TODO: Let this be NULL */
+  /* children may be NULL */
 
   self = pool_alloc(p, sizeof(AstOutlineItem));
   if (!self) return 0;

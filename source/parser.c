@@ -42,7 +42,7 @@
 #include <stdio.h>
 
 int parse_source_file(Context *ctx, AstBuilder *b);
-int parse_top(Context *ctx, AstBuilder *b);
+int parse_escape(Context *ctx, AstBuilder *b);
 
 int parse_include(Context *ctx, AstBuilder *b);
 
@@ -176,7 +176,7 @@ int parse_source_file(Context *ctx, AstBuilder *b)
       /* Process the next token: */
       info(ctx, "Got escape code");
       advance(ctx, 0);
-      rv = parse_top(ctx, b);
+      rv = parse_escape(ctx, b);
       ENSURE_SUCCESS(rv);
       start = ctx->cursor.p;
     }
@@ -194,7 +194,7 @@ int parse_source_file(Context *ctx, AstBuilder *b)
 /**
  * Handles the bit right after an @o2c escape code.
  */
-int parse_top(Context *ctx, AstBuilder *b)
+int parse_escape(Context *ctx, AstBuilder *b)
 {
   int rv;
 
@@ -206,7 +206,7 @@ int parse_top(Context *ctx, AstBuilder *b)
   } else if (ctx->token == LEX_BRACE_OPEN) {
     advance(ctx, 0);
     while (ctx->token != LEX_BRACE_CLOSE) {
-      rv = parse_top(ctx, b);
+      rv = parse_escape(ctx, b);
       ENSURE_SUCCESS(rv);
       advance(ctx, 0);
     }
@@ -266,7 +266,7 @@ int parse_include(Context *ctx, AstBuilder *b)
   /* Parse the input file: */
   advance(&c, 0);
   while (c.token != LEX_END) {
-    rv = parse_top(&c, b);
+    rv = parse_escape(&c, b);
     ENSURE_SUCCESS(rv);
     advance(&c, 0);
   }
@@ -364,7 +364,6 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
     return 0;
   /* Otherwise, the item must end with a semicolon: */
   } else if (ctx->token == LEX_SEMICOLON) {
-    ENSURE_BUILD(ast_build_outline_list(b, 0));
     ENSURE_BUILD(ast_build_outline_item(b, item_n));
     return 0;
   /* Anything else is an error: */
@@ -394,7 +393,7 @@ int parse_match_top(Context *ctx, AstBuilder *b)
     dump_match(match, 0);
 #endif
     outline_list_from_file(&list, b->stack, b->stack + b->stack_top);
-    ast_match_search(match, list, ctx->out);
+    ast_match_search(match, &list, ctx->out);
     outline_list_free(&list);
   }
   return 0;

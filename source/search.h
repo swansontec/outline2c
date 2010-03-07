@@ -31,8 +31,8 @@
 void outline_list_free(AstOutlineList *self);
 int outline_list_from_file(AstOutlineList *self, AstNode *nodes, AstNode *nodes_end);
 
-int ast_match_search(AstMatch *match, AstOutlineList outlines, FileW *file);
-int ast_code_generate(AstCode *code, AstOutlineList outlines, FileW *file);
+int ast_match_search(AstMatch *match, AstOutlineList *outlines, FileW *file);
+int ast_code_generate(AstCode *code, AstOutlineList *outlines, FileW *file);
 
 int match_pattern(AstPattern *pattern, AstOutlineItem *outline);
 int match_pattern_item(AstPatternNode pn, AstOutlineNode on);

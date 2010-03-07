@@ -75,18 +75,22 @@ int outline_list_from_file(AstOutlineList *self, AstNode *nodes, AstNode *nodes_
 /**
  * Compares a match against a list of outlines.
  * Generates code for the first match to to match against a particular outline.
+ * @param outlines The list of outlines to search. May be NULL.
  * @return 0 for success
  */
-int ast_match_search(AstMatch *match, AstOutlineList outlines, FileW *file)
+int ast_match_search(AstMatch *match, AstOutlineList *outlines, FileW *file)
 {
   int rv;
   AstOutlineItem **outline;
   AstMatchLine **line;
 
-  for (outline = outlines.items; outline != outlines.items_end; ++outline) {
+  if (!outlines)
+    return 0;
+
+  for (outline = outlines->items; outline != outlines->items_end; ++outline) {
     for (line = match->lines; line != match->lines_end; ++line) {
       if (match_pattern((*line)->pattern, *outline)) {
-        rv = ast_code_generate((*line)->code, *(*outline)->children, file);
+        rv = ast_code_generate((*line)->code, (*outline)->children, file);
         if (rv) return rv;
         break;
       }
@@ -99,7 +103,7 @@ int ast_match_search(AstMatch *match, AstOutlineList outlines, FileW *file)
  * Generates code for a match block.
  * @return 0 for success
  */
-int ast_code_generate(AstCode *code, AstOutlineList outlines, FileW *file)
+int ast_code_generate(AstCode *code, AstOutlineList *outlines, FileW *file)
 {
   int rv;
   char end[] = "\n";
