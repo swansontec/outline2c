@@ -111,10 +111,26 @@ AstPatternAssign *ast_pattern_find_assign(AstPattern *pattern, String symbol)
 /*
  * Functions for assembling an AST. All functions return 0 on success.
  */
-int ast_build_c(AstBuilder *b, String code)
+int ast_build_code(AstBuilder *b, size_t node_n)
 {
-  return ast_builder_push(b, AST_C,
-    ast_c_new(&b->pool,
+  size_t i;
+  AstCodeNode *nodes;
+
+  nodes = pool_alloc(&b->pool, node_n*sizeof(AstCodeNode));
+  if (!nodes) return 1;
+
+  b->stack_top -= node_n;
+  for (i = 0; i < node_n; ++i)
+    nodes[i] = ast_to_code_node(b->stack[b->stack_top + i]);
+
+  return ast_builder_push(b, AST_CODE,
+    ast_code_new(&b->pool, nodes, nodes + node_n));
+}
+
+int ast_build_code_text(AstBuilder *b, String code)
+{
+  return ast_builder_push(b, AST_CODE_TEXT,
+    ast_code_text_new(&b->pool,
       pool_string_copy(&b->pool, code)));
 }
 
@@ -281,22 +297,6 @@ int ast_build_pattern_assign(AstBuilder *b, String symbol)
     ast_pattern_assign_new(&b->pool,
       pool_string_copy(&b->pool, symbol),
       ast_to_pattern_node(ast_builder_pop(b))));
-}
-
-int ast_build_code(AstBuilder *b, size_t node_n)
-{
-  size_t i;
-  AstCodeNode *nodes;
-
-  nodes = pool_alloc(&b->pool, node_n*sizeof(AstCodeNode));
-  if (!nodes) return 1;
-
-  b->stack_top -= node_n;
-  for (i = 0; i < node_n; ++i)
-    nodes[i] = ast_to_code_node(b->stack[b->stack_top + i]);
-
-  return ast_builder_push(b, AST_C,
-    ast_code_new(&b->pool, nodes, nodes + node_n));
 }
 
 int ast_build_code_symbol(AstBuilder *b, AstPatternAssign *symbol)

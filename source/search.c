@@ -110,8 +110,8 @@ int ast_code_generate(AstCode *code, AstOutlineList *outlines, FileW *file)
   AstCodeNode *node;
 
   for (node = code->nodes; node != code->nodes_end; ++node) {
-    if (node->type == AST_C) {
-      AstC *p = node->p;
+    if (node->type == AST_CODE_TEXT) {
+      AstCodeText *p = node->p;
       rv = file_w_write(file, p->code.p, p->code.end);
       if (rv) return rv;
     } else if (node->type == AST_MATCH) {

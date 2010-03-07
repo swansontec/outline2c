@@ -42,6 +42,7 @@
 #include <stdio.h>
 
 int parse_source_file(Context *ctx, AstBuilder *b);
+int parse_code(Context *ctx, AstBuilder *b, int scoped);
 int parse_escape(Context *ctx, AstBuilder *b);
 
 int parse_include(Context *ctx, AstBuilder *b);
@@ -53,7 +54,6 @@ int parse_outline_item(Context *ctx, AstBuilder *b);
 int parse_match_top(Context *ctx, AstBuilder *b);
 int parse_match(Context *ctx, AstBuilder *b);
 int parse_match_line(Context *ctx, AstBuilder *b);
-int parse_match_code(Context *ctx, AstBuilder *b);
 
 int parse_pattern(Context *ctx, AstBuilder *b);
 int parse_pattern_item(Context *ctx, AstBuilder *b);
@@ -105,6 +105,7 @@ Context context_init(String file, char const *filename, FileW *out)
   ctx.filename = filename;
   ctx.out = out;
 
+  ctx.token = LEX_WHITESPACE;
   ctx.cursor = cursor_init(file.p);
   return ctx;
 }
@@ -174,7 +175,6 @@ int parse_source_file(Context *ctx, AstBuilder *b)
       }
 
       /* Process the next token: */
-      info(ctx, "Got escape code");
       advance(ctx, 0);
       rv = parse_escape(ctx, b);
       ENSURE_SUCCESS(rv);
@@ -188,6 +188,67 @@ int parse_source_file(Context *ctx, AstBuilder *b)
     printf("Error writing to the output file.");
     return 1;
   }
+  return 0;
+}
+
+/**
+ * Parses a block of code in the host language, looking for escape sequences
+ * and replacement keywords.
+ * @param scoped If this parameter is non-zero, the parser will stop at the
+ * first unbalanced }. Otherwise, the parser will stop at the end of the file.
+ */
+int parse_code(Context *ctx, AstBuilder *b, int scoped)
+{
+  int rv;
+  int indent = 1;
+  size_t node_n = 0;
+  char const *start;
+
+  start = ctx->cursor.p;
+  while (ctx->token != LEX_END && indent) {
+    advance(ctx, 1);
+    /* Sub-match expression: */
+    if (ctx->token == LEX_ESCAPE_O2C) {
+      /* Write the input so far: */
+      ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
+
+      /* Process the next token: */
+      advance(ctx, 0);
+      {
+        String temp = string_init(ctx->marker.p, ctx->cursor.p);
+        if (!string_equal(temp, string_init_l("match", 5))) {
+          error(ctx, "Only the match keyword is allowed within code blocks.");
+          return 1;
+        }
+      }
+      advance(ctx, 0);
+      rv = parse_match(ctx, b); ++node_n;
+      ENSURE_SUCCESS(rv);
+      start = ctx->cursor.p;
+    /* Possibly a symbol to substitute: */
+    } else if (ctx->token == LEX_IDENTIFIER) {
+      AstPatternAssign *p = ast_builder_find_assign(b, string_init(ctx->marker.p, ctx->cursor.p));
+      if (p) {
+        ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
+        ENSURE_BUILD(ast_build_code_symbol(b, p)); ++node_n;
+        start = ctx->cursor.p;
+      }
+    /* Opening brace: */
+    } else if (scoped && ctx->token == LEX_BRACE_OPEN) {
+      ++indent;
+    /* Closing brace: */
+    } else if (scoped && ctx->token == LEX_BRACE_CLOSE) {
+      --indent;
+    }
+    /* Anything else is C code; continue with the loop. */
+  }
+  if (scoped && ctx->token == LEX_END) {
+    error(ctx, "Unexpected end of input in match code block.");
+    return 1;
+  }
+  ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
+  ENSURE_BUILD(ast_build_code(b, node_n));
+
   return 0;
 }
 
@@ -451,68 +512,10 @@ int parse_match_line(Context *ctx, AstBuilder *b)
   }
 
   /* Parse the code: */
-  rv = parse_match_code(ctx, b);
+  rv = parse_code(ctx, b, 1);
   ENSURE_SUCCESS(rv);
 
   ENSURE_BUILD(ast_build_match_line(b));
-  return 0;
-}
-
-/**
- * Parses a block of code within a match statement.
- */
-int parse_match_code(Context *ctx, AstBuilder *b)
-{
-  int rv;
-  char const *start;
-  int indent;
-  size_t nodes = 0;
-
-  start = ctx->cursor.p;
-  indent = 1;
-  do {
-    advance(ctx, 1);
-    /* Sub-match expression: */
-    if (ctx->token == LEX_ESCAPE_O2C) {
-      ENSURE_BUILD(ast_build_c(b, string_init(start, ctx->marker.p))); ++nodes;
-
-      advance(ctx, 0);
-      {
-        String temp = string_init(ctx->marker.p, ctx->cursor.p);
-        if (!string_equal(temp, string_init_l("match", 5))) {
-          error(ctx, "Only the match keyword is allowed within code blocks.");
-          return 1;
-        }
-      }
-      advance(ctx, 0);
-      rv = parse_match(ctx, b); ++nodes;
-      ENSURE_SUCCESS(rv);
-      start = ctx->cursor.p;
-
-    /* A symbol to substitute: */
-    } else if (ctx->token == LEX_IDENTIFIER) {
-      AstPatternAssign *p = ast_builder_find_assign(b, string_init(ctx->marker.p, ctx->cursor.p));
-      if (p) {
-        ENSURE_BUILD(ast_build_c(b, string_init(start, ctx->marker.p))); ++nodes;
-        ENSURE_BUILD(ast_build_code_symbol(b, p)); ++nodes;
-        start = ctx->cursor.p;
-      }
-    /* Opening brace: */
-    } else if (ctx->token == LEX_BRACE_OPEN) {
-      ++indent;
-    /* Closing brace: */
-    } else if (ctx->token == LEX_BRACE_CLOSE) {
-      --indent;
-    /* Unexpected end of file: */
-    } else if (ctx->token == LEX_END) {
-      error(ctx, "Unexpected end of input in match code block.");
-      return 1;
-    }
-    /* Anything else is C code; continue with the loop. */
-  } while (indent);
-  ENSURE_BUILD(ast_build_c(b, string_init(start, ctx->marker.p))); ++nodes;
-  ENSURE_BUILD(ast_build_code(b, nodes));
-
   return 0;
 }
 
@@ -523,17 +526,17 @@ int parse_match_code(Context *ctx, AstBuilder *b)
 int parse_pattern(Context *ctx, AstBuilder *b)
 {
   int rv;
-  size_t nodes = 0;
+  size_t node_n = 0;
 
   while (1) {
     rv = parse_pattern_item(ctx, b);
     if (rv == -1) {
-      ENSURE_BUILD(ast_build_pattern(b, nodes));
+      ENSURE_BUILD(ast_build_pattern(b, node_n));
       return 0;
     } else if (rv) {
       return rv;
     } else {
-      ++nodes;
+      ++node_n;
     }
   }
 }

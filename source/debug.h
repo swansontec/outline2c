@@ -24,6 +24,8 @@
 #include "typedefs.h"
 #include "ast.h"
 
+void dump_code(AstCode *p, int indent);
+
 void dump_outline(AstOutline *p);
 void dump_outline_list(AstOutlineList *p, int indent);
 void dump_outline_item(AstOutlineItem *p, int indent);
@@ -40,7 +42,5 @@ void dump_pattern_node(AstPatternNode node);
 void dump_pattern_wild(AstPatternWild *p);
 void dump_pattern_symbol(AstPatternSymbol *p);
 void dump_pattern_assign(AstPatternAssign *p);
-
-void dump_code(AstCode *p, int indent);
 
 #endif

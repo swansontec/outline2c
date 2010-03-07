@@ -21,7 +21,8 @@
 #include "string.h"
 
 typedef struct ast_file                 AstFile;
-typedef struct ast_c                    AstC;
+typedef struct ast_code                 AstCode;
+typedef struct ast_code_text            AstCodeText;
 typedef struct ast_include              AstInclude;
 typedef struct ast_outline              AstOutline;
 typedef struct ast_outline_list         AstOutlineList;
@@ -43,7 +44,6 @@ typedef struct ast_pattern_symbol       AstPatternSymbol;
 typedef struct ast_pattern_string       AstPatternString;
 typedef struct ast_pattern_number       AstPatternNumber;
 typedef struct ast_pattern_assign       AstPatternAssign;
-typedef struct ast_code                 AstCode;
 typedef struct ast_code_symbol          AstCodeSymbol;
 typedef struct ast_code_upper           AstCodeUpper;
 typedef struct ast_code_lower           AstCodeLower;
@@ -52,10 +52,9 @@ typedef struct ast_code_mixed           AstCodeMixed;
 typedef struct ast_code_string          AstCodeString;
 
 typedef struct ast_node                 AstNode;
-typedef struct ast_file_node            AstFileNode;
+typedef struct ast_code_node            AstCodeNode;
 typedef struct ast_outline_node         AstOutlineNode;
 typedef struct ast_pattern_node         AstPatternNode;
-typedef struct ast_code_node            AstCodeNode;
 typedef struct ast_code_symbol_node     AstCodeSymbolNode;
 
 /**
@@ -63,7 +62,8 @@ typedef struct ast_code_symbol_node     AstCodeSymbolNode;
  */
 enum ast_type {
   AST_FILE,
-  AST_C,
+  AST_CODE,
+  AST_CODE_TEXT,
   AST_INCLUDE,
   AST_OUTLINE,
   AST_OUTLINE_LIST,
@@ -85,7 +85,6 @@ enum ast_type {
   AST_PATTERN_STRING,
   AST_PATTERN_NUMBER,
   AST_PATTERN_ASSIGN,
-  AST_CODE,
   AST_CODE_SYMBOL,
   AST_CODE_UPPER,
   AST_CODE_LOWER,
@@ -105,13 +104,19 @@ struct ast_node {
 
 /**
  * Points to one of:
- *  AstC
+ *  AstCodeText
  *  AstInclude
  *  AstOutline
  *  AstRule
  *  AstMatch
+ *  AstCodeSymbol
+ *  AstCodeUpper
+ *  AstCodeLower
+ *  AstCodeCamel
+ *  AstCodeMixed
+ *  AstCodeString
  */
-struct ast_file_node {
+struct ast_code_node {
   void *p;
   AstType type;
 };
@@ -146,22 +151,6 @@ struct ast_pattern_node {
 
 /**
  * Points to one of:
- *  AstC
- *  AstMatch
- *  AstCodeSymbol
- *  AstCodeUpper
- *  AstCodeLower
- *  AstCodeCamel
- *  AstCodeMixed
- *  AstCodeString
- */
-struct ast_code_node {
-  void *p;
-  AstType type;
-};
-
-/**
- * Points to one of:
  *  AstCodeSymbol
  *  AstCodeUpper
  *  AstCodeLower
@@ -173,58 +162,80 @@ struct ast_code_symbol_node {
   AstType type;
 };
 
-/*
- * Type-checking functions
- */
+/* Type-checking functions */
+int ast_is_code_node(AstNode node);
 int ast_is_outline_node(AstNode node);
 int ast_is_pattern_node(AstNode node);
-int ast_is_code_node(AstNode node);
 int ast_is_code_symbol_node(AstNode node);
 
-/*
- * Type-conversion functions
- */
+/* Type-conversion functions */
+AstCodeNode         ast_to_code_node(AstNode node);
 AstOutlineNode      ast_to_outline_node(AstNode node);
 AstPatternNode      ast_to_pattern_node(AstNode node);
-AstCodeNode         ast_to_code_node(AstNode node);
 AstCodeSymbolNode   ast_to_code_symbol_node(AstNode node);
+
+AstCode            *ast_to_code(AstNode node);
 AstOutlineList     *ast_to_outline_list(AstNode node);
 AstOutlineItem     *ast_to_outline_item(AstNode node);
 AstMatchLine       *ast_to_match_line(AstNode node);
 AstPattern         *ast_to_pattern(AstNode node);
-AstCode            *ast_to_code(AstNode node);
 
-/* Top-level elements */
+/**
+ * A source file. This is the top-level element of the AST.
+ */
 struct ast_file {
-  AstFileNode *nodes;
-  AstFileNode *item_end;
+  AstCode *code;
 };
 
-struct ast_c {
+/**
+ * A block of code in the host language, possibly interspersed with Outline to
+ * C escape sequences and replacement symbols.
+ */
+struct ast_code {
+  AstCodeNode *nodes;
+  AstCodeNode *nodes_end;
+};
+
+/**
+ * A run of text in the host language.
+ */
+struct ast_code_text {
   String code;
 };
 
+/**
+ * The include keyword.
+ */
 struct ast_include {
   AstFile *file;
 };
 
-/* Outline elements */
+/**
+ * The outline keyword
+ */
 struct ast_outline {
   String name;
   AstOutlineList *children;
 };
 
+/**
+ * A list of outline items.
+ */
 struct ast_outline_list {
   AstOutlineItem **items;
   AstOutlineItem **items_end;
 };
 
+/**
+ * An individual item in an outline.
+ */
 struct ast_outline_item {
   AstOutlineNode *nodes;
   AstOutlineNode *nodes_end;
   AstOutlineList *children;
 };
 
+/* Individual words in an outline item. */
 struct ast_outline_symbol {
   String symbol;
 };
@@ -303,11 +314,6 @@ struct ast_pattern_assign {
 };
 
 /* Code-generation elements */
-struct ast_code {
-  AstCodeNode *nodes;
-  AstCodeNode *nodes_end;
-};
-
 struct ast_code_symbol { /* Replacement symbol from pattern */
   AstPatternAssign *symbol;
 };
@@ -333,7 +339,8 @@ struct ast_code_string { /* Stringification */
 };
 
 /*AstFile          *ast_file_new                (Pool *p);*/
-AstC               *ast_c_new                   (Pool *p, String code);
+AstCode            *ast_code_new                (Pool *p, AstCodeNode *nodes, AstCodeNode *nodes_end);
+AstCodeText        *ast_code_text_new           (Pool *p, String code);
 /*int ast_include_new(Pool *p);*/
 AstOutline         *ast_outline_new             (Pool *p, String name, AstOutlineList *children);
 AstOutlineList     *ast_outline_list_new        (Pool *p, AstOutlineItem **items, AstOutlineItem **items_end);
@@ -355,7 +362,6 @@ AstPatternSymbol   *ast_pattern_symbol_new      (Pool *p, String symbol);
 AstPatternString   *ast_pattern_string_new      (Pool *p, String string);
 AstPatternNumber   *ast_pattern_number_new      (Pool *p, String number);
 AstPatternAssign   *ast_pattern_assign_new      (Pool *p, String symbol, AstPatternNode pattern);
-AstCode            *ast_code_new                (Pool *p, AstCodeNode *nodes, AstCodeNode *nodes_end);
 AstCodeSymbol      *ast_code_symbol_new         (Pool *p, AstPatternAssign *symbol);
 AstCodeUpper       *ast_code_upper_new          (Pool *p, AstCodeSymbolNode symbol);
 AstCodeLower       *ast_code_lower_new          (Pool *p, AstCodeSymbolNode symbol);

@@ -26,6 +26,33 @@ static void space(int indent)
 }
 
 /**
+ * Prints a block of code
+ */
+void dump_code(AstCode *p, int indent)
+{
+  AstCodeNode *node;
+
+  for (node = p->nodes; node != p->nodes_end; ++node) {
+    if (node->type == AST_CODE_TEXT) {
+      AstCodeText *p = node->p;
+      char *temp = string_to_c(string_init(p->code.p, p->code.end));
+      printf("%s", temp);
+      free(temp);
+    } else if (node->type == AST_MATCH) {
+      AstMatch *p = node->p;
+      dump_match(p, indent);
+    } else if (node->type == AST_CODE_SYMBOL) {
+      AstCodeSymbol *p = node->p;
+      char *s = string_to_c(p->symbol->symbol);
+      printf("<%s>", s);
+      free(s);
+    } else {
+      printf("(Unknown code node %d)", node->type);
+    }
+  }
+}
+
+/**
  * Prints a top-level outline statement.
  */
 void dump_outline(AstOutline *p)
@@ -199,28 +226,4 @@ void dump_pattern_assign(AstPatternAssign *p)
   free(temp);
   dump_pattern_node(p->pattern);
   printf(")");
-}
-
-void dump_code(AstCode *p, int indent)
-{
-  AstCodeNode *node;
-
-  for (node = p->nodes; node != p->nodes_end; ++node) {
-    if (node->type == AST_C) {
-      AstC *p = node->p;
-      char *temp = string_to_c(string_init(p->code.p, p->code.end));
-      printf("%s", temp);
-      free(temp);
-    } else if (node->type == AST_MATCH) {
-      AstMatch *p = node->p;
-      dump_match(p, indent);
-    } else if (node->type == AST_CODE_SYMBOL) {
-      AstCodeSymbol *p = node->p;
-      char *s = string_to_c(p->symbol->symbol);
-      printf("<%s>", s);
-      free(s);
-    } else {
-      printf("(Unknown code node %d)", node->type);
-    }
-  }
 }

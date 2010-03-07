@@ -47,7 +47,8 @@ AstPatternAssign *ast_pattern_find_assign(AstPattern *pattern, String symbol);
  * Functions for assembling an AST. All functions return 0 on success.
  */
 /*int ast_build_file(AstBuilder *b);*/
-int ast_build_c(AstBuilder *b, String code);
+int ast_build_code(AstBuilder *b, size_t node_n);
+int ast_build_code_text(AstBuilder *b, String code);
 /*int ast_build_include(AstBuilder *b);*/
 int ast_build_outline(AstBuilder *b, String name);
 int ast_build_outline_list(AstBuilder *b, size_t item_n);
@@ -69,7 +70,6 @@ int ast_build_pattern_symbol(AstBuilder *b, String symbol);
 int ast_build_pattern_string(AstBuilder *b, String string);
 int ast_build_pattern_number(AstBuilder *b, String number);
 int ast_build_pattern_assign(AstBuilder *b, String symbol);
-int ast_build_code(AstBuilder *b, size_t node_n);
 int ast_build_code_symbol(AstBuilder *b, AstPatternAssign *symbol);
 int ast_build_code_upper(AstBuilder *b);
 int ast_build_code_lower(AstBuilder *b);
