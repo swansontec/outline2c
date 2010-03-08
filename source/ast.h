@@ -174,6 +174,7 @@ AstOutlineNode      ast_to_outline_node(AstNode node);
 AstPatternNode      ast_to_pattern_node(AstNode node);
 AstCodeSymbolNode   ast_to_code_symbol_node(AstNode node);
 
+AstFile            *ast_to_file(AstNode node);
 AstCode            *ast_to_code(AstNode node);
 AstOutlineList     *ast_to_outline_list(AstNode node);
 AstOutlineItem     *ast_to_outline_item(AstNode node);
@@ -338,10 +339,10 @@ struct ast_code_string { /* Stringification */
   AstCodeSymbolNode symbol;
 };
 
-/*AstFile          *ast_file_new                (Pool *p);*/
+AstFile            *ast_file_new                (Pool *p, AstCode *code);
 AstCode            *ast_code_new                (Pool *p, AstCodeNode *nodes, AstCodeNode *nodes_end);
 AstCodeText        *ast_code_text_new           (Pool *p, String code);
-/*int ast_include_new(Pool *p);*/
+AstInclude         *ast_include_new             (Pool *p, AstFile *file);
 AstOutline         *ast_outline_new             (Pool *p, String name, AstOutlineList *children);
 AstOutlineList     *ast_outline_list_new        (Pool *p, AstOutlineItem **items, AstOutlineItem **items_end);
 AstOutlineItem     *ast_outline_item_new        (Pool *p, AstOutlineNode *nodes, AstOutlineNode *nodes_end, AstOutlineList *children);

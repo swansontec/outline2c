@@ -18,24 +18,7 @@
 #define PARSER_H_INCLUDED
 
 #include "typedefs.h"
-typedef struct context Context;
 
-#include "lexer.h"
-#include "string.h"
-struct context
-{
-  /* Current files: */
-  String file;
-  char const *filename;
-  FileW *out;
-
-  /* Current scanner state: */
-  Cursor cursor;
-  Cursor marker;
-  Token token;
-};
-Context context_init(String file, char const *filename, FileW *out);
-
-int parser_start(String aIn, char const *filename, FileW *aOut);
+int parser_start(String file, char const *filename, FileW *out);
 
 #endif

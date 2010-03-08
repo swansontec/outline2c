@@ -41,7 +41,21 @@
 #include "string.h"
 #include <stdio.h>
 
-int parse_source_file(Context *ctx, AstBuilder *b);
+typedef struct context Context;
+
+/**
+ * Contains everything related to the current input scanner state.
+ */
+struct context
+{
+  String file;
+  char const *filename;
+  Cursor cursor;
+  Cursor marker;
+  Token token;
+};
+
+int parse_file(char const *filename, AstBuilder *b);
 int parse_code(Context *ctx, AstBuilder *b, int scoped);
 int parse_escape(Context *ctx, AstBuilder *b);
 
@@ -51,7 +65,6 @@ int parse_outline(Context *ctx, AstBuilder *b);
 int parse_outline_list(Context *ctx, AstBuilder *b);
 int parse_outline_item(Context *ctx, AstBuilder *b);
 
-int parse_match_top(Context *ctx, AstBuilder *b);
 int parse_match(Context *ctx, AstBuilder *b);
 int parse_match_line(Context *ctx, AstBuilder *b);
 
@@ -76,14 +89,17 @@ int parse_pattern_item(Context *ctx, AstBuilder *b);
 #define ENSURE_BUILD(b) do { if (b) { printf("Out of memory!\n"); return 1; } } while(0)
 
 /**
- * Prints an informative message.
+ * Prepares a fresh context structure.
  */
-void
-info(Context *ctx, char const *message)
+Context context_init(String file, char const *filename)
 {
-#ifdef DEBUG
-  printf("%s:%d: info: %s\n", ctx->filename, ctx->marker.line + 1, message);
-#endif
+  Context ctx;
+  ctx.file = file;
+  ctx.filename = filename;
+  ctx.cursor = cursor_init(file.p);
+  ctx.marker = ctx.cursor;
+  ctx.token = LEX_WHITESPACE;
+  return ctx;
 }
 
 /**
@@ -96,26 +112,10 @@ error(Context *ctx, char const *message)
 }
 
 /**
- * Prepares a fresh context structure.
- */
-Context context_init(String file, char const *filename, FileW *out)
-{
-  Context ctx;
-  ctx.file = file;
-  ctx.filename = filename;
-  ctx.out = out;
-
-  ctx.token = LEX_WHITESPACE;
-  ctx.cursor = cursor_init(file.p);
-  return ctx;
-}
-
-/**
- * Reads the next token, filtering out atmosphere and converting token types.
+ * Reads the next token, optionally filtering out whitespace & comments.
  */
 static void advance(Context *ctx, int want_space)
 {
-  /* Advance and eat spaces, if requested: */
   do {
     ctx->marker = ctx->cursor;
     ctx->token = lex(&ctx->cursor, ctx->file.end);
@@ -124,76 +124,67 @@ static void advance(Context *ctx, int want_space)
 }
 
 int
-parser_start(String aIn, char const *filename, FileW *aOut)
+parser_start(String file, char const *filename, FileW *out)
 {
   int rv;
 
-  Context ctx = context_init(aIn, filename, aOut);
+  Context ctx = context_init(file, filename);
   AstBuilder b;
   rv = ast_builder_init(&b);
   ENSURE_MEMORY(!rv);
 
-  rv = parse_source_file(&ctx, &b);
+  rv = parse_code(&ctx, &b, 0);
   ENSURE_SUCCESS(rv);
 
+  {
+    AstOutlineList list;
+    AstCode *code = ast_builder_pop(&b).p;
+    outline_list_from_file(&list, (AstNode*)code->nodes, (AstNode*)code->nodes_end);
+    ast_code_generate(code, &list, out);
+    outline_list_free(&list);
 #ifdef DEBUG
   printf("--- Outline: ---\n");
-  {
-    AstNode *node;
-    for (node = b.stack; node < b.stack + b.stack_top; ++node) {
+    AstCodeNode *node;
+    for (node = code->nodes; node < code->nodes_end; ++node) {
       if (node->type == AST_OUTLINE)
         dump_outline(node->p);
     }
-  }
 #endif
+  }
 
   ast_builder_free(&b);
   return 0;
 }
 
 /**
- * Processes a source file, writing its contents to the output file. This file
- * should be called with the cursor pointing to the start of the file; unlike
- * the other parser methods, it is incorrect to advance the cursor before
- * calling.
+ * Processes a source file, adding its contents to the AST.
  */
-int parse_source_file(Context *ctx, AstBuilder *b)
+int parse_file(char const *filename, AstBuilder *b)
 {
   int rv;
-  char const *start;
+  FileR file;
+  Context ctx;
 
-  start = ctx->cursor.p;
-  do {
-    advance(ctx, 1);
-    /* Escape code: */
-    if (ctx->token == LEX_ESCAPE_O2C) {
-      /* Write the input so far: */
-      rv = file_w_write(ctx->out, start, ctx->marker.p);
-      if (rv) {
-        printf("Error writing to the output file.");
-        return 1;
-      }
-
-      /* Process the next token: */
-      advance(ctx, 0);
-      rv = parse_escape(ctx, b);
-      ENSURE_SUCCESS(rv);
-      start = ctx->cursor.p;
-    }
-  } while (ctx->token != LEX_END);
-
-  /* Write the remaining input: */
-  rv = file_w_write(ctx->out, start, ctx->cursor.p);
+  rv = file_r_open(&file, filename);
   if (rv) {
-    printf("Error writing to the output file.");
+    fprintf(stderr, "error: Could not open file %s\n", filename);
     return 1;
   }
+  ctx = context_init(string_init(file.p, file.end), filename);
+
+  /* Parse the input file: */
+  rv = parse_code(&ctx, b, 0);
+  ENSURE_SUCCESS(rv);
+  ENSURE_BUILD(ast_build_file(b));
+
+  file_r_close(&file);
   return 0;
 }
 
 /**
  * Parses a block of code in the host language, looking for escape sequences
- * and replacement keywords.
+ * and replacement keywords. This function should be called without advancing
+ * the cursor to the first token, as is normal for the other parser methods.
  * @param scoped If this parameter is non-zero, the parser will stop at the
  * first unbalanced }. Otherwise, the parser will stop at the end of the file.
  */
@@ -212,19 +203,12 @@ int parse_code(Context *ctx, AstBuilder *b, int scoped)
       /* Write the input so far: */
       ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
 
-      /* Process the next token: */
+      /* Process the expression: */
       advance(ctx, 0);
-      {
-        String temp = string_init(ctx->marker.p, ctx->cursor.p);
-        if (!string_equal(temp, string_init_l("match", 5))) {
-          error(ctx, "Only the match keyword is allowed within code blocks.");
-          return 1;
-        }
-      }
-      advance(ctx, 0);
-      rv = parse_match(ctx, b); ++node_n;
+      rv = parse_escape(ctx, b); ++node_n;
       ENSURE_SUCCESS(rv);
       start = ctx->cursor.p;
+
     /* Possibly a symbol to substitute: */
     } else if (ctx->token == LEX_IDENTIFIER) {
       AstPatternAssign *p = ast_builder_find_assign(b, string_init(ctx->marker.p, ctx->cursor.p));
@@ -243,7 +227,7 @@ int parse_code(Context *ctx, AstBuilder *b, int scoped)
     /* Anything else is C code; continue with the loop. */
   }
   if (scoped && ctx->token == LEX_END) {
-    error(ctx, "Unexpected end of input in match code block.");
+    error(ctx, "Unexpected end of input in code block.");
     return 1;
   }
   ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
@@ -283,7 +267,7 @@ int parse_escape(Context *ctx, AstBuilder *b)
       return parse_outline(ctx, b);
     } else if (string_equal(temp, string_init_l("match", 5))) {
       advance(ctx, 0);
-      return parse_match_top(ctx, b);
+      return parse_match(ctx, b);
     } else {
       error(ctx, "No idea what this keyword is.\n");
       return 1;
@@ -300,43 +284,19 @@ int parse_escape(Context *ctx, AstBuilder *b)
 int parse_include(Context *ctx, AstBuilder *b)
 {
   int rv;
-  Context c;
   char *filename;
-  FileR file;
 
   if (ctx->token != LEX_STRING) {
     error(ctx, "An include statment expects a quoted filename.");
     return 1;
   }
-
-  /* Prepare a context for the new file: */
   filename = string_to_c(string_init(ctx->marker.p + 1, ctx->cursor.p - 1));
-  rv = file_r_open(&file, filename);
-  if (rv) {
-    error(ctx, "Could not open the included file.");
-    return 1;
-  }
-  c.file = string_init(file.p, file.end);
-  c.filename = filename;
-  c.out = ctx->out;
-  c.cursor = cursor_init(file.p);
-#ifdef DEBUG
-  printf("The filename is: \"%s\"\n", filename);
-#endif
 
-  /* Parse the input file: */
-  advance(&c, 0);
-  while (c.token != LEX_END) {
-    rv = parse_escape(&c, b);
-    ENSURE_SUCCESS(rv);
-    advance(&c, 0);
-  }
-
-  /* Free the context stuff: */
+  /* Process the file's contents: */
+  rv = parse_file(filename, b);
+  ENSURE_SUCCESS(rv);
+  ENSURE_BUILD(ast_build_include(b));
   free(filename);
-  /* TODO: Closing the file would invalidate all string pointers in the AST.
-   find some better way to handle this problem. */
-/*  file_r_close(&file); */
 
   advance(ctx, 0);
   if (ctx->token != LEX_SEMICOLON) {
@@ -432,32 +392,6 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
     error(ctx, "An outline can only end with a semicolon or an opening brace.");
     return 1;
   }
-}
-
-/**
- * Handles a top-level match keyword. This function calls parse_match to
- * perform the actual parsing. Then, it feeds the return value into the code-
- * generation algorithm.
- */
-int parse_match_top(Context *ctx, AstBuilder *b)
-{
-  int rv;
-
-  rv = parse_match(ctx, b);
-  ENSURE_SUCCESS(rv);
-
-  /* Process the match straight away, popping it off the stack in the process. */
-  {
-    AstOutlineList list;
-    AstMatch *match = ast_builder_pop(b).p;
-#ifdef DEBUG
-    dump_match(match, 0);
-#endif
-    outline_list_from_file(&list, b->stack, b->stack + b->stack_top);
-    ast_match_search(match, &list, ctx->out);
-    outline_list_free(&list);
-  }
-  return 0;
 }
 
 /**

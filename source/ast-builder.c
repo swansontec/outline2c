@@ -111,6 +111,13 @@ AstPatternAssign *ast_pattern_find_assign(AstPattern *pattern, String symbol)
 /*
  * Functions for assembling an AST. All functions return 0 on success.
  */
+int ast_build_file(AstBuilder *b)
+{
+  return ast_builder_push(b, AST_FILE,
+    ast_file_new(&b->pool,
+      ast_to_code(ast_builder_pop(b))));
+}
+
 int ast_build_code(AstBuilder *b, size_t node_n)
 {
   size_t i;
@@ -132,6 +139,13 @@ int ast_build_code_text(AstBuilder *b, String code)
   return ast_builder_push(b, AST_CODE_TEXT,
     ast_code_text_new(&b->pool,
       pool_string_copy(&b->pool, code)));
+}
+
+int ast_build_include(AstBuilder *b)
+{
+  return ast_builder_push(b, AST_INCLUDE,
+    ast_include_new(&b->pool,
+      ast_to_file(ast_builder_pop(b))));
 }
 
 int ast_build_outline(AstBuilder *b, String name)

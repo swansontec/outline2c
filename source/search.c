@@ -33,42 +33,65 @@ void outline_list_free(AstOutlineList *self)
   free(self->items);
 }
 
+static size_t count_outlines(AstNode *nodes, AstNode *nodes_end)
+{
+  size_t count = 0;
+  AstNode *node;
+
+  for (node = nodes; node != nodes_end; ++node) {
+    if (node->type == AST_OUTLINE) {
+      AstOutline *outline = node->p;
+      count += outline->children->items_end - outline->children->items;
+    } else if (node->type == AST_INCLUDE) {
+      AstInclude *include = node->p;
+      count += count_outlines((AstNode*)include->file->code->nodes, (AstNode*)include->file->code->nodes_end);
+    }
+  }
+  return count;
+}
+
+static size_t copy_outlines(AstOutlineItem **list, AstNode *nodes, AstNode *nodes_end)
+{
+  size_t i = 0;
+  AstNode *node;
+
+  for (node = nodes; node != nodes_end; ++node) {
+    if (node->type == AST_OUTLINE) {
+      AstOutline *outline = node->p;
+      AstOutlineItem **child;
+      for (child = outline->children->items; child < outline->children->items_end; ++child)
+        list[i++] = *child;
+    } else if (node->type == AST_INCLUDE) {
+      AstInclude *include = node->p;
+      i += copy_outlines(list + i, (AstNode*)include->file->code->nodes, (AstNode*)include->file->code->nodes_end);
+    }
+  }
+  return i;
+}
+
 /**
  * Searches a file for all available outline nodes and adds them to a single
  * master list.
  */
 int outline_list_from_file(AstOutlineList *self, AstNode *nodes, AstNode *nodes_end)
 {
-  AstNode *node;
   AstOutlineItem **list;
-  size_t list_n = 0;
-  size_t i = 0;
+  size_t count = 0;
 
   self->items = 0;
   self->items_end = 0;
 
   /* Count the outlines: */
-  for (node = nodes; node != nodes_end; ++node)
-    if (node->type == AST_OUTLINE) {
-      AstOutlineList *children = ((AstOutline*)node->p)->children;
-      list_n += children->items_end - children->items;
-    }
+  count = count_outlines(nodes, nodes_end);
+  if (!count) return 0;
 
   /* Build the list: */
-  if (!list_n) return 0;
-  list = malloc(list_n*sizeof(AstOutlineItem*));
+  list = malloc(count*sizeof(AstOutlineItem*));
   if (!list) return 1;
-
-  for (node = nodes; node != nodes_end; ++node)
-    if (node->type == AST_OUTLINE) {
-      AstOutlineList *children = ((AstOutline*)node->p)->children;
-      AstOutlineItem **child;
-      for (child = children->items; child < children->items_end; ++child)
-        list[i++] = *child;
-    }
+  copy_outlines(list, nodes, nodes_end);
 
   self->items = list;
-  self->items_end = list + list_n;
+  self->items_end = list + count;
   return 0;
 }
 
@@ -78,7 +101,7 @@ int outline_list_from_file(AstOutlineList *self, AstNode *nodes, AstNode *nodes_
  * @param outlines The list of outlines to search. May be NULL.
  * @return 0 for success
  */
-int ast_match_search(AstMatch *match, AstOutlineList *outlines, FileW *file)
+int ast_match_search(AstMatch *match, AstOutlineList *outlines, FileW *out)
 {
   int rv;
   AstOutlineItem **outline;
@@ -90,8 +113,10 @@ int ast_match_search(AstMatch *match, AstOutlineList *outlines, FileW *file)
   for (outline = outlines->items; outline != outlines->items_end; ++outline) {
     for (line = match->lines; line != match->lines_end; ++line) {
       if (match_pattern((*line)->pattern, *outline)) {
-        rv = ast_code_generate((*line)->code, (*outline)->children, file);
+        char end[] = "\n";
+        rv = ast_code_generate((*line)->code, (*outline)->children, out);
         if (rv) return rv;
+        file_w_write(out, end, end+1);
         break;
       }
     }
@@ -103,30 +128,30 @@ int ast_match_search(AstMatch *match, AstOutlineList *outlines, FileW *file)
  * Generates code for a match block.
  * @return 0 for success
  */
-int ast_code_generate(AstCode *code, AstOutlineList *outlines, FileW *file)
+int ast_code_generate(AstCode *code, AstOutlineList *outlines, FileW *out)
 {
   int rv;
-  char end[] = "\n";
   AstCodeNode *node;
 
   for (node = code->nodes; node != code->nodes_end; ++node) {
     if (node->type == AST_CODE_TEXT) {
       AstCodeText *p = node->p;
-      rv = file_w_write(file, p->code.p, p->code.end);
+      rv = file_w_write(out, p->code.p, p->code.end);
       if (rv) return rv;
+    } else if (node->type == AST_INCLUDE) {
+    } else if (node->type == AST_OUTLINE) {
     } else if (node->type == AST_MATCH) {
       AstMatch *p = node->p;
-      rv = ast_match_search(p, outlines, file);
+      rv = ast_match_search(p, outlines, out);
       if (rv) return rv;
     } else if (node->type == AST_CODE_SYMBOL) {
       AstCodeSymbol *p = node->p;
-      rv = file_w_write(file, p->symbol->symbol.p, p->symbol->symbol.end);
+      rv = file_w_write(out, p->symbol->symbol.p, p->symbol->symbol.end);
       if (rv) return rv;
     } else {
       assert(0);
     }
   }
-  file_w_write(file, end, end+1);
   return 0;
 }
 

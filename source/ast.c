@@ -22,6 +22,8 @@ int ast_is_code_node(AstNode node)
 {
   return
     node.type == AST_CODE_TEXT ||
+    node.type == AST_INCLUDE ||
+    node.type == AST_OUTLINE ||
     node.type == AST_MATCH ||
     node.type == AST_CODE_SYMBOL ||
     node.type == AST_CODE_UPPER ||
@@ -100,6 +102,12 @@ AstCodeSymbolNode ast_to_code_symbol_node(AstNode node)
   return temp;
 }
 
+AstFile *ast_to_file(AstNode node)
+{
+  assert(node.type == AST_FILE);
+  return node.p;
+}
+
 AstCode *ast_to_code(AstNode node)
 {
   assert(node.type == AST_CODE);
@@ -130,6 +138,17 @@ AstPattern *ast_to_pattern(AstNode node)
   return node.p;
 }
 
+AstFile *ast_file_new(Pool *p, AstCode *code)
+{
+  AstFile *self;
+  if (!code) return 0;
+
+  self = pool_alloc(p, sizeof(AstFile));
+  if (!self) return 0;
+  self->code = code;
+  return self;
+}
+
 AstCode *ast_code_new(Pool *p, AstCodeNode *nodes, AstCodeNode *nodes_end)
 {
   AstCode *self;
@@ -150,6 +169,17 @@ AstCodeText *ast_code_text_new(Pool *p, String code)
   self = pool_alloc(p, sizeof(AstCodeText));
   if (!self) return 0;
   self->code = code;
+  return self;
+}
+
+AstInclude *ast_include_new(Pool *p, AstFile *file)
+{
+  AstInclude *self;
+  if (!file) return 0;
+
+  self = pool_alloc(p, sizeof(AstInclude));
+  if (!self) return 0;
+  self->file = file;
   return self;
 }
 
