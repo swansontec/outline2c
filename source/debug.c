@@ -38,6 +38,14 @@ void dump_code(AstCode *p, int indent)
       char *temp = string_to_c(string_init(p->code.p, p->code.end));
       printf("%s", temp);
       free(temp);
+    } else if (node->type == AST_INCLUDE) {
+      AstInclude *p = node->p;
+      printf("@o2c include {{{\n");
+      dump_code(p->file->code, indent+1);
+      printf("}}}\n");
+    } else if (node->type == AST_OUTLINE) {
+      AstOutline *p = node->p;
+      dump_outline(p);
     } else if (node->type == AST_MATCH) {
       AstMatch *p = node->p;
       dump_match(p, indent);
@@ -58,7 +66,7 @@ void dump_code(AstCode *p, int indent)
 void dump_outline(AstOutline *p)
 {
   char *temp = string_to_c(p->name);
-  printf("outline %s", temp);
+  printf("@o2c outline %s", temp);
   free(temp);
   dump_outline_list(p->children, 0);
 }

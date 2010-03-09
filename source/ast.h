@@ -65,7 +65,7 @@ enum ast_type {
   AST_PATTERN,
   AST_PATTERN_WILD,
   AST_PATTERN_SYMBOL,
-  AST_PATTERN_ASSIGN,
+  AST_PATTERN_ASSIGN
 };
 typedef enum ast_type AstType;
 

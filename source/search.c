@@ -33,29 +33,29 @@ void outline_list_free(AstOutlineList *self)
   free(self->items);
 }
 
-static size_t count_outlines(AstNode *nodes, AstNode *nodes_end)
+static size_t count_outlines(AstFile *file)
 {
   size_t count = 0;
-  AstNode *node;
+  AstCodeNode *node;
 
-  for (node = nodes; node != nodes_end; ++node) {
+  for (node = file->code->nodes; node != file->code->nodes_end; ++node) {
     if (node->type == AST_OUTLINE) {
       AstOutline *outline = node->p;
       count += outline->children->items_end - outline->children->items;
     } else if (node->type == AST_INCLUDE) {
       AstInclude *include = node->p;
-      count += count_outlines((AstNode*)include->file->code->nodes, (AstNode*)include->file->code->nodes_end);
+      count += count_outlines(include->file);
     }
   }
   return count;
 }
 
-static size_t copy_outlines(AstOutlineItem **list, AstNode *nodes, AstNode *nodes_end)
+static size_t copy_outlines(AstOutlineItem **list, AstFile *file)
 {
   size_t i = 0;
-  AstNode *node;
+  AstCodeNode *node;
 
-  for (node = nodes; node != nodes_end; ++node) {
+  for (node = file->code->nodes; node != file->code->nodes_end; ++node) {
     if (node->type == AST_OUTLINE) {
       AstOutline *outline = node->p;
       AstOutlineItem **child;
@@ -63,7 +63,7 @@ static size_t copy_outlines(AstOutlineItem **list, AstNode *nodes, AstNode *node
         list[i++] = *child;
     } else if (node->type == AST_INCLUDE) {
       AstInclude *include = node->p;
-      i += copy_outlines(list + i, (AstNode*)include->file->code->nodes, (AstNode*)include->file->code->nodes_end);
+      i += copy_outlines(list + i, include->file);
     }
   }
   return i;
@@ -73,7 +73,7 @@ static size_t copy_outlines(AstOutlineItem **list, AstNode *nodes, AstNode *node
  * Searches a file for all available outline nodes and adds them to a single
  * master list.
  */
-int outline_list_from_file(AstOutlineList *self, AstNode *nodes, AstNode *nodes_end)
+int outline_list_from_file(AstOutlineList *self, AstFile *file)
 {
   AstOutlineItem **list;
   size_t count = 0;
@@ -82,13 +82,13 @@ int outline_list_from_file(AstOutlineList *self, AstNode *nodes, AstNode *nodes_
   self->items_end = 0;
 
   /* Count the outlines: */
-  count = count_outlines(nodes, nodes_end);
+  count = count_outlines(file);
   if (!count) return 0;
 
   /* Build the list: */
   list = malloc(count*sizeof(AstOutlineItem*));
   if (!list) return 1;
-  copy_outlines(list, nodes, nodes_end);
+  copy_outlines(list, file);
 
   self->items = list;
   self->items_end = list + count;

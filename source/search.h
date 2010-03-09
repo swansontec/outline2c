@@ -29,7 +29,7 @@
  * lists for the file as a whole.
  */
 void outline_list_free(AstOutlineList *self);
-int outline_list_from_file(AstOutlineList *self, AstNode *nodes, AstNode *nodes_end);
+int outline_list_from_file(AstOutlineList *self, AstFile *file);
 
 int ast_match_search(AstMatch *match, AstOutlineList *outlines, FileW *out);
 int ast_code_generate(AstCode *code, AstOutlineList *outlines, FileW *out);

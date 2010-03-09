@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef PARSER_H_INCLUDED
-#define PARSER_H_INCLUDED
+#ifndef GENERATE_H_INCLUDED
+#define GENERATE_H_INCLUDED
 
 #include "typedefs.h"
 
-int parse_file(char const *filename, AstBuilder *b);
+int generate(char const *filename, FileW *out);
 
 #endif

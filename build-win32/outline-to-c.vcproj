@@ -204,6 +204,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\source\generate.c"
+			>
+		</File>
+		<File
+			RelativePath="..\source\generate.h"
+			>
+		</File>
+		<File
 			RelativePath="..\source\lexer.c"
 			>
 		</File>

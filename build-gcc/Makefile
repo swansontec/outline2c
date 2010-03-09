@@ -17,13 +17,14 @@
 CC = gcc
 CFLAGS = -g -std=c89 -pedantic
 
-objects = ast.o ast-builder.o debug.o file.o lexer.o main.o parser.o pool.o search.o string.o
+objects = ast.o ast-builder.o debug.o file.o generate.o lexer.o main.o parser.o pool.o search.o string.o
 
 # Inter-header dependencies:
 ast_h      = ../source/ast.h $(typedefs_h) $(string_h)
 ast_builder_h = ../source/ast-builder.h $(ast_h) $(pool_h)
 debug_h    = ../source/debug.h $(typedefs_h)
 file_h     = ../source/file.h $(typedefs_h)
+generate_h = ../source/generate.h $(typedefs_h)
 lexer_h    = ../source/lexer.h
 parser_h   = ../source/parser.h $(typedefs_h)
 pool_h     = ../source/pool.h $(typedefs_h)
@@ -45,13 +46,16 @@ debug.o: ../source/debug.c $(debug_h) $(string_h)
 file.o: ../source/file.c $(file_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/file.c
 
+generate.o: ../source/generate.c $(generate_h) $(parser_h) $(ast_builder_h) $(search_h) $(debug_h)
+	$(CC) $(CFLAGS) -o $@ -c ../source/generate.c
+
 lexer.o: ../source/lexer.c $(lexer_h) $(string_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/lexer.c
 
-main.o: ../source/main.c $(parser_h) $(file_h) $(string_h)
+main.o: ../source/main.c $(file_h) $(string_h) $(generate_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/main.c
 
-parser.o: ../source/parser.c $(parser_h) $(lexer_h) $(ast_builder_h) $(search_h) $(debug_h) $(file_h) $(string_h)
+parser.o: ../source/parser.c $(parser_h) $(lexer_h) $(ast_builder_h) $(file_h) $(string_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/parser.c
 
 pool.o: ../source/pool.c $(pool_h) $(string_h)

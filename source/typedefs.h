@@ -21,6 +21,9 @@
 #ifndef TYPEDEFS_H_INCLUDED
 #define TYPEDEFS_H_INCLUDED
 
+/* ast-builder.h */
+typedef struct ast_builder AstBuilder;
+
 /* string.h */
 typedef struct string String;
 

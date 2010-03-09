@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-#include "parser.h"
 #include "file.h"
 #include "string.h"
+#include "generate.h"
 #include <stdio.h>
 #include <string.h>
 
 struct main {
   char const *name_out;
-  FileR file_in;
   FileW file_out;
 };
 typedef struct main Main;
@@ -33,14 +32,12 @@ void main_close(Main *m);
 void main_init(Main *m)
 {
   m->name_out = 0;
-  file_r_init(&m->file_in);
   file_w_init(&m->file_out);
 }
 
 void main_close(Main *m)
 {
   if (m->name_out) free((char *)m->name_out);
-  file_r_close(&m->file_in);
   file_w_close(&m->file_out);
 }
 
@@ -66,13 +63,6 @@ int main_run(Main *m, int argc, char *argv[])
   }
   m->name_out = string_to_c(string_init(in_name.p, in_name.end - 4));
 
-  /* Open input file */
-  rv = file_r_open(&m->file_in, argv[1]);
-  if (rv){
-    printf(" Could not open file \"%s\"\n", argv[1]);
-    return 1;
-  }
-
   /* Open output file: */
   rv = file_w_open(&m->file_out, m->name_out);
   if (rv) {
@@ -81,7 +71,7 @@ int main_run(Main *m, int argc, char *argv[])
   }
 
   /* Munchify files: */
-  parser_start(string_init(m->file_in.p, m->file_in.end), argv[1], &m->file_out);
+  generate(argv[1], &m->file_out);
   return 0;
 }
 

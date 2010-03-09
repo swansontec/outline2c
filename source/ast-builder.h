@@ -21,8 +21,6 @@
 #include "pool.h"
 #include <stdlib.h>
 
-typedef struct ast_builder AstBuilder;
-
 /**
  * State for assembling an AST item-by-item.
  */

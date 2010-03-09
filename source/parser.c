@@ -30,13 +30,9 @@
  * must call advance() to get the next un-processed token.
  */
 
-/*#define DEBUG */
-
 #include "parser.h"
 #include "lexer.h"
 #include "ast-builder.h"
-#include "search.h"
-#include "debug.h"
 #include "file.h"
 #include "string.h"
 #include <stdio.h>
@@ -55,7 +51,6 @@ struct context
   Token token;
 };
 
-int parse_file(char const *filename, AstBuilder *b);
 int parse_code(Context *ctx, AstBuilder *b, int scoped);
 int parse_escape(Context *ctx, AstBuilder *b);
 
@@ -78,15 +73,9 @@ int parse_pattern_item(Context *ctx, AstBuilder *b);
 #define ENSURE_SUCCESS(rv) do { if (rv) return rv; } while(0)
 
 /**
- * Verifies that a pointer is non-null. If the pointer is null, prints an error
- * message and bails.
- */
-#define ENSURE_MEMORY(p) do { if (!p) { printf("Out of memory!\n"); return 1; } } while(0)
-
-/**
  * Verifies that a call to the AstBuilder succeeded.
  */
-#define ENSURE_BUILD(b) do { if (b) { printf("Out of memory!\n"); return 1; } } while(0)
+#define ENSURE_BUILD(b) do { if (b) { fprintf(stderr, "Out of memory!\n"); return 1; } } while(0)
 
 /**
  * Prepares a fresh context structure.
@@ -121,39 +110,6 @@ static void advance(Context *ctx, int want_space)
     ctx->token = lex(&ctx->cursor, ctx->file.end);
   } while (!want_space &&
     (ctx->token == LEX_WHITESPACE || ctx->token == LEX_COMMENT));
-}
-
-int
-parser_start(String file, char const *filename, FileW *out)
-{
-  int rv;
-
-  Context ctx = context_init(file, filename);
-  AstBuilder b;
-  rv = ast_builder_init(&b);
-  ENSURE_MEMORY(!rv);
-
-  rv = parse_code(&ctx, &b, 0);
-  ENSURE_SUCCESS(rv);
-
-  {
-    AstOutlineList list;
-    AstCode *code = ast_builder_pop(&b).p;
-    outline_list_from_file(&list, (AstNode*)code->nodes, (AstNode*)code->nodes_end);
-    ast_code_generate(code, &list, out);
-    outline_list_free(&list);
-#ifdef DEBUG
-  printf("--- Outline: ---\n");
-    AstCodeNode *node;
-    for (node = code->nodes; node < code->nodes_end; ++node) {
-      if (node->type == AST_OUTLINE)
-        dump_outline(node->p);
-    }
-#endif
-  }
-
-  ast_builder_free(&b);
-  return 0;
 }
 
 /**
@@ -269,11 +225,11 @@ int parse_escape(Context *ctx, AstBuilder *b)
       advance(ctx, 0);
       return parse_match(ctx, b);
     } else {
-      error(ctx, "No idea what this keyword is.\n");
+      error(ctx, "No idea what this keyword is.");
       return 1;
     }
   } else {
-    error(ctx, "No idea what token this is.\n");
+    error(ctx, "No idea what token this is.");
     return 1;
   }
 }
@@ -438,7 +394,7 @@ int parse_match_line(Context *ctx, AstBuilder *b)
 
   /* Check for bad closing characters: */
   if (ctx->token == LEX_BRACE_CLOSE || ctx->token == LEX_SEMICOLON) {
-    error(ctx, "A match rule must end with a code block");
+    error(ctx, "A match rule must end with a code block.");
     return 1;
   } else if (ctx->token != LEX_BRACE_OPEN) {
     error(ctx, "A match rule can only contain words and wildcards.");
@@ -518,17 +474,6 @@ int parse_pattern_item(Context *ctx, AstBuilder *b)
     } else if (ctx->token == LEX_IDENTIFIER) {
       error(ctx, "Rule invocations are not supported at this time.");
       return 1;
-      /*
-      rv = pattern_builder_add_replace(b, ctx->marker.p, ctx->cursor.p);
-      ENSURE_MEMORY(!rv);
-      advance(ctx, 0);
-      if (ctx->token != LEX_GREATER) {
-        error(ctx, "A rule invocation must end with a > character.");
-        return 1;
-      }
-      advance(ctx, 0);
-      return 0;
-      */
     } else {
       error(ctx, "A rule name should appear here.");
       return 1;
