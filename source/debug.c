@@ -41,8 +41,8 @@ void dump_code(AstCode *p, int indent)
     } else if (node->type == AST_MATCH) {
       AstMatch *p = node->p;
       dump_match(p, indent);
-    } else if (node->type == AST_CODE_SYMBOL) {
-      AstCodeSymbol *p = node->p;
+    } else if (node->type == AST_SYMBOL) {
+      AstSymbol *p = node->p;
       char *s = string_to_c(p->symbol->symbol);
       printf("<%s>", s);
       free(s);

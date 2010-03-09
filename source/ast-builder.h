@@ -56,25 +56,13 @@ int ast_build_outline_item(AstBuilder *b, size_t node_n);
 int ast_build_outline_symbol(AstBuilder *b, String symbol);
 int ast_build_outline_string(AstBuilder *b, String string);
 int ast_build_outline_number(AstBuilder *b, String number);
-/*int ast_build_rule(AstBuilder *b);
-int ast_build_rule_line(AstBuilder *b);*/
+int ast_build_symbol(AstBuilder *b, AstPatternAssign *symbol);
+
 int ast_build_match(AstBuilder *b, size_t line_n);
 int ast_build_match_line(AstBuilder *b);
 int ast_build_pattern(AstBuilder *b, size_t node_n);
 int ast_build_pattern_wild(AstBuilder *b);
-int ast_build_pattern_any_symbol(AstBuilder *b);
-int ast_build_pattern_any_string(AstBuilder *b);
-int ast_build_pattern_any_number(AstBuilder *b);
-int ast_build_pattern_rule(AstBuilder *b, AstRule *rule);
 int ast_build_pattern_symbol(AstBuilder *b, String symbol);
-int ast_build_pattern_string(AstBuilder *b, String string);
-int ast_build_pattern_number(AstBuilder *b, String number);
 int ast_build_pattern_assign(AstBuilder *b, String symbol);
-int ast_build_code_symbol(AstBuilder *b, AstPatternAssign *symbol);
-int ast_build_code_upper(AstBuilder *b);
-int ast_build_code_lower(AstBuilder *b);
-int ast_build_code_camel(AstBuilder *b);
-int ast_build_code_mixed(AstBuilder *b);
-int ast_build_code_string(AstBuilder *b);
 
 #endif

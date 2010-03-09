@@ -144,8 +144,8 @@ int ast_code_generate(AstCode *code, AstOutlineList *outlines, FileW *out)
       AstMatch *p = node->p;
       rv = ast_match_search(p, outlines, out);
       if (rv) return rv;
-    } else if (node->type == AST_CODE_SYMBOL) {
-      AstCodeSymbol *p = node->p;
+    } else if (node->type == AST_SYMBOL) {
+      AstSymbol *p = node->p;
       rv = file_w_write(out, p->symbol->symbol.p, p->symbol->symbol.end);
       if (rv) return rv;
     } else {

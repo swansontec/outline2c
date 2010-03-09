@@ -213,6 +213,13 @@ int ast_build_outline_number(AstBuilder *b, String number)
       pool_string_copy(&b->pool, number)));
 }
 
+int ast_build_symbol(AstBuilder *b, AstPatternAssign *symbol)
+{
+  return ast_builder_push(b, AST_SYMBOL,
+    ast_symbol_new(&b->pool,
+      symbol));
+}
+
 int ast_build_match(AstBuilder *b, size_t line_n)
 {
   size_t i;
@@ -259,50 +266,11 @@ int ast_build_pattern_wild(AstBuilder *b)
     ast_pattern_wild_new(&b->pool));
 }
 
-int ast_build_pattern_any_symbol(AstBuilder *b)
-{
-  return ast_builder_push(b, AST_PATTERN_ANY_SYMBOL,
-    ast_pattern_any_symbol_new(&b->pool));
-}
-
-int ast_build_pattern_any_string(AstBuilder *b)
-{
-  return ast_builder_push(b, AST_PATTERN_ANY_STRING,
-    ast_pattern_any_string_new(&b->pool));
-}
-
-int ast_build_pattern_any_number(AstBuilder *b)
-{
-  return ast_builder_push(b, AST_PATTERN_ANY_NUMBER,
-    ast_pattern_any_number_new(&b->pool));
-}
-
-int ast_build_pattern_rule(AstBuilder *b, AstRule *rule)
-{
-  return ast_builder_push(b, AST_PATTERN_RULE,
-    ast_pattern_rule_new(&b->pool,
-      rule));
-}
-
 int ast_build_pattern_symbol(AstBuilder *b, String symbol)
 {
   return ast_builder_push(b, AST_PATTERN_SYMBOL,
     ast_pattern_symbol_new(&b->pool,
       pool_string_copy(&b->pool, symbol)));
-}
-
-int ast_build_pattern_string(AstBuilder *b, String string)
-{
-  return ast_builder_push(b, AST_PATTERN_STRING,
-    ast_pattern_string_new(&b->pool,
-      pool_string_copy(&b->pool, string)));
-}
-
-int ast_build_pattern_number(AstBuilder *b, String number)
-{
-  return ast_builder_push(b, AST_PATTERN_NUMBER,
-    ast_pattern_number_new(&b->pool,
-      pool_string_copy(&b->pool, number)));
 }
 
 int ast_build_pattern_assign(AstBuilder *b, String symbol)
@@ -311,46 +279,4 @@ int ast_build_pattern_assign(AstBuilder *b, String symbol)
     ast_pattern_assign_new(&b->pool,
       pool_string_copy(&b->pool, symbol),
       ast_to_pattern_node(ast_builder_pop(b))));
-}
-
-int ast_build_code_symbol(AstBuilder *b, AstPatternAssign *symbol)
-{
-  return ast_builder_push(b, AST_CODE_SYMBOL,
-    ast_code_symbol_new(&b->pool,
-      symbol));
-}
-
-int ast_build_code_upper(AstBuilder *b)
-{
-  return ast_builder_push(b, AST_CODE_UPPER,
-    ast_code_upper_new(&b->pool,
-      ast_to_code_symbol_node(ast_builder_pop(b))));
-}
-
-int ast_build_code_lower(AstBuilder *b)
-{
-  return ast_builder_push(b, AST_CODE_LOWER,
-    ast_code_lower_new(&b->pool,
-      ast_to_code_symbol_node(ast_builder_pop(b))));
-}
-
-int ast_build_code_camel(AstBuilder *b)
-{
-  return ast_builder_push(b, AST_CODE_CAMEL,
-    ast_code_camel_new(&b->pool,
-      ast_to_code_symbol_node(ast_builder_pop(b))));
-}
-
-int ast_build_code_mixed(AstBuilder *b)
-{
-  return ast_builder_push(b, AST_CODE_MIXED,
-    ast_code_mixed_new(&b->pool,
-      ast_to_code_symbol_node(ast_builder_pop(b))));
-}
-
-int ast_build_code_string(AstBuilder *b)
-{
-  return ast_builder_push(b, AST_CODE_STRING,
-    ast_code_string_new(&b->pool,
-      ast_to_code_symbol_node(ast_builder_pop(b))));
 }

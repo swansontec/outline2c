@@ -214,7 +214,7 @@ int parse_code(Context *ctx, AstBuilder *b, int scoped)
       AstPatternAssign *p = ast_builder_find_assign(b, string_init(ctx->marker.p, ctx->cursor.p));
       if (p) {
         ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
-        ENSURE_BUILD(ast_build_code_symbol(b, p)); ++node_n;
+        ENSURE_BUILD(ast_build_symbol(b, p)); ++node_n;
         start = ctx->cursor.p;
       }
     /* Opening brace: */
