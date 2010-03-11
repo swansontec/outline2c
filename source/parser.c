@@ -60,6 +60,8 @@ int parse_outline(Context *ctx, AstBuilder *b);
 int parse_outline_list(Context *ctx, AstBuilder *b);
 int parse_outline_item(Context *ctx, AstBuilder *b);
 
+int parse_filter(Context *ctx, AstBuilder *b);
+
 int parse_match(Context *ctx, AstBuilder *b);
 int parse_match_line(Context *ctx, AstBuilder *b);
 
@@ -87,7 +89,7 @@ Context context_init(String file, char const *filename)
   ctx.filename = filename;
   ctx.cursor = cursor_init(file.p);
   ctx.marker = ctx.cursor;
-  ctx.token = LEX_WHITESPACE;
+  ctx.token = LEX_START;
   return ctx;
 }
 
@@ -174,10 +176,10 @@ int parse_code(Context *ctx, AstBuilder *b, int scoped)
         start = ctx->cursor.p;
       }
     /* Opening brace: */
-    } else if (scoped && ctx->token == LEX_BRACE_OPEN) {
+    } else if (scoped && ctx->token == LEX_BRACE_L) {
       ++indent;
     /* Closing brace: */
-    } else if (scoped && ctx->token == LEX_BRACE_CLOSE) {
+    } else if (scoped && ctx->token == LEX_BRACE_R) {
       --indent;
     }
     /* Anything else is C code; continue with the loop. */
@@ -204,9 +206,9 @@ int parse_escape(Context *ctx, AstBuilder *b)
     error(ctx, "Unexpected end of input.");
     return 1;
   /* Nested {} block: */
-  } else if (ctx->token == LEX_BRACE_OPEN) {
+  } else if (ctx->token == LEX_BRACE_L) {
     advance(ctx, 0);
-    while (ctx->token != LEX_BRACE_CLOSE) {
+    while (ctx->token != LEX_BRACE_R) {
       rv = parse_escape(ctx, b);
       ENSURE_SUCCESS(rv);
       advance(ctx, 0);
@@ -279,7 +281,7 @@ int parse_outline(Context *ctx, AstBuilder *b)
   advance(ctx, 0);
 
   /* Opening brace: */
-  if (ctx->token != LEX_BRACE_OPEN) {
+  if (ctx->token != LEX_BRACE_L) {
     error(ctx, "An opening { must come after the name of an outline.");
     return 1;
   }
@@ -300,7 +302,7 @@ int parse_outline_list(Context *ctx, AstBuilder *b)
   size_t child_n = 0;
 
   advance(ctx, 0);
-  while (ctx->token != LEX_BRACE_CLOSE) {
+  while (ctx->token != LEX_BRACE_R) {
     rv = parse_outline_item(ctx, b); ++child_n;
     ENSURE_SUCCESS(rv);
     advance(ctx, 0);
@@ -334,7 +336,7 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
   }
 
   /* Handle any sub-items: */
-  if (ctx->token == LEX_BRACE_OPEN) {
+  if (ctx->token == LEX_BRACE_L) {
     rv = parse_outline_list(ctx, b);
     ENSURE_SUCCESS(rv);
     ENSURE_BUILD(ast_build_outline_item(b, item_n));
@@ -351,6 +353,106 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
 }
 
 /**
+ * Parses a filter definition. Uses the standard shunting-yard algorithm with
+ * the following order of precedence: () ! & |
+ */
+int parse_filter(Context *ctx, AstBuilder *b)
+{
+  enum operators { NOT, AND, OR, LPAREN } stack[32];
+  int top = 0;
+
+want_term:
+  if (ctx->token == LEX_IDENTIFIER) {
+    ENSURE_BUILD(ast_build_filter_tag(b, string_init(ctx->marker.p, ctx->cursor.p)));
+    advance(ctx, 0);
+    goto want_operator;
+
+  } else if (ctx->token == LEX_BANG) {
+    stack[top++] = NOT;
+    advance(ctx, 0);
+    goto want_term;
+
+  } else if (ctx->token == LEX_PAREN_L) {
+    stack[top++] = LPAREN;
+    advance(ctx, 0);
+    goto want_term;
+
+  } else {
+    error(ctx, "There seems to be a missing term here.");
+    return 1;
+  }
+
+want_operator:
+  if (ctx->token == LEX_AMP) {
+    for (; top && stack[top-1] <= AND; --top) {
+      if (stack[top-1] == NOT) {
+        ENSURE_BUILD(ast_build_filter_not(b));
+      } else if (stack[top-1] == AND) {
+        ENSURE_BUILD(ast_build_filter_and(b));
+      }
+    }
+    stack[top++] = AND;
+    advance(ctx, 0);
+    goto want_term;
+
+  } else if (ctx->token == LEX_PIPE) {
+    for (; top && stack[top-1] <= OR; --top) {
+      if (stack[top-1] == NOT) {
+        ENSURE_BUILD(ast_build_filter_not(b));
+      } else if (stack[top-1] == AND) {
+        ENSURE_BUILD(ast_build_filter_and(b));
+      } else if (stack[top-1] == OR) {
+        ENSURE_BUILD(ast_build_filter_or(b));
+      }
+    }
+    stack[top++] = OR;
+    advance(ctx, 0);
+    goto want_term;
+
+  } else if (ctx->token == LEX_PAREN_R) {
+    for (; top && stack[top-1] < LPAREN; --top) {
+      if (stack[top-1] == NOT) {
+        ENSURE_BUILD(ast_build_filter_not(b));
+      } else if (stack[top-1] == AND) {
+        ENSURE_BUILD(ast_build_filter_and(b));
+      } else if (stack[top-1] == OR) {
+        ENSURE_BUILD(ast_build_filter_or(b));
+      }
+    }
+    if (!top) {
+      error(ctx, "No maching opening parenthesis.");
+      return 1;
+    }
+    --top;
+    advance(ctx, 0);
+    goto want_operator;
+
+  } else if (ctx->token == LEX_IDENTIFIER || ctx->token == LEX_BANG || ctx->token == LEX_PAREN_L) {
+    error(ctx, "There seems to be a missing operator here.");
+    return 1;
+
+  } else {
+    goto done;
+  }
+
+done:
+  for (; top; --top) {
+    if (stack[top-1] == NOT) {
+      ENSURE_BUILD(ast_build_filter_not(b));
+    } else if (stack[top-1] == AND) {
+      ENSURE_BUILD(ast_build_filter_and(b));
+    } else if (stack[top-1] == OR) {
+      ENSURE_BUILD(ast_build_filter_or(b));
+    } else if (stack[top-1] == LPAREN) {
+      error(ctx, "No maching closing parenthesis.");
+    }
+  }
+  ENSURE_BUILD(ast_build_filter(b));
+
+  return 0;
+}
+
+/**
  * Parses the match keyword. The plan, here, is to build a list of match
  * structures representing the entries in the pattern. Then, return the list to
  * the caller.
@@ -360,10 +462,10 @@ int parse_match(Context *ctx, AstBuilder *b)
   int rv;
 
   /* Multiple matches between braces: */
-  if (ctx->token == LEX_BRACE_OPEN) {
+  if (ctx->token == LEX_BRACE_L) {
     size_t lines = 0;
     advance(ctx, 0);
-    while (ctx->token != LEX_BRACE_CLOSE) {
+    while (ctx->token != LEX_BRACE_R) {
       rv = parse_match_line(ctx, b);
       ENSURE_SUCCESS(rv);
       advance(ctx, 0);
@@ -393,10 +495,10 @@ int parse_match_line(Context *ctx, AstBuilder *b)
   ENSURE_SUCCESS(rv);
 
   /* Check for bad closing characters: */
-  if (ctx->token == LEX_BRACE_CLOSE || ctx->token == LEX_SEMICOLON) {
+  if (ctx->token == LEX_BRACE_R || ctx->token == LEX_SEMICOLON) {
     error(ctx, "A match rule must end with a code block.");
     return 1;
-  } else if (ctx->token != LEX_BRACE_OPEN) {
+  } else if (ctx->token != LEX_BRACE_L) {
     error(ctx, "A match rule can only contain words and wildcards.");
     return 1;
   }
@@ -465,9 +567,9 @@ int parse_pattern_item(Context *ctx, AstBuilder *b)
   }
 
   /* A rule invocation is surrounded by <>: */
-  if (ctx->token == LEX_LESS) {
+  if (ctx->token == LEX_LT) {
     advance(ctx, 0);
-    if (ctx->token == LEX_GREATER) {
+    if (ctx->token == LEX_GT) {
       ENSURE_BUILD(ast_build_pattern_wild(b));
       advance(ctx, 0);
       return 0;

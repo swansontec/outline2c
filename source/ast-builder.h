@@ -54,6 +54,11 @@ int ast_build_outline_item(AstBuilder *b, size_t node_n);
 int ast_build_outline_symbol(AstBuilder *b, String symbol);
 int ast_build_outline_string(AstBuilder *b, String string);
 int ast_build_outline_number(AstBuilder *b, String number);
+int ast_build_filter(AstBuilder *b);
+int ast_build_filter_tag(AstBuilder *b, String tag);
+int ast_build_filter_not(AstBuilder *b);
+int ast_build_filter_and(AstBuilder *b);
+int ast_build_filter_or(AstBuilder *b);
 int ast_build_symbol(AstBuilder *b, AstPatternAssign *symbol);
 
 int ast_build_match(AstBuilder *b, size_t line_n);

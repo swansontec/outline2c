@@ -30,6 +30,11 @@ typedef struct ast_outline_item         AstOutlineItem;
 typedef struct ast_outline_symbol       AstOutlineSymbol;
 typedef struct ast_outline_string       AstOutlineString;
 typedef struct ast_outline_number       AstOutlineNumber;
+typedef struct ast_filter               AstFilter;
+typedef struct ast_filter_tag           AstFilterTag;
+typedef struct ast_filter_not           AstFilterNot;
+typedef struct ast_filter_and           AstFilterAnd;
+typedef struct ast_filter_or            AstFilterOr;
 typedef struct ast_symbol               AstSymbol;
 
 typedef struct ast_match                AstMatch;
@@ -42,6 +47,7 @@ typedef struct ast_pattern_assign       AstPatternAssign;
 typedef struct ast_node                 AstNode;
 typedef struct ast_code_node            AstCodeNode;
 typedef struct ast_outline_node         AstOutlineNode;
+typedef struct ast_filter_node          AstFilterNode;
 typedef struct ast_pattern_node         AstPatternNode;
 
 /**
@@ -58,6 +64,11 @@ enum ast_type {
   AST_OUTLINE_SYMBOL,
   AST_OUTLINE_STRING,
   AST_OUTLINE_NUMBER,
+  AST_FILTER,
+  AST_FILTER_TAG,
+  AST_FILTER_NOT,
+  AST_FILTER_AND,
+  AST_FILTER_OR,
   AST_SYMBOL,
 
   AST_MATCH,
@@ -105,6 +116,18 @@ struct ast_outline_node {
 
 /**
  * Points to one of:
+ *  AstFilterTag
+ *  AstFilterNot
+ *  AstFilterAnd
+ *  AstFilterOr
+ */
+struct ast_filter_node {
+  void *p;
+  AstType type;
+};
+
+/**
+ * Points to one of:
  *  AstPatternWild
  *  AstPatternSymbol
  *  AstPatternAssign
@@ -117,11 +140,13 @@ struct ast_pattern_node {
 /* Type-checking functions */
 int ast_is_code_node(AstNode node);
 int ast_is_outline_node(AstNode node);
+int ast_is_filter_node(AstNode node);
 int ast_is_pattern_node(AstNode node);
 
 /* Type-conversion functions */
 AstCodeNode         ast_to_code_node(AstNode node);
 AstOutlineNode      ast_to_outline_node(AstNode node);
+AstFilterNode       ast_to_filter_node(AstNode node);
 AstPatternNode      ast_to_pattern_node(AstNode node);
 
 AstFile            *ast_to_file(AstNode node);
@@ -202,6 +227,43 @@ struct ast_outline_number {
 };
 
 /**
+ * Filters outline items based on the presence or absence of tags.
+ */
+struct ast_filter {
+  AstFilterNode test;
+};
+
+/**
+ * Accepts an outline item if the given tag is present.
+ */
+struct ast_filter_tag {
+  String tag;
+};
+
+/**
+ * Accepts an outline item if the sub-conditions is false.
+ */
+struct ast_filter_not {
+  AstFilterNode test;
+};
+
+/**
+ * Accepts an outline item if both sub-conditions are true.
+ */
+struct ast_filter_and {
+  AstFilterNode test_a;
+  AstFilterNode test_b;
+};
+
+/**
+ * Accepts an outline item if either sub-conditions are true.
+ */
+struct ast_filter_or {
+  AstFilterNode test_a;
+  AstFilterNode test_b;
+};
+
+/**
  * A symbol to be replaced within a block of code.
  */
 struct ast_symbol {
@@ -248,6 +310,11 @@ AstOutlineItem     *ast_outline_item_new        (Pool *p, AstOutlineNode *nodes,
 AstOutlineSymbol   *ast_outline_symbol_new      (Pool *p, String symbol);
 AstOutlineString   *ast_outline_string_new      (Pool *p, String string);
 AstOutlineNumber   *ast_outline_number_new      (Pool *p, String number);
+AstFilter          *ast_filter_new              (Pool *p, AstFilterNode test);
+AstFilterTag       *ast_filter_tag_new          (Pool *p, String tag);
+AstFilterNot       *ast_filter_not_new          (Pool *p, AstFilterNode test);
+AstFilterAnd       *ast_filter_and_new          (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
+AstFilterOr        *ast_filter_or_new           (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
 AstSymbol          *ast_symbol_new              (Pool *p, AstPatternAssign *symbol);
 
 AstMatch           *ast_match_new               (Pool *p, AstMatchLine **lines, AstMatchLine **lines_end);

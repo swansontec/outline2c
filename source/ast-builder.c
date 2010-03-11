@@ -213,6 +213,43 @@ int ast_build_outline_number(AstBuilder *b, String number)
       pool_string_copy(&b->pool, number)));
 }
 
+int ast_build_filter(AstBuilder *b)
+{
+  return ast_builder_push(b, AST_FILTER,
+    ast_filter_new(&b->pool,
+      ast_to_filter_node(ast_builder_pop(b))));
+}
+
+int ast_build_filter_tag(AstBuilder *b, String tag)
+{
+  return ast_builder_push(b, AST_FILTER_TAG,
+    ast_filter_tag_new(&b->pool,
+      pool_string_copy(&b->pool, tag)));
+}
+
+int ast_build_filter_not(AstBuilder *b)
+{
+  return ast_builder_push(b, AST_FILTER_NOT,
+    ast_filter_not_new(&b->pool,
+      ast_to_filter_node(ast_builder_pop(b))));
+}
+
+int ast_build_filter_and(AstBuilder *b)
+{
+  return ast_builder_push(b, AST_FILTER_AND,
+    ast_filter_and_new(&b->pool,
+      ast_to_filter_node(ast_builder_pop(b)),
+      ast_to_filter_node(ast_builder_pop(b))));
+}
+
+int ast_build_filter_or(AstBuilder *b)
+{
+  return ast_builder_push(b, AST_FILTER_OR,
+    ast_filter_or_new(&b->pool,
+      ast_to_filter_node(ast_builder_pop(b)),
+      ast_to_filter_node(ast_builder_pop(b))));
+}
+
 int ast_build_symbol(AstBuilder *b, AstPatternAssign *symbol)
 {
   return ast_builder_push(b, AST_SYMBOL,

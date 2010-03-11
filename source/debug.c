@@ -150,6 +150,60 @@ void dump_outline_number(AstOutlineNumber *p)
 }
 
 /**
+ * Prints a filter expression
+ */
+void dump_filter(AstFilter *p)
+{
+  dump_filter_node(p->test);
+}
+
+/**
+ * Prints a single element within a filter expression
+ */
+void dump_filter_node(AstFilterNode node)
+{
+  switch (node.type) {
+  case AST_FILTER_TAG: dump_filter_tag(node.p); break;
+  case AST_FILTER_NOT: dump_filter_not(node.p); break;
+  case AST_FILTER_AND: dump_filter_and(node.p); break;
+  case AST_FILTER_OR:  dump_filter_or(node.p);  break;
+  default: printf("(Unknown filter node %d)", node.type);
+  }
+}
+
+void dump_filter_tag(AstFilterTag *p)
+{
+  char *temp = string_to_c(p->tag);
+  printf("%s", temp);
+  free(temp);
+}
+
+void dump_filter_not(AstFilterNot *p)
+{
+  printf("!(");
+  dump_filter_node(p->test);
+  printf(")");
+}
+
+void dump_filter_and(AstFilterAnd *p)
+{
+  printf("(");
+  dump_filter_node(p->test_a);
+  printf(") & (");
+  dump_filter_node(p->test_b);
+  printf(")");
+}
+
+void dump_filter_or(AstFilterOr *p)
+{
+  printf("(");
+  dump_filter_node(p->test_a);
+  printf(") | (");
+  dump_filter_node(p->test_b);
+  printf(")");
+}
+
+/**
  * Prints a match statement for debugging purposes.
  */
 void dump_match(AstMatch *match, int indent)

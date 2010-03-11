@@ -155,34 +155,19 @@ Token lex(Cursor *cursor, char const *end)
     if (string_equal(token, string_init_l("@o2c", 4)))
       return LEX_ESCAPE_O2C;
     return LEX_ESCAPE;
-  /* Semicolon: */
-  } else if (*cursor->p == ';') {
-    advance(cursor, end);
-    return LEX_SEMICOLON;
-  /* Less-than: */
-  } else if (*cursor->p == '=') {
-    advance(cursor, end);
-    return LEX_EQUALS;
-  /* Less-than: */
-  } else if (*cursor->p == '<') {
-    advance(cursor, end);
-    return LEX_LESS;
-  /* Greater-than: */
-  } else if (*cursor->p == '>') {
-    advance(cursor, end);
-    return LEX_GREATER;
-  /* Pipe: */
-  } else if (*cursor->p == '|') {
-    advance(cursor, end);
-    return LEX_PIPE;
-  /* Opening brace: */
-  } else if (*cursor->p == '{') {
-    advance(cursor, end);
-    return LEX_BRACE_OPEN;
-  /* Closing brace: */
-  } else if (*cursor->p == '}') {
-    advance(cursor, end);
-    return LEX_BRACE_CLOSE;
+
+  /* Symbols: */
+  } else if (*cursor->p == '!') { advance(cursor, end); return LEX_BANG;
+  } else if (*cursor->p == '&') { advance(cursor, end); return LEX_AMP;
+  } else if (*cursor->p == '(') { advance(cursor, end); return LEX_PAREN_L;
+  } else if (*cursor->p == ')') { advance(cursor, end); return LEX_PAREN_R;
+  } else if (*cursor->p == ';') { advance(cursor, end); return LEX_SEMICOLON;
+  } else if (*cursor->p == '<') { advance(cursor, end); return LEX_LT;
+  } else if (*cursor->p == '=') { advance(cursor, end); return LEX_EQUALS;
+  } else if (*cursor->p == '>') { advance(cursor, end); return LEX_GT;
+  } else if (*cursor->p == '{') { advance(cursor, end); return LEX_BRACE_L;
+  } else if (*cursor->p == '|') { advance(cursor, end); return LEX_PIPE;
+  } else if (*cursor->p == '}') { advance(cursor, end); return LEX_BRACE_R;
   /* Any other character: */
   } else {
     advance(cursor, end);

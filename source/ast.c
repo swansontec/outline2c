@@ -36,6 +36,15 @@ int ast_is_outline_node(AstNode node)
     node.type == AST_OUTLINE_NUMBER;
 }
 
+int ast_is_filter_node(AstNode node)
+{
+  return
+    node.type == AST_FILTER_AND ||
+    node.type == AST_FILTER_OR ||
+    node.type == AST_FILTER_NOT ||
+    node.type == AST_FILTER_TAG;
+}
+
 int ast_is_pattern_node(AstNode node)
 {
   return
@@ -57,6 +66,15 @@ AstOutlineNode ast_to_outline_node(AstNode node)
 {
   AstOutlineNode temp;
   assert(ast_is_outline_node(node));
+  temp.p = node.p;
+  temp.type = node.type;
+  return temp;
+}
+
+AstFilterNode ast_to_filter_node(AstNode node)
+{
+  AstFilterNode temp;
+  assert(ast_is_filter_node(node));
   temp.p = node.p;
   temp.type = node.type;
   return temp;
@@ -221,6 +239,65 @@ AstOutlineNumber *ast_outline_number_new(Pool *p, String number)
   self = pool_alloc(p, sizeof(AstOutlineNumber));
   if (!self) return 0;
   self->number = number;
+  return self;
+}
+
+AstFilter *ast_filter_new(Pool *p, AstFilterNode test)
+{
+  AstFilter *self;
+  if (!test.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstFilter));
+  if (!self) return 0;
+  self->test = test;
+  return self;
+}
+
+AstFilterTag *ast_filter_tag_new(Pool *p, String tag)
+{
+  AstFilterTag *self;
+  if (!tag.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstFilterTag));
+  if (!self) return 0;
+  self->tag = tag;
+  return self;
+}
+
+AstFilterNot *ast_filter_not_new(Pool *p, AstFilterNode test)
+{
+  AstFilterNot *self;
+  if (!test.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstFilterNot));
+  if (!self) return 0;
+  self->test = test;
+  return self;
+}
+
+AstFilterAnd *ast_filter_and_new(Pool *p, AstFilterNode test_a, AstFilterNode test_b)
+{
+  AstFilterAnd *self;
+  if (!test_a.p) return 0;
+  if (!test_b.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstFilterAnd));
+  if (!self) return 0;
+  self->test_a = test_a;
+  self->test_b = test_b;
+  return self;
+}
+
+AstFilterOr *ast_filter_or_new(Pool *p, AstFilterNode test_a, AstFilterNode test_b)
+{
+  AstFilterOr *self;
+  if (!test_a.p) return 0;
+  if (!test_b.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstFilterOr));
+  if (!self) return 0;
+  self->test_a = test_a;
+  self->test_b = test_b;
   return self;
 }
 

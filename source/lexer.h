@@ -37,6 +37,7 @@ enum token {
   LEX_ERROR_END = -100, /* Unexpected end-of-file */
   LEX_ERROR,            /* Unrecognized character sequence */
 
+  LEX_START,            /* Start of file */
   LEX_END = 0,          /* Normal end-of-file */
 
   LEX_WHITESPACE,       /* Newlines, spaces, & tabs */
@@ -48,14 +49,18 @@ enum token {
   LEX_ESCAPE,           /* @[_a-zA-Z0-9]+ */
   LEX_ESCAPE_O2C,       /* @o2c */
 
+  LEX_BANG,             /* ! */
+  LEX_AMP,              /* & */
+  LEX_PAREN_L,          /* ( */
+  LEX_PAREN_R,          /* ) */
   LEX_SLASH,            /* / */
   LEX_SEMICOLON,        /* ; */
+  LEX_LT,               /* < */
   LEX_EQUALS,           /* = */
-  LEX_LESS,             /* < */
-  LEX_GREATER,          /* > */
+  LEX_GT,               /* > */
+  LEX_BRACE_L,          /* { */
   LEX_PIPE,             /* | */
-  LEX_BRACE_OPEN,       /* { */
-  LEX_BRACE_CLOSE       /* } */
+  LEX_BRACE_R           /* } */
 };
 typedef enum token Token;
 

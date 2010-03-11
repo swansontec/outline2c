@@ -34,6 +34,13 @@ void dump_outline_symbol(AstOutlineSymbol *p);
 void dump_outline_string(AstOutlineString *p);
 void dump_outline_number(AstOutlineNumber *p);
 
+void dump_filter(AstFilter *p);
+void dump_filter_node(AstFilterNode node);
+void dump_filter_tag(AstFilterTag *p);
+void dump_filter_not(AstFilterNot *p);
+void dump_filter_and(AstFilterAnd *p);
+void dump_filter_or(AstFilterOr *p);
+
 void dump_match(AstMatch *match, int indent);
 void dump_match_line(AstMatchLine *p, int indent);
 
