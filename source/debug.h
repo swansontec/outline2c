@@ -34,6 +34,8 @@ void dump_outline_symbol(AstOutlineSymbol *p);
 void dump_outline_string(AstOutlineString *p);
 void dump_outline_number(AstOutlineNumber *p);
 
+void dump_for_in(AstForIn *p);
+
 void dump_filter(AstFilter *p);
 void dump_filter_node(AstFilterNode node);
 void dump_filter_tag(AstFilterTag *p);

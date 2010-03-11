@@ -213,6 +213,24 @@ int ast_build_outline_number(AstBuilder *b, String number)
       pool_string_copy(&b->pool, number)));
 }
 
+int ast_build_for_in(AstBuilder *b, String name, String outline)
+{
+  AstFilter *filter;
+  AstCode *code;
+
+  code = ast_to_code(ast_builder_pop(b));
+
+  filter = ast_builder_peek(b).type == AST_FILTER ?
+    ast_to_filter(ast_builder_pop(b)) : 0;
+
+  return ast_builder_push(b, AST_FOR_IN,
+    ast_for_in_new(&b->pool,
+      pool_string_copy(&b->pool, name),
+      pool_string_copy(&b->pool, outline),
+      filter,
+      code));
+}
+
 int ast_build_filter(AstBuilder *b)
 {
   return ast_builder_push(b, AST_FILTER,

@@ -60,6 +60,8 @@ int parse_outline(Context *ctx, AstBuilder *b);
 int parse_outline_list(Context *ctx, AstBuilder *b);
 int parse_outline_item(Context *ctx, AstBuilder *b);
 
+int parse_for_in(Context *ctx, AstBuilder *b);
+
 int parse_filter(Context *ctx, AstBuilder *b);
 
 int parse_match(Context *ctx, AstBuilder *b);
@@ -223,6 +225,9 @@ int parse_escape(Context *ctx, AstBuilder *b)
     } else if (string_equal(temp, string_init_l("outline", 7))) {
       advance(ctx, 0);
       return parse_outline(ctx, b);
+    } else if (string_equal(temp, string_init_l("for", 3))) {
+      advance(ctx, 0);
+      return parse_for_in(ctx, b);
     } else if (string_equal(temp, string_init_l("match", 5))) {
       advance(ctx, 0);
       return parse_match(ctx, b);
@@ -350,6 +355,73 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
     error(ctx, "An outline can only end with a semicolon or an opening brace.");
     return 1;
   }
+}
+
+/**
+ * Parses a for ... in ... construction.
+ */
+int parse_for_in(Context *ctx, AstBuilder *b)
+{
+  int rv;
+  String name;
+  String outline;
+
+  /* Replacement name: */
+  if (ctx->token != LEX_IDENTIFIER) {
+    error(ctx, "An for stament must begin with a name.");
+    return 1;
+  }
+  name = string_init(ctx->marker.p, ctx->cursor.p);
+  advance(ctx, 0);
+
+  /* in keyword: */
+  if (ctx->token != LEX_IDENTIFIER || !string_equal(
+    string_init(ctx->marker.p, ctx->cursor.p),
+    string_init_l("in", 2))
+  ) {
+    error(ctx, "Expecting the \"in\" keyword here.");
+    return 1;
+  }
+  advance(ctx, 0);
+
+  /* Outline name: */
+  if (ctx->token != LEX_IDENTIFIER) {
+    error(ctx, "Expecting an outline name here.");
+    return 1;
+  }
+  outline = string_init(ctx->marker.p, ctx->cursor.p);
+  advance(ctx, 0);
+
+  /* with keyword: */
+  if (ctx->token == LEX_IDENTIFIER && string_equal(
+    string_init(ctx->marker.p, ctx->cursor.p),
+    string_init_l("with", 4))
+  ) {
+    advance(ctx, 0);
+    rv = parse_filter(ctx, b);
+    ENSURE_SUCCESS(rv);
+  }
+
+  /* Opening brace: */
+  if (ctx->token != LEX_BRACE_L) {
+    error(ctx, "A \"for\" staement must end with a code block.");
+    return 1;
+  }
+
+  /* Parse the code: */
+  rv = parse_code(ctx, b, 1);
+  ENSURE_SUCCESS(rv);
+
+#if 0
+  /* Semicolon: */
+  if (ctx->token != LEX_SEMICOLON) {
+    error(ctx, "The for statement ends with a semicolon for now.");
+    return 1;
+  }
+#endif
+
+  ast_build_for_in(b, name, outline);
+  return 0;
 }
 
 /**

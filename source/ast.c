@@ -24,6 +24,7 @@ int ast_is_code_node(AstNode node)
     node.type == AST_CODE_TEXT ||
     node.type == AST_INCLUDE ||
     node.type == AST_OUTLINE ||
+    node.type == AST_FOR_IN ||
     node.type == AST_MATCH ||
     node.type == AST_SYMBOL;
 }
@@ -110,6 +111,12 @@ AstOutlineList *ast_to_outline_list(AstNode node)
 AstOutlineItem *ast_to_outline_item(AstNode node)
 {
   assert(node.type == AST_OUTLINE_ITEM);
+  return node.p;
+}
+
+AstFilter *ast_to_filter(AstNode node)
+{
+  assert(node.type == AST_FILTER);
   return node.p;
 }
 
@@ -239,6 +246,23 @@ AstOutlineNumber *ast_outline_number_new(Pool *p, String number)
   self = pool_alloc(p, sizeof(AstOutlineNumber));
   if (!self) return 0;
   self->number = number;
+  return self;
+}
+
+AstForIn *ast_for_in_new(Pool *p, String name, String outline, AstFilter *filter, AstCode *code)
+{
+  AstForIn *self;
+  if (!name.p) return 0;
+  if (!outline.p) return 0;
+  /* filter may be NULL */
+  if (!code) return 0;
+
+  self = pool_alloc(p, sizeof(AstForIn));
+  if (!self) return 0;
+  self->name = name;
+  self->outline = outline;
+  self->filter = filter;
+  self->code = code;
   return self;
 }
 

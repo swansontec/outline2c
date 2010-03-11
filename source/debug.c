@@ -46,6 +46,9 @@ void dump_code(AstCode *p, int indent)
     } else if (node->type == AST_OUTLINE) {
       AstOutline *p = node->p;
       dump_outline(p);
+    } else if (node->type == AST_FOR_IN) {
+      AstForIn *p = node->p;
+      dump_for_in(p);
     } else if (node->type == AST_MATCH) {
       AstMatch *p = node->p;
       dump_match(p, indent);
@@ -150,6 +153,28 @@ void dump_outline_number(AstOutlineNumber *p)
 }
 
 /**
+ * Prints a for ... in construction.
+ */
+void dump_for_in(AstForIn *p)
+{
+  char *name = string_to_c(p->name);
+  char *outline = string_to_c(p->outline);
+  printf("for %s in %s ", name, outline);
+  free(name);
+  free(outline);
+
+  if (p->filter) {
+    printf("with ");
+    dump_filter(p->filter);
+    printf(" ");
+  }
+
+  printf("{");
+  dump_code(p->code, 0);
+  printf("}");
+}
+
+/**
  * Prints a filter expression
  */
 void dump_filter(AstFilter *p)
@@ -180,16 +205,15 @@ void dump_filter_tag(AstFilterTag *p)
 
 void dump_filter_not(AstFilterNot *p)
 {
-  printf("!(");
+  printf("!");
   dump_filter_node(p->test);
-  printf(")");
 }
 
 void dump_filter_and(AstFilterAnd *p)
 {
   printf("(");
   dump_filter_node(p->test_a);
-  printf(") & (");
+  printf(" & ");
   dump_filter_node(p->test_b);
   printf(")");
 }
@@ -198,7 +222,7 @@ void dump_filter_or(AstFilterOr *p)
 {
   printf("(");
   dump_filter_node(p->test_a);
-  printf(") | (");
+  printf(" | ");
   dump_filter_node(p->test_b);
   printf(")");
 }

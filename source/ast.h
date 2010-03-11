@@ -30,6 +30,7 @@ typedef struct ast_outline_item         AstOutlineItem;
 typedef struct ast_outline_symbol       AstOutlineSymbol;
 typedef struct ast_outline_string       AstOutlineString;
 typedef struct ast_outline_number       AstOutlineNumber;
+typedef struct ast_for_in               AstForIn;
 typedef struct ast_filter               AstFilter;
 typedef struct ast_filter_tag           AstFilterTag;
 typedef struct ast_filter_not           AstFilterNot;
@@ -64,6 +65,7 @@ enum ast_type {
   AST_OUTLINE_SYMBOL,
   AST_OUTLINE_STRING,
   AST_OUTLINE_NUMBER,
+  AST_FOR_IN,
   AST_FILTER,
   AST_FILTER_TAG,
   AST_FILTER_NOT,
@@ -153,6 +155,7 @@ AstFile            *ast_to_file(AstNode node);
 AstCode            *ast_to_code(AstNode node);
 AstOutlineList     *ast_to_outline_list(AstNode node);
 AstOutlineItem     *ast_to_outline_item(AstNode node);
+AstFilter          *ast_to_filter(AstNode node);
 AstMatchLine       *ast_to_match_line(AstNode node);
 AstPattern         *ast_to_pattern(AstNode node);
 
@@ -224,6 +227,16 @@ struct ast_outline_string {
 
 struct ast_outline_number {
   String number;
+};
+
+/**
+ * A for ... in construction.
+ */
+struct ast_for_in {
+  String name;
+  String outline;
+  AstFilter *filter;
+  AstCode *code;
 };
 
 /**
@@ -310,6 +323,7 @@ AstOutlineItem     *ast_outline_item_new        (Pool *p, AstOutlineNode *nodes,
 AstOutlineSymbol   *ast_outline_symbol_new      (Pool *p, String symbol);
 AstOutlineString   *ast_outline_string_new      (Pool *p, String string);
 AstOutlineNumber   *ast_outline_number_new      (Pool *p, String number);
+AstForIn           *ast_for_in_new              (Pool *p, String name, String outline, AstFilter *filter, AstCode *code);
 AstFilter          *ast_filter_new              (Pool *p, AstFilterNode test);
 AstFilterTag       *ast_filter_tag_new          (Pool *p, String tag);
 AstFilterNot       *ast_filter_not_new          (Pool *p, AstFilterNode test);
