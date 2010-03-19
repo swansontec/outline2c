@@ -86,14 +86,14 @@ void dump_outline_list(AstOutlineList *p, int indent)
  */
 void dump_outline_item(AstOutlineItem *p, int indent)
 {
-  AstOutlineNode *node;
+  AstOutlineTag **tag;
 
   /* Words: */
   space(indent);
-  for (node = p->nodes; node != p->nodes_end; ++node) {
-    if (node != p->nodes)
+  for (tag = p->tags; tag != p->tags_end; ++tag) {
+    if (tag != p->tags)
       printf(" ");
-    dump_outline_node(*node);
+    dump_outline_tag(*tag);
   }
 
   /* Children: */
@@ -103,43 +103,9 @@ void dump_outline_item(AstOutlineItem *p, int indent)
     printf(";\n");
 }
 
-/**
- * Prints a single word within an outline.
- */
-void dump_outline_node(AstOutlineNode node)
-{
-  switch (node.type) {
-  case AST_OUTLINE_SYMBOL:
-    dump_outline_symbol((AstOutlineSymbol*)node.p);
-    break;
-  case AST_OUTLINE_STRING:
-    dump_outline_string((AstOutlineString*)node.p);
-    break;
-  case AST_OUTLINE_NUMBER:
-    dump_outline_number((AstOutlineNumber*)node.p);
-    break;
-  default:
-    printf("(Unknown outline node %d)", node.type);
-  }
-}
-
-void dump_outline_symbol(AstOutlineSymbol *p)
+void dump_outline_tag(AstOutlineTag *p)
 {
   char *temp = string_to_c(p->symbol);
-  printf("%s", temp);
-  free(temp);
-}
-
-void dump_outline_string(AstOutlineString *p)
-{
-  char *temp = string_to_c(p->string);
-  printf("%s", temp);
-  free(temp);
-}
-
-void dump_outline_number(AstOutlineNumber *p)
-{
-  char *temp = string_to_c(p->number);
   printf("%s", temp);
   free(temp);
 }

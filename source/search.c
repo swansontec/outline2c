@@ -45,14 +45,11 @@ int test_filter_node(AstFilterNode test, AstOutlineItem *item)
 
 int test_filter_tag(AstFilterTag *test, AstOutlineItem *item)
 {
-  AstOutlineNode *node;
+  AstOutlineTag **tag;
 
-  for (node = item->nodes; node != item->nodes_end; ++node) {
-    if (node->type == AST_OUTLINE_SYMBOL) {
-      AstOutlineSymbol *p = node->p;
-      if (string_equal(p->symbol, test->tag))
-        return 1;
-    }
+  for (tag = item->tags; tag != item->tags_end; ++tag) {
+    if (string_equal((*tag)->symbol, test->tag))
+      return 1;
   }
 
   return 0;

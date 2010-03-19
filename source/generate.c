@@ -118,15 +118,12 @@ int generate_symbol(FileW *out, Scope *s, AstSymbol *p)
 {
   int i;
   Scope *scope = s;
-  AstOutlineNode *node;
+  AstOutlineTag *tag;
 
   for (i = 0; i < p->level; ++i)
     scope = scope->outer;
 
-  node = scope->item->nodes_end - 1;
-  if (node->type == AST_OUTLINE_SYMBOL) {
-    AstOutlineSymbol *name = node->p;
-    file_w_write(out, name->symbol.p, name->symbol.end);
-  }
+  tag = scope->item->tags_end[-1];
+  file_w_write(out, tag->symbol.p, tag->symbol.end);
   return 0;
 }

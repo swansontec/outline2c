@@ -27,9 +27,7 @@ typedef struct ast_include              AstInclude;
 typedef struct ast_outline              AstOutline;
 typedef struct ast_outline_list         AstOutlineList;
 typedef struct ast_outline_item         AstOutlineItem;
-typedef struct ast_outline_symbol       AstOutlineSymbol;
-typedef struct ast_outline_string       AstOutlineString;
-typedef struct ast_outline_number       AstOutlineNumber;
+typedef struct ast_outline_tag          AstOutlineTag;
 typedef struct ast_for                  AstFor;
 typedef struct ast_in                   AstIn;
 typedef struct ast_filter               AstFilter;
@@ -56,9 +54,7 @@ enum ast_type {
   AST_OUTLINE,
   AST_OUTLINE_LIST,
   AST_OUTLINE_ITEM,
-  AST_OUTLINE_SYMBOL,
-  AST_OUTLINE_STRING,
-  AST_OUTLINE_NUMBER,
+  AST_OUTLINE_TAG,
   AST_FOR,
   AST_IN,
   AST_FILTER,
@@ -93,17 +89,6 @@ struct ast_code_node {
 
 /**
  * Points to one of:
- *  AstOutlineSymbol
- *  AstOutlineString
- *  AstOutlineNumber
- */
-struct ast_outline_node {
-  void *p;
-  AstType type;
-};
-
-/**
- * Points to one of:
  *  AstFilterTag
  *  AstFilterNot
  *  AstFilterAnd
@@ -116,18 +101,17 @@ struct ast_filter_node {
 
 /* Type-checking functions */
 int ast_is_code_node(AstNode node);
-int ast_is_outline_node(AstNode node);
 int ast_is_filter_node(AstNode node);
 
 /* Type-conversion functions */
 AstCodeNode         ast_to_code_node(AstNode node);
-AstOutlineNode      ast_to_outline_node(AstNode node);
 AstFilterNode       ast_to_filter_node(AstNode node);
 
 AstFile            *ast_to_file(AstNode node);
 AstCode            *ast_to_code(AstNode node);
 AstOutlineList     *ast_to_outline_list(AstNode node);
 AstOutlineItem     *ast_to_outline_item(AstNode node);
+AstOutlineTag      *ast_to_outline_tag(AstNode node);
 AstIn              *ast_to_in(AstNode node);
 AstFilter          *ast_to_filter(AstNode node);
 
@@ -181,24 +165,16 @@ struct ast_outline_list {
  * An individual item in an outline.
  */
 struct ast_outline_item {
-  AstOutlineNode *nodes;
-  AstOutlineNode *nodes_end;
+  AstOutlineTag **tags;
+  AstOutlineTag **tags_end;
   AstOutlineList *children;
 };
 
 /**
  * An individual word in an outline item.
  */
-struct ast_outline_symbol {
+struct ast_outline_tag {
   String symbol;
-};
-
-struct ast_outline_string {
-  String string;
-};
-
-struct ast_outline_number {
-  String number;
 };
 
 /**
@@ -268,10 +244,8 @@ AstCodeText        *ast_code_text_new           (Pool *p, String code);
 AstInclude         *ast_include_new             (Pool *p, AstFile *file);
 AstOutline         *ast_outline_new             (Pool *p, String name, AstOutlineList *children);
 AstOutlineList     *ast_outline_list_new        (Pool *p, AstOutlineItem **items, AstOutlineItem **items_end);
-AstOutlineItem     *ast_outline_item_new        (Pool *p, AstOutlineNode *nodes, AstOutlineNode *nodes_end, AstOutlineList *children);
-AstOutlineSymbol   *ast_outline_symbol_new      (Pool *p, String symbol);
-AstOutlineString   *ast_outline_string_new      (Pool *p, String string);
-AstOutlineNumber   *ast_outline_number_new      (Pool *p, String number);
+AstOutlineItem     *ast_outline_item_new        (Pool *p, AstOutlineTag **tags, AstOutlineTag **tags_end, AstOutlineList *children);
+AstOutlineTag      *ast_outline_tag_new         (Pool *p, String symbol);
 AstFor             *ast_for_new                 (Pool *p, AstIn *in, AstFilter *filter, AstCode *code);
 AstIn              *ast_in_new                  (Pool *p, String symbol, String name);
 AstFilter          *ast_filter_new              (Pool *p, AstFilterNode test);

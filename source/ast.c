@@ -28,14 +28,6 @@ int ast_is_code_node(AstNode node)
     node.type == AST_SYMBOL;
 }
 
-int ast_is_outline_node(AstNode node)
-{
-  return
-    node.type == AST_OUTLINE_SYMBOL ||
-    node.type == AST_OUTLINE_STRING ||
-    node.type == AST_OUTLINE_NUMBER;
-}
-
 int ast_is_filter_node(AstNode node)
 {
   return
@@ -49,15 +41,6 @@ AstCodeNode ast_to_code_node(AstNode node)
 {
   AstCodeNode temp;
   assert(ast_is_code_node(node));
-  temp.p = node.p;
-  temp.type = node.type;
-  return temp;
-}
-
-AstOutlineNode ast_to_outline_node(AstNode node)
-{
-  AstOutlineNode temp;
-  assert(ast_is_outline_node(node));
   temp.p = node.p;
   temp.type = node.type;
   return temp;
@@ -93,6 +76,12 @@ AstOutlineList *ast_to_outline_list(AstNode node)
 AstOutlineItem *ast_to_outline_item(AstNode node)
 {
   assert(node.type == AST_OUTLINE_ITEM);
+  return node.p;
+}
+
+AstOutlineTag *ast_to_outline_tag(AstNode node)
+{
+  assert(node.type == AST_OUTLINE_TAG);
   return node.p;
 }
 
@@ -178,50 +167,28 @@ AstOutlineList *ast_outline_list_new(Pool *p, AstOutlineItem **items, AstOutline
   return self;
 }
 
-AstOutlineItem *ast_outline_item_new(Pool *p, AstOutlineNode *nodes, AstOutlineNode *nodes_end, AstOutlineList *children)
+AstOutlineItem *ast_outline_item_new(Pool *p, AstOutlineTag **tags, AstOutlineTag **tags_end, AstOutlineList *children)
 {
   AstOutlineItem *self;
-  if (!nodes) return 0;
+  if (!tags) return 0;
   /* children may be NULL */
 
   self = pool_alloc(p, sizeof(AstOutlineItem));
   if (!self) return 0;
-  self->nodes = nodes;
-  self->nodes_end = nodes_end;
+  self->tags = tags;
+  self->tags_end = tags_end;
   self->children = children;
   return self;
 }
 
-AstOutlineSymbol *ast_outline_symbol_new(Pool *p, String symbol)
+AstOutlineTag *ast_outline_tag_new(Pool *p, String symbol)
 {
-  AstOutlineSymbol *self;
+  AstOutlineTag *self;
   if (!symbol.p) return 0;
 
-  self = pool_alloc(p, sizeof(AstOutlineSymbol));
+  self = pool_alloc(p, sizeof(AstOutlineTag));
   if (!self) return 0;
   self->symbol = symbol;
-  return self;
-}
-
-AstOutlineString *ast_outline_string_new(Pool *p, String string)
-{
-  AstOutlineString *self;
-  if (!string.p) return 0;
-
-  self = pool_alloc(p, sizeof(AstOutlineString));
-  if (!self) return 0;
-  self->string = string;
-  return self;
-}
-
-AstOutlineNumber *ast_outline_number_new(Pool *p, String number)
-{
-  AstOutlineNumber *self;
-  if (!number.p) return 0;
-
-  self = pool_alloc(p, sizeof(AstOutlineNumber));
-  if (!self) return 0;
-  self->number = number;
   return self;
 }
 

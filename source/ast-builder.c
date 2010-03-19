@@ -158,45 +158,31 @@ int ast_build_outline_list(AstBuilder *b, size_t item_n)
     ast_outline_list_new(&b->pool, items, items + item_n));
 }
 
-int ast_build_outline_item(AstBuilder *b, size_t node_n)
+int ast_build_outline_item(AstBuilder *b, size_t tag_n)
 {
   size_t i;
-  AstOutlineNode *nodes;
+  AstOutlineTag **tags;
   AstOutlineList *children;
 
   children = ast_builder_peek(b).type == AST_OUTLINE_LIST ?
     ast_to_outline_list(ast_builder_pop(b)) : 0;
 
-  nodes = pool_alloc(&b->pool, node_n*sizeof(AstOutlineNode));
-  if (!nodes) return 1;
+  tags = pool_alloc(&b->pool, tag_n*sizeof(AstOutlineTag));
+  if (!tags) return 1;
 
-  b->stack_top -= node_n;
-  for (i = 0; i < node_n; ++i)
-    nodes[i] = ast_to_outline_node(b->stack[b->stack_top + i]);
+  b->stack_top -= tag_n;
+  for (i = 0; i < tag_n; ++i)
+    tags[i] = ast_to_outline_tag(b->stack[b->stack_top + i]);
 
   return ast_builder_push(b, AST_OUTLINE_ITEM,
-    ast_outline_item_new(&b->pool, nodes, nodes + node_n, children));
+    ast_outline_item_new(&b->pool, tags, tags + tag_n, children));
 }
 
-int ast_build_outline_symbol(AstBuilder *b, String symbol)
+int ast_build_outline_tag(AstBuilder *b, String symbol)
 {
-  return ast_builder_push(b, AST_OUTLINE_SYMBOL,
-    ast_outline_symbol_new(&b->pool,
+  return ast_builder_push(b, AST_OUTLINE_TAG,
+    ast_outline_tag_new(&b->pool,
       pool_string_copy(&b->pool, symbol)));
-}
-
-int ast_build_outline_string(AstBuilder *b, String string)
-{
-  return ast_builder_push(b, AST_OUTLINE_STRING,
-    ast_outline_string_new(&b->pool,
-      pool_string_copy(&b->pool, string)));
-}
-
-int ast_build_outline_number(AstBuilder *b, String number)
-{
-  return ast_builder_push(b, AST_OUTLINE_NUMBER,
-    ast_outline_number_new(&b->pool,
-      pool_string_copy(&b->pool, number)));
 }
 
 int ast_build_for(AstBuilder *b)

@@ -323,11 +323,7 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
   /* Handle the words making up the item: */
   while (1) {
     if (ctx->token == LEX_IDENTIFIER) {
-      ENSURE_BUILD(ast_build_outline_symbol(b, string_init(ctx->marker.p, ctx->cursor.p))); ++item_n;
-    } else if (ctx->token == LEX_STRING) {
-      ENSURE_BUILD(ast_build_outline_string(b, string_init(ctx->marker.p, ctx->cursor.p))); ++item_n;
-    } else if (ctx->token == LEX_NUMBER) {
-      ENSURE_BUILD(ast_build_outline_number(b, string_init(ctx->marker.p, ctx->cursor.p))); ++item_n;
+      ENSURE_BUILD(ast_build_outline_tag(b, string_init(ctx->marker.p, ctx->cursor.p))); ++item_n;
     } else {
       break;
     }
