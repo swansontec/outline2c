@@ -318,27 +318,32 @@ int parse_outline_list(Context *ctx, AstBuilder *b)
 int parse_outline_item(Context *ctx, AstBuilder *b)
 {
   int rv;
-  size_t item_n = 0;
+  size_t tag_n = 0;
+  String last = string_null();
 
   /* Handle the words making up the item: */
-  while (1) {
-    if (ctx->token == LEX_IDENTIFIER) {
-      ENSURE_BUILD(ast_build_outline_tag(b, string_init(ctx->marker.p, ctx->cursor.p))); ++item_n;
-    } else {
-      break;
+  while (ctx->token == LEX_IDENTIFIER) {
+    if (last.p) {
+      ENSURE_BUILD(ast_build_outline_tag(b, last));
+      ++tag_n;
     }
+    last = string_init(ctx->marker.p, ctx->cursor.p);
     advance(ctx, 0);
+  }
+  if (!last.p) {
+    error(ctx, "An outline item must have a name.");
+    return 1;
   }
 
   /* Handle any sub-items: */
   if (ctx->token == LEX_BRACE_L) {
     rv = parse_outline_list(ctx, b);
     ENSURE_SUCCESS(rv);
-    ENSURE_BUILD(ast_build_outline_item(b, item_n));
+    ENSURE_BUILD(ast_build_outline_item(b, last, tag_n));
     return 0;
   /* Otherwise, the item must end with a semicolon: */
   } else if (ctx->token == LEX_SEMICOLON) {
-    ENSURE_BUILD(ast_build_outline_item(b, item_n));
+    ENSURE_BUILD(ast_build_outline_item(b, last, tag_n));
     return 0;
   /* Anything else is an error: */
   } else {

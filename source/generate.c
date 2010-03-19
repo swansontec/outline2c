@@ -117,13 +117,9 @@ int generate_for(FileW *out, Scope *s, AstFor *p)
 int generate_symbol(FileW *out, Scope *s, AstSymbol *p)
 {
   int i;
-  Scope *scope = s;
-  AstOutlineTag *tag;
-
   for (i = 0; i < p->level; ++i)
-    scope = scope->outer;
+    s = s->outer;
 
-  tag = scope->item->tags_end[-1];
-  file_w_write(out, tag->symbol.p, tag->symbol.end);
+  file_w_write(out, s->item->name.p, s->item->name.end);
   return 0;
 }

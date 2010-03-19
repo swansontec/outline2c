@@ -158,7 +158,7 @@ int ast_build_outline_list(AstBuilder *b, size_t item_n)
     ast_outline_list_new(&b->pool, items, items + item_n));
 }
 
-int ast_build_outline_item(AstBuilder *b, size_t tag_n)
+int ast_build_outline_item(AstBuilder *b, String name, size_t tag_n)
 {
   size_t i;
   AstOutlineTag **tags;
@@ -175,7 +175,7 @@ int ast_build_outline_item(AstBuilder *b, size_t tag_n)
     tags[i] = ast_to_outline_tag(b->stack[b->stack_top + i]);
 
   return ast_builder_push(b, AST_OUTLINE_ITEM,
-    ast_outline_item_new(&b->pool, tags, tags + tag_n, children));
+    ast_outline_item_new(&b->pool, tags, tags + tag_n, name, children));
 }
 
 int ast_build_outline_tag(AstBuilder *b, String symbol)

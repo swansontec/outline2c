@@ -167,16 +167,18 @@ AstOutlineList *ast_outline_list_new(Pool *p, AstOutlineItem **items, AstOutline
   return self;
 }
 
-AstOutlineItem *ast_outline_item_new(Pool *p, AstOutlineTag **tags, AstOutlineTag **tags_end, AstOutlineList *children)
+AstOutlineItem *ast_outline_item_new(Pool *p, AstOutlineTag **tags, AstOutlineTag **tags_end, String name, AstOutlineList *children)
 {
   AstOutlineItem *self;
   if (!tags) return 0;
+  if (!name.p) return 0;
   /* children may be NULL */
 
   self = pool_alloc(p, sizeof(AstOutlineItem));
   if (!self) return 0;
   self->tags = tags;
   self->tags_end = tags_end;
+  self->name = name;
   self->children = children;
   return self;
 }

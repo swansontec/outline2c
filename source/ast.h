@@ -167,6 +167,7 @@ struct ast_outline_list {
 struct ast_outline_item {
   AstOutlineTag **tags;
   AstOutlineTag **tags_end;
+  String name;
   AstOutlineList *children;
 };
 
@@ -244,7 +245,7 @@ AstCodeText        *ast_code_text_new           (Pool *p, String code);
 AstInclude         *ast_include_new             (Pool *p, AstFile *file);
 AstOutline         *ast_outline_new             (Pool *p, String name, AstOutlineList *children);
 AstOutlineList     *ast_outline_list_new        (Pool *p, AstOutlineItem **items, AstOutlineItem **items_end);
-AstOutlineItem     *ast_outline_item_new        (Pool *p, AstOutlineTag **tags, AstOutlineTag **tags_end, AstOutlineList *children);
+AstOutlineItem     *ast_outline_item_new        (Pool *p, AstOutlineTag **tags, AstOutlineTag **tags_end, String name, AstOutlineList *children);
 AstOutlineTag      *ast_outline_tag_new         (Pool *p, String symbol);
 AstFor             *ast_for_new                 (Pool *p, AstIn *in, AstFilter *filter, AstCode *code);
 AstIn              *ast_in_new                  (Pool *p, String symbol, String name);
