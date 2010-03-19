@@ -39,14 +39,6 @@ typedef struct ast_filter_and           AstFilterAnd;
 typedef struct ast_filter_or            AstFilterOr;
 typedef struct ast_symbol               AstSymbol;
 
-typedef struct ast_replace              AstReplace;
-typedef struct ast_match                AstMatch;
-typedef struct ast_match_line           AstMatchLine;
-typedef struct ast_pattern              AstPattern;
-typedef struct ast_pattern_wild         AstPatternWild;
-typedef struct ast_pattern_symbol       AstPatternSymbol;
-typedef struct ast_pattern_assign       AstPatternAssign;
-
 typedef struct ast_node                 AstNode;
 typedef struct ast_code_node            AstCodeNode;
 typedef struct ast_outline_node         AstOutlineNode;
@@ -74,15 +66,7 @@ enum ast_type {
   AST_FILTER_NOT,
   AST_FILTER_AND,
   AST_FILTER_OR,
-  AST_SYMBOL,
-
-  AST_REPLACE,
-  AST_MATCH,
-  AST_MATCH_LINE,
-  AST_PATTERN,
-  AST_PATTERN_WILD,
-  AST_PATTERN_SYMBOL,
-  AST_PATTERN_ASSIGN
+  AST_SYMBOL
 };
 typedef enum ast_type AstType;
 
@@ -99,11 +83,8 @@ struct ast_node {
  *  AstCodeText
  *  AstInclude
  *  AstOutline
+ *  AstFor
  *  AstSymbol
- *
- *  AstReplace
- *  AstRule
- *  AstMatch
  */
 struct ast_code_node {
   void *p;
@@ -133,28 +114,15 @@ struct ast_filter_node {
   AstType type;
 };
 
-/**
- * Points to one of:
- *  AstPatternWild
- *  AstPatternSymbol
- *  AstPatternAssign
- */
-struct ast_pattern_node {
-  void *p;
-  AstType type;
-};
-
 /* Type-checking functions */
 int ast_is_code_node(AstNode node);
 int ast_is_outline_node(AstNode node);
 int ast_is_filter_node(AstNode node);
-int ast_is_pattern_node(AstNode node);
 
 /* Type-conversion functions */
 AstCodeNode         ast_to_code_node(AstNode node);
 AstOutlineNode      ast_to_outline_node(AstNode node);
 AstFilterNode       ast_to_filter_node(AstNode node);
-AstPatternNode      ast_to_pattern_node(AstNode node);
 
 AstFile            *ast_to_file(AstNode node);
 AstCode            *ast_to_code(AstNode node);
@@ -162,8 +130,6 @@ AstOutlineList     *ast_to_outline_list(AstNode node);
 AstOutlineItem     *ast_to_outline_item(AstNode node);
 AstIn              *ast_to_in(AstNode node);
 AstFilter          *ast_to_filter(AstNode node);
-AstMatchLine       *ast_to_match_line(AstNode node);
-AstPattern         *ast_to_pattern(AstNode node);
 
 /**
  * A source file. This is the top-level element of the AST.
@@ -296,43 +262,6 @@ struct ast_symbol {
   int level;
 };
 
-/**
- * A symbol to be replaced within a block of code (match-style).
- */
-struct ast_replace {
-  AstPatternAssign *symbol;
-};
-
-/* Match elements */
-struct ast_match {
-  AstMatchLine **lines;
-  AstMatchLine **lines_end;
-};
-
-struct ast_match_line {
-  AstPattern *pattern;
-  AstCode *code;
-};
-
-/* Pattern elements */
-struct ast_pattern {
-  AstPatternNode *nodes;
-  AstPatternNode *nodes_end;
-};
-
-struct ast_pattern_wild {
-  int dummy;
-};
-
-struct ast_pattern_symbol {
-  String symbol;
-};
-
-struct ast_pattern_assign {
-  String symbol;
-  AstPatternNode pattern;
-};
-
 AstFile            *ast_file_new                (Pool *p, AstCode *code);
 AstCode            *ast_code_new                (Pool *p, AstCodeNode *nodes, AstCodeNode *nodes_end);
 AstCodeText        *ast_code_text_new           (Pool *p, String code);
@@ -351,13 +280,5 @@ AstFilterNot       *ast_filter_not_new          (Pool *p, AstFilterNode test);
 AstFilterAnd       *ast_filter_and_new          (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
 AstFilterOr        *ast_filter_or_new           (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
 AstSymbol          *ast_symbol_new              (Pool *p, int level);
-
-AstReplace         *ast_replace_new             (Pool *p, AstPatternAssign *symbol);
-AstMatch           *ast_match_new               (Pool *p, AstMatchLine **lines, AstMatchLine **lines_end);
-AstMatchLine       *ast_match_line_new          (Pool *p, AstPattern *pattern, AstCode *code);
-AstPattern         *ast_pattern_new             (Pool *p, AstPatternNode *nodes, AstPatternNode *nodes_end);
-AstPatternWild     *ast_pattern_wild_new        (Pool *p);
-AstPatternSymbol   *ast_pattern_symbol_new      (Pool *p, String symbol);
-AstPatternAssign   *ast_pattern_assign_new      (Pool *p, String symbol, AstPatternNode pattern);
 
 #endif

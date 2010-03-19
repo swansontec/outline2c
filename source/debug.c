@@ -49,13 +49,6 @@ void dump_code(AstCode *p, int indent)
       dump_for(node->p);
     } else if (node->type == AST_SYMBOL) {
       dump_symbol(node->p);
-    } else if (node->type == AST_REPLACE) {
-      AstReplace *p = node->p;
-      char *s = string_to_c(p->symbol->symbol);
-      printf("<%s>", s);
-      free(s);
-    } else if (node->type == AST_MATCH) {
-      dump_match(node->p, indent);
     } else {
       printf("(Unknown code node %d)", node->type);
     }
@@ -244,91 +237,4 @@ void dump_symbol(AstSymbol *p)
   for (i = 0; i <= p->level; ++i)
     printf(".");
   printf(">");
-}
-
-/**
- * Prints a match statement for debugging purposes.
- */
-void dump_match(AstMatch *match, int indent)
-{
-  printf("@o2c match ");
-  if (match->lines_end - match->lines == 1) {
-    dump_match_line(*match->lines, indent);
-  } else {
-    AstMatchLine **line;
-
-    printf("{\n");
-    for (line = match->lines; line != match->lines_end; ++line) {
-      space(indent + 1);
-      dump_match_line(*line, indent + 1);
-    }
-    space(indent);
-    printf("}\n");
-  }
-}
-
-/**
- * Prints a single pattern line within a match statement.
- */
-void dump_match_line(AstMatchLine *p, int indent)
-{
-  dump_pattern(p->pattern);
-  printf("{");
-  dump_code(p->code, indent);
-  printf("}\n");
-}
-
-/*
- * Prints a pattern
- */
-void dump_pattern(AstPattern *p)
-{
-  AstPatternNode *node;
-
-  for (node = p->nodes; node != p->nodes_end; ++node) {
-    if (node != p->nodes)
-      printf(" ");
-    dump_pattern_node(*node);
-  }
-}
-
-/**
- * Prints a single element within a pattern
- */
-void dump_pattern_node(AstPatternNode node)
-{
-  switch (node.type) {
-  case AST_PATTERN_WILD:
-    dump_pattern_wild((AstPatternWild*)node.p);
-    break;
-  case AST_PATTERN_SYMBOL:
-    dump_pattern_symbol((AstPatternSymbol*)node.p);
-    break;
-  case AST_PATTERN_ASSIGN:
-    dump_pattern_assign((AstPatternAssign*)node.p);
-    break;
-  default:
-    printf("(Unknown pattern node %d)", node.type);
-  }
-}
-
-void dump_pattern_wild(AstPatternWild *p)
-{
-  printf("<>");
-}
-
-void dump_pattern_symbol(AstPatternSymbol *p)
-{
-  char *temp = string_to_c(p->symbol);
-  printf("%s", temp);
-  free(temp);
-}
-
-void dump_pattern_assign(AstPatternAssign *p)
-{
-  char *temp = string_to_c(p->symbol);
-  printf("%s=(", temp);
-  free(temp);
-  dump_pattern_node(p->pattern);
-  printf(")");
 }

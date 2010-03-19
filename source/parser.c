@@ -65,12 +65,6 @@ int parse_in(Context *ctx, AstBuilder *b);
 
 int parse_filter(Context *ctx, AstBuilder *b);
 
-int parse_match(Context *ctx, AstBuilder *b);
-int parse_match_line(Context *ctx, AstBuilder *b);
-
-int parse_pattern(Context *ctx, AstBuilder *b);
-int parse_pattern_item(Context *ctx, AstBuilder *b);
-
 /**
  * All parser functions return 0 for success and non-zero for failure. This
  * macro checks a return code and bails out if it indicates an error.
@@ -173,16 +167,6 @@ int parse_code(Context *ctx, AstBuilder *b, int scoped)
     /* Possibly a symbol to substitute: */
     } else if (ctx->token == LEX_IDENTIFIER) {
       int level;
-
-      /* It could be a match-style symbol: */
-      AstPatternAssign *p = ast_builder_find_assign(b, string_init(ctx->marker.p, ctx->cursor.p));
-      if (p) {
-        ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
-        ENSURE_BUILD(ast_build_replace(b, p)); ++node_n;
-        start = ctx->cursor.p;
-      }
-
-      /* Otherwise, it could be a for x in y symbol: */
       level = ast_builder_find_symbol(b, string_init(ctx->marker.p, ctx->cursor.p));
       if (0 <= level) {
         ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
@@ -241,9 +225,6 @@ int parse_escape(Context *ctx, AstBuilder *b)
     } else if (string_equal(temp, string_init_l("for", 3))) {
       advance(ctx, 0);
       return parse_for(ctx, b);
-    } else if (string_equal(temp, string_init_l("match", 5))) {
-      advance(ctx, 0);
-      return parse_match(ctx, b);
     } else {
       error(ctx, "No idea what this keyword is.");
       return 1;
@@ -540,137 +521,4 @@ done:
   ENSURE_BUILD(ast_build_filter(b));
 
   return 0;
-}
-
-/**
- * Parses the match keyword. The plan, here, is to build a list of match
- * structures representing the entries in the pattern. Then, return the list to
- * the caller.
- */
-int parse_match(Context *ctx, AstBuilder *b)
-{
-  int rv;
-
-  /* Multiple matches between braces: */
-  if (ctx->token == LEX_BRACE_L) {
-    size_t lines = 0;
-    advance(ctx, 0);
-    while (ctx->token != LEX_BRACE_R) {
-      rv = parse_match_line(ctx, b);
-      ENSURE_SUCCESS(rv);
-      advance(ctx, 0);
-      ++lines;
-    }
-    ENSURE_BUILD(ast_build_match(b, lines));
-    return 0;
-  /* Single match: */
-  } else {
-    rv = parse_match_line(ctx, b);
-    ENSURE_SUCCESS(rv);
-    ENSURE_BUILD(ast_build_match(b, 1));
-    return 0;
-  }
-}
-
-/**
- * Parses a line within a match statement. A line must have a pattern and a
- * code block.
- */
-int parse_match_line(Context *ctx, AstBuilder *b)
-{
-  int rv;
-
-  /* Parse the pattern: */
-  rv = parse_pattern(ctx, b);
-  ENSURE_SUCCESS(rv);
-
-  /* Check for bad closing characters: */
-  if (ctx->token == LEX_BRACE_R || ctx->token == LEX_SEMICOLON) {
-    error(ctx, "A match rule must end with a code block.");
-    return 1;
-  } else if (ctx->token != LEX_BRACE_L) {
-    error(ctx, "A match rule can only contain words and wildcards.");
-    return 1;
-  }
-
-  /* Parse the code: */
-  rv = parse_code(ctx, b, 1);
-  ENSURE_SUCCESS(rv);
-
-  ENSURE_BUILD(ast_build_match_line(b));
-  return 0;
-}
-
-/**
- * Handles pattern syntax. The context will be advanced when this function
- * returns.
- */
-int parse_pattern(Context *ctx, AstBuilder *b)
-{
-  int rv;
-  size_t node_n = 0;
-
-  while (1) {
-    rv = parse_pattern_item(ctx, b);
-    if (rv == -1) {
-      ENSURE_BUILD(ast_build_pattern(b, node_n));
-      return 0;
-    } else if (rv) {
-      return rv;
-    } else {
-      ++node_n;
-    }
-  }
-}
-
-/**
- * Parses a single node within a match pattern. The context will be advanced
- * when this function returns.
- * @return 0 for success, -1 for unknown symbol, 1 for definite errors
- */
-int parse_pattern_item(Context *ctx, AstBuilder *b)
-{
-  int rv;
-
-  /* An identifier could be either a terminal symbol or an assignmen rule: */
-  if (ctx->token == LEX_IDENTIFIER) {
-    String s = string_init(ctx->marker.p, ctx->cursor.p);
-    advance(ctx, 0);
-    /* Replacement rule: */
-    if (ctx->token == LEX_EQUALS) {
-      advance(ctx, 0);
-      rv = parse_pattern_item(ctx, b);
-      if (rv) {
-        error(ctx, "A replacement rule must end with a sub-pattern.");
-        return 1;
-      }
-      if (ast_builder_peek(b).type == AST_PATTERN_ASSIGN) {
-        error(ctx, "A replacement rule cannot contain another replacement rule.");
-        return 1;
-      }
-      ENSURE_BUILD(ast_build_pattern_assign(b, s));
-      return 0;
-    }
-    /* Literal: */
-    ENSURE_BUILD(ast_build_pattern_symbol(b, s));
-    return 0;
-  }
-
-  /* A rule invocation is surrounded by <>: */
-  if (ctx->token == LEX_LT) {
-    advance(ctx, 0);
-    if (ctx->token == LEX_GT) {
-      ENSURE_BUILD(ast_build_pattern_wild(b));
-      advance(ctx, 0);
-      return 0;
-    } else if (ctx->token == LEX_IDENTIFIER) {
-      error(ctx, "Rule invocations are not supported at this time.");
-      return 1;
-    } else {
-      error(ctx, "A rule name should appear here.");
-      return 1;
-    }
-  }
-
-  return -1;
 }

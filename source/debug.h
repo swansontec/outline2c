@@ -45,13 +45,4 @@ void dump_filter_or(AstFilterOr *p);
 
 void dump_symbol(AstSymbol *p);
 
-void dump_match(AstMatch *match, int indent);
-void dump_match_line(AstMatchLine *p, int indent);
-
-void dump_pattern(AstPattern *p);
-void dump_pattern_node(AstPatternNode node);
-void dump_pattern_wild(AstPatternWild *p);
-void dump_pattern_symbol(AstPatternSymbol *p);
-void dump_pattern_assign(AstPatternAssign *p);
-
 #endif

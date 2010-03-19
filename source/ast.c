@@ -25,9 +25,7 @@ int ast_is_code_node(AstNode node)
     node.type == AST_INCLUDE ||
     node.type == AST_OUTLINE ||
     node.type == AST_FOR ||
-    node.type == AST_MATCH ||
-    node.type == AST_SYMBOL ||
-    node.type == AST_REPLACE;
+    node.type == AST_SYMBOL;
 }
 
 int ast_is_outline_node(AstNode node)
@@ -45,14 +43,6 @@ int ast_is_filter_node(AstNode node)
     node.type == AST_FILTER_OR ||
     node.type == AST_FILTER_NOT ||
     node.type == AST_FILTER_TAG;
-}
-
-int ast_is_pattern_node(AstNode node)
-{
-  return
-    node.type == AST_PATTERN_WILD ||
-    node.type == AST_PATTERN_SYMBOL ||
-    node.type == AST_PATTERN_ASSIGN;
 }
 
 AstCodeNode ast_to_code_node(AstNode node)
@@ -77,15 +67,6 @@ AstFilterNode ast_to_filter_node(AstNode node)
 {
   AstFilterNode temp;
   assert(ast_is_filter_node(node));
-  temp.p = node.p;
-  temp.type = node.type;
-  return temp;
-}
-
-AstPatternNode ast_to_pattern_node(AstNode node)
-{
-  AstPatternNode temp;
-  assert(ast_is_pattern_node(node));
   temp.p = node.p;
   temp.type = node.type;
   return temp;
@@ -124,18 +105,6 @@ AstIn *ast_to_in(AstNode node)
 AstFilter *ast_to_filter(AstNode node)
 {
   assert(node.type == AST_FILTER);
-  return node.p;
-}
-
-AstMatchLine *ast_to_match_line(AstNode node)
-{
-  assert(node.type == AST_MATCH_LINE);
-  return node.p;
-}
-
-AstPattern *ast_to_pattern(AstNode node)
-{
-  assert(node.type == AST_PATTERN);
   return node.p;
 }
 
@@ -351,83 +320,5 @@ AstSymbol *ast_symbol_new(Pool *p, int level)
   self = pool_alloc(p, sizeof(AstSymbol));
   if (!self) return 0;
   self->level = level;
-  return self;
-}
-
-AstReplace *ast_replace_new(Pool *p, AstPatternAssign *symbol)
-{
-  AstReplace *self;
-  if (!symbol) return 0;
-
-  self = pool_alloc(p, sizeof(AstReplace));
-  if (!self) return 0;
-  self->symbol = symbol;
-  return self;
-}
-
-AstMatch *ast_match_new(Pool *p, AstMatchLine **lines, AstMatchLine **lines_end)
-{
-  AstMatch *self;
-  if (!lines) return 0;
-
-  self = pool_alloc(p, sizeof(AstMatch));
-  if (!self) return 0;
-  self->lines = lines;
-  self->lines_end = lines_end;
-  return self;
-}
-
-AstMatchLine *ast_match_line_new(Pool *p, AstPattern *pattern, AstCode *code)
-{
-  AstMatchLine *self;
-  if (!pattern) return 0;
-  if (!code) return 0;
-
-  self = pool_alloc(p, sizeof(AstMatchLine));
-  if (!self) return 0;
-  self->pattern = pattern;
-  self->code = code;
-  return self;
-}
-
-AstPattern *ast_pattern_new(Pool *p, AstPatternNode *nodes, AstPatternNode *nodes_end)
-{
-  AstPattern *self;
-  if (!nodes) return 0;
-
-  self = pool_alloc(p, sizeof(AstPattern));
-  if (!self) return 0;
-  self->nodes = nodes;
-  self->nodes_end = nodes_end;
-  return self;
-}
-
-AstPatternWild *ast_pattern_wild_new(Pool *p)
-{
-  AstPatternWild *self = pool_alloc(p, sizeof(AstPatternWild));
-  return self;
-}
-
-AstPatternSymbol *ast_pattern_symbol_new(Pool *p, String symbol)
-{
-  AstPatternSymbol *self;
-  if (!symbol.p) return 0;
-
-  self = pool_alloc(p, sizeof(AstPatternSymbol));
-  if (!self) return 0;
-  self->symbol = symbol;
-  return self;
-}
-
-AstPatternAssign *ast_pattern_assign_new(Pool *p, String symbol, AstPatternNode pattern)
-{
-  AstPatternAssign *self;
-  if (!symbol.p) return 0;
-  if (!pattern.p) return 0;
-
-  self = pool_alloc(p, sizeof(AstPatternAssign));
-  if (!self) return 0;
-  self->symbol = symbol;
-  self->pattern = pattern;
   return self;
 }

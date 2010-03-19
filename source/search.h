@@ -45,22 +45,4 @@ struct scope {
 Scope scope_init(AstCode *code, Scope *outer, AstOutlineItem *item);
 AstOutline *scope_find_outline(Scope *s, String name);
 
-/*
- * Outline elements within the AST can contain lists of children, and the
- * search algorithms take these lists as parameters. To enable processing the
- * top-level outlines in a file, the following functions build one of these
- * lists for the file as a whole.
- */
-void outline_list_free(AstOutlineList *self);
-int outline_list_from_file(AstOutlineList *self, AstFile *file);
-
-int ast_match_search(AstMatch *match, AstOutlineList *outlines, FileW *out);
-int ast_code_generate(AstCode *code, AstOutlineList *outlines, FileW *out);
-
-int match_pattern(AstPattern *pattern, AstOutlineItem *outline);
-int match_pattern_item(AstPatternNode pn, AstOutlineNode on);
-int match_pattern_wild(AstPatternWild *p, AstOutlineNode on);
-int match_pattern_symbol(AstPatternSymbol *p, AstOutlineNode on);
-int match_pattern_assign(AstPatternAssign *p, AstOutlineNode on);
-
 #endif

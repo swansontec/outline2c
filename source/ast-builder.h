@@ -39,8 +39,6 @@ AstNode ast_builder_pop(AstBuilder *b);
 AstNode ast_builder_peek(AstBuilder *b);
 
 int ast_builder_find_symbol(AstBuilder *b, String symbol);
-AstPatternAssign *ast_builder_find_assign(AstBuilder *b, String symbol);
-AstPatternAssign *ast_pattern_find_assign(AstPattern *pattern, String symbol);
 
 /*
  * Functions for assembling an AST. All functions return 0 on success.
@@ -63,13 +61,5 @@ int ast_build_filter_not(AstBuilder *b);
 int ast_build_filter_and(AstBuilder *b);
 int ast_build_filter_or(AstBuilder *b);
 int ast_build_symbol(AstBuilder *b, int level);
-
-int ast_build_replace(AstBuilder *b, AstPatternAssign *symbol);
-int ast_build_match(AstBuilder *b, size_t line_n);
-int ast_build_match_line(AstBuilder *b);
-int ast_build_pattern(AstBuilder *b, size_t node_n);
-int ast_build_pattern_wild(AstBuilder *b);
-int ast_build_pattern_symbol(AstBuilder *b, String symbol);
-int ast_build_pattern_assign(AstBuilder *b, String symbol);
 
 #endif

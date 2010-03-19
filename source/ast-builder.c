@@ -94,45 +94,6 @@ int ast_builder_find_symbol(AstBuilder *b, String symbol)
   return -1;
 }
 
-/**
- * Searches for an assignment statement in scope which has a name matching the
- * given symbol. This search is insanely inefficient, and could really use
- * some sort of fast data structure to accelerate it.
- * @return a pointer to the found node, or 0 for no match
- */
-AstPatternAssign *ast_builder_find_assign(AstBuilder *b, String symbol)
-{
-  size_t top = b->stack_top;
-  AstPatternAssign *temp;
-
-  while (top) {
-    --top;
-    if (b->stack[top].type == AST_PATTERN) {
-      temp = ast_pattern_find_assign(b->stack[top].p, symbol);
-      if (temp) return temp;
-    }
-  }
-  return 0;
-}
-
-/**
- * Returns non-zero if a pattern has the specified symbol in its assignment
- * list.
- */
-AstPatternAssign *ast_pattern_find_assign(AstPattern *pattern, String symbol)
-{
-  AstPatternNode *node;
-
-  for (node = pattern->nodes; node != pattern->nodes_end; ++node) {
-    if (node->type == AST_PATTERN_ASSIGN) {
-      AstPatternAssign *p = node->p;
-      if (string_equal(p->symbol, symbol))
-        return p;
-    }
-  }
-  return 0;
-}
-
 /*
  * Functions for assembling an AST. All functions return 0 on success.
  */
@@ -305,72 +266,4 @@ int ast_build_symbol(AstBuilder *b, int level)
   return ast_builder_push(b, AST_SYMBOL,
     ast_symbol_new(&b->pool,
       level));
-}
-
-int ast_build_replace(AstBuilder *b, AstPatternAssign *symbol)
-{
-  return ast_builder_push(b, AST_REPLACE,
-    ast_replace_new(&b->pool,
-      symbol));
-}
-
-int ast_build_match(AstBuilder *b, size_t line_n)
-{
-  size_t i;
-  AstMatchLine **lines;
-
-  lines = pool_alloc(&b->pool, line_n*sizeof(AstMatchLine *));
-  if (!lines) return 1;
-
-  b->stack_top -= line_n;
-  for (i = 0; i < line_n; ++i)
-    lines[i] = ast_to_match_line(b->stack[b->stack_top + i]);
-
-  return ast_builder_push(b, AST_MATCH,
-    ast_match_new(&b->pool, lines, lines + line_n));
-}
-
-int ast_build_match_line(AstBuilder *b)
-{
-  return ast_builder_push(b, AST_MATCH_LINE,
-    ast_match_line_new(&b->pool,
-      ast_to_pattern(ast_builder_pop(b)),
-      ast_to_code(ast_builder_pop(b))));
-}
-
-int ast_build_pattern(AstBuilder *b, size_t node_n)
-{
-  size_t i;
-  AstPatternNode *nodes;
-
-  nodes = pool_alloc(&b->pool, node_n*sizeof(AstPatternNode));
-  if (!nodes) return 1;
-
-  b->stack_top -= node_n;
-  for (i = 0; i < node_n; ++i)
-    nodes[i] = ast_to_pattern_node(b->stack[b->stack_top + i]);
-
-  return ast_builder_push(b, AST_PATTERN,
-    ast_pattern_new(&b->pool, nodes, nodes + node_n));
-}
-
-int ast_build_pattern_wild(AstBuilder *b)
-{
-  return ast_builder_push(b, AST_PATTERN_WILD,
-    ast_pattern_wild_new(&b->pool));
-}
-
-int ast_build_pattern_symbol(AstBuilder *b, String symbol)
-{
-  return ast_builder_push(b, AST_PATTERN_SYMBOL,
-    ast_pattern_symbol_new(&b->pool,
-      pool_string_copy(&b->pool, symbol)));
-}
-
-int ast_build_pattern_assign(AstBuilder *b, String symbol)
-{
-  return ast_builder_push(b, AST_PATTERN_ASSIGN,
-    ast_pattern_assign_new(&b->pool,
-      pool_string_copy(&b->pool, symbol),
-      ast_to_pattern_node(ast_builder_pop(b))));
 }

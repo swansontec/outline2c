@@ -78,11 +78,6 @@ int generate_code(FileW *out, Scope *s, AstCode *p)
     } else if (node->type == AST_SYMBOL) {
       rv = generate_symbol(out, s, node->p);
       if (rv) return rv;
-    } else if (node->type == AST_REPLACE) {
-      AstReplace *p = node->p;
-      rv = file_w_write(out, p->symbol->symbol.p, p->symbol->symbol.end);
-      if (rv) return rv;
-    } else if (node->type == AST_MATCH) {
     } else {
       assert(0);
     }
