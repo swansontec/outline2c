@@ -44,19 +44,18 @@ void dump_code(AstCode *p, int indent)
       dump_code(p->file->code, indent+1);
       printf("}}}\n");
     } else if (node->type == AST_OUTLINE) {
-      AstOutline *p = node->p;
-      dump_outline(p);
-    } else if (node->type == AST_FOR_IN) {
-      AstForIn *p = node->p;
-      dump_for_in(p);
-    } else if (node->type == AST_MATCH) {
-      AstMatch *p = node->p;
-      dump_match(p, indent);
+      dump_outline(node->p);
+    } else if (node->type == AST_FOR) {
+      dump_for(node->p);
     } else if (node->type == AST_SYMBOL) {
-      AstSymbol *p = node->p;
+      dump_symbol(node->p);
+    } else if (node->type == AST_REPLACE) {
+      AstReplace *p = node->p;
       char *s = string_to_c(p->symbol->symbol);
       printf("<%s>", s);
       free(s);
+    } else if (node->type == AST_MATCH) {
+      dump_match(node->p, indent);
     } else {
       printf("(Unknown code node %d)", node->type);
     }
@@ -155,23 +154,31 @@ void dump_outline_number(AstOutlineNumber *p)
 /**
  * Prints a for ... in construction.
  */
-void dump_for_in(AstForIn *p)
+void dump_for(AstFor *p)
 {
-  char *name = string_to_c(p->name);
-  char *outline = string_to_c(p->outline);
-  printf("for %s in %s ", name, outline);
-  free(name);
-  free(outline);
+  printf("@o2c for ");
+  dump_in(p->in);
 
   if (p->filter) {
     printf("with ");
     dump_filter(p->filter);
-    printf(" ");
   }
 
-  printf("{");
+  printf(" {");
   dump_code(p->code, 0);
   printf("}");
+}
+
+/**
+ * Prints an "x in y" portion of a for statement.
+ */
+void dump_in(AstIn *p)
+{
+  char *symbol = string_to_c(p->symbol);
+  char *name = string_to_c(p->name);
+  printf("%s in %s", symbol, name);
+  free(symbol);
+  free(name);
 }
 
 /**
@@ -225,6 +232,18 @@ void dump_filter_or(AstFilterOr *p)
   printf(" | ");
   dump_filter_node(p->test_b);
   printf(")");
+}
+
+/**
+ * Prints a symbol for debugging purposes.
+ */
+void dump_symbol(AstSymbol *p)
+{
+  int i;
+  printf("<");
+  for (i = 0; i <= p->level; ++i)
+    printf(".");
+  printf(">");
 }
 
 /**

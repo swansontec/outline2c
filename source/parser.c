@@ -60,7 +60,8 @@ int parse_outline(Context *ctx, AstBuilder *b);
 int parse_outline_list(Context *ctx, AstBuilder *b);
 int parse_outline_item(Context *ctx, AstBuilder *b);
 
-int parse_for_in(Context *ctx, AstBuilder *b);
+int parse_for(Context *ctx, AstBuilder *b);
+int parse_in(Context *ctx, AstBuilder *b);
 
 int parse_filter(Context *ctx, AstBuilder *b);
 
@@ -171,12 +172,24 @@ int parse_code(Context *ctx, AstBuilder *b, int scoped)
 
     /* Possibly a symbol to substitute: */
     } else if (ctx->token == LEX_IDENTIFIER) {
+      int level;
+
+      /* It could be a match-style symbol: */
       AstPatternAssign *p = ast_builder_find_assign(b, string_init(ctx->marker.p, ctx->cursor.p));
       if (p) {
         ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
-        ENSURE_BUILD(ast_build_symbol(b, p)); ++node_n;
+        ENSURE_BUILD(ast_build_replace(b, p)); ++node_n;
         start = ctx->cursor.p;
       }
+
+      /* Otherwise, it could be a for x in y symbol: */
+      level = ast_builder_find_symbol(b, string_init(ctx->marker.p, ctx->cursor.p));
+      if (0 <= level) {
+        ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
+        ENSURE_BUILD(ast_build_symbol(b, level)); ++node_n;
+        start = ctx->cursor.p;
+      }
+
     /* Opening brace: */
     } else if (scoped && ctx->token == LEX_BRACE_L) {
       ++indent;
@@ -227,7 +240,7 @@ int parse_escape(Context *ctx, AstBuilder *b)
       return parse_outline(ctx, b);
     } else if (string_equal(temp, string_init_l("for", 3))) {
       advance(ctx, 0);
-      return parse_for_in(ctx, b);
+      return parse_for(ctx, b);
     } else if (string_equal(temp, string_init_l("match", 5))) {
       advance(ctx, 0);
       return parse_match(ctx, b);
@@ -360,36 +373,12 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
 /**
  * Parses a for ... in ... construction.
  */
-int parse_for_in(Context *ctx, AstBuilder *b)
+int parse_for(Context *ctx, AstBuilder *b)
 {
   int rv;
-  String name;
-  String outline;
 
-  /* Replacement name: */
-  if (ctx->token != LEX_IDENTIFIER) {
-    error(ctx, "An for stament must begin with a name.");
-    return 1;
-  }
-  name = string_init(ctx->marker.p, ctx->cursor.p);
-  advance(ctx, 0);
-
-  /* in keyword: */
-  if (ctx->token != LEX_IDENTIFIER || !string_equal(
-    string_init(ctx->marker.p, ctx->cursor.p),
-    string_init_l("in", 2))
-  ) {
-    error(ctx, "Expecting the \"in\" keyword here.");
-    return 1;
-  }
-  advance(ctx, 0);
-
-  /* Outline name: */
-  if (ctx->token != LEX_IDENTIFIER) {
-    error(ctx, "Expecting an outline name here.");
-    return 1;
-  }
-  outline = string_init(ctx->marker.p, ctx->cursor.p);
+  rv = parse_in(ctx, b);
+  ENSURE_SUCCESS(rv);
   advance(ctx, 0);
 
   /* with keyword: */
@@ -412,15 +401,44 @@ int parse_for_in(Context *ctx, AstBuilder *b)
   rv = parse_code(ctx, b, 1);
   ENSURE_SUCCESS(rv);
 
-#if 0
-  /* Semicolon: */
-  if (ctx->token != LEX_SEMICOLON) {
-    error(ctx, "The for statement ends with a semicolon for now.");
+  ENSURE_BUILD(ast_build_for(b));
+  return 0;
+}
+
+/**
+ * Parses the "x in y" portion of a for statement.
+ */
+int parse_in(Context *ctx, AstBuilder *b)
+{
+  String symbol;
+  String name;
+
+  /* Replacement symbol: */
+  if (ctx->token != LEX_IDENTIFIER) {
+    error(ctx, "An for stament must begin with a name.");
     return 1;
   }
-#endif
+  symbol = string_init(ctx->marker.p, ctx->cursor.p);
+  advance(ctx, 0);
 
-  ast_build_for_in(b, name, outline);
+  /* in keyword: */
+  if (ctx->token != LEX_IDENTIFIER || !string_equal(
+    string_init(ctx->marker.p, ctx->cursor.p),
+    string_init_l("in", 2))
+  ) {
+    error(ctx, "Expecting the \"in\" keyword here.");
+    return 1;
+  }
+  advance(ctx, 0);
+
+  /* Outline name: */
+  if (ctx->token != LEX_IDENTIFIER) {
+    error(ctx, "Expecting an outline name here.");
+    return 1;
+  }
+  name = string_init(ctx->marker.p, ctx->cursor.p);
+
+  ENSURE_BUILD(ast_build_in(b, symbol, name));
   return 0;
 }
 

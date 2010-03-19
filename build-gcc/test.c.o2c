@@ -33,3 +33,4 @@ int main(int argc, char *argv[])
 {
   return 0;
 }
+@o2c for x in t1 { @o2c for b in t2 { a b c x y z} }

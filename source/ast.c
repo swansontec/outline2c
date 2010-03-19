@@ -24,9 +24,10 @@ int ast_is_code_node(AstNode node)
     node.type == AST_CODE_TEXT ||
     node.type == AST_INCLUDE ||
     node.type == AST_OUTLINE ||
-    node.type == AST_FOR_IN ||
+    node.type == AST_FOR ||
     node.type == AST_MATCH ||
-    node.type == AST_SYMBOL;
+    node.type == AST_SYMBOL ||
+    node.type == AST_REPLACE;
 }
 
 int ast_is_outline_node(AstNode node)
@@ -111,6 +112,12 @@ AstOutlineList *ast_to_outline_list(AstNode node)
 AstOutlineItem *ast_to_outline_item(AstNode node)
 {
   assert(node.type == AST_OUTLINE_ITEM);
+  return node.p;
+}
+
+AstIn *ast_to_in(AstNode node)
+{
+  assert(node.type == AST_IN);
   return node.p;
 }
 
@@ -249,20 +256,31 @@ AstOutlineNumber *ast_outline_number_new(Pool *p, String number)
   return self;
 }
 
-AstForIn *ast_for_in_new(Pool *p, String name, String outline, AstFilter *filter, AstCode *code)
+AstFor *ast_for_new(Pool *p, AstIn *in, AstFilter *filter, AstCode *code)
 {
-  AstForIn *self;
-  if (!name.p) return 0;
-  if (!outline.p) return 0;
+  AstFor *self;
+  if (!in) return 0;
   /* filter may be NULL */
   if (!code) return 0;
 
-  self = pool_alloc(p, sizeof(AstForIn));
+  self = pool_alloc(p, sizeof(AstFor));
   if (!self) return 0;
-  self->name = name;
-  self->outline = outline;
+  self->in = in;
   self->filter = filter;
   self->code = code;
+  return self;
+}
+
+AstIn *ast_in_new(Pool *p, String symbol, String name)
+{
+  AstIn *self;
+  if (!symbol.p) return 0;
+  if (!name.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstIn));
+  if (!self) return 0;
+  self->symbol = symbol;
+  self->name = name;
   return self;
 }
 
@@ -325,12 +343,23 @@ AstFilterOr *ast_filter_or_new(Pool *p, AstFilterNode test_a, AstFilterNode test
   return self;
 }
 
-AstSymbol *ast_symbol_new(Pool *p, AstPatternAssign *symbol)
+AstSymbol *ast_symbol_new(Pool *p, int level)
 {
   AstSymbol *self;
-  if (!symbol) return 0;
+  if (level < 0) return 0;
 
   self = pool_alloc(p, sizeof(AstSymbol));
+  if (!self) return 0;
+  self->level = level;
+  return self;
+}
+
+AstReplace *ast_replace_new(Pool *p, AstPatternAssign *symbol)
+{
+  AstReplace *self;
+  if (!symbol) return 0;
+
+  self = pool_alloc(p, sizeof(AstReplace));
   if (!self) return 0;
   self->symbol = symbol;
   return self;

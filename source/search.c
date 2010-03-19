@@ -140,13 +140,14 @@ int ast_code_generate(AstCode *code, AstOutlineList *outlines, FileW *out)
       if (rv) return rv;
     } else if (node->type == AST_INCLUDE) {
     } else if (node->type == AST_OUTLINE) {
-    } else if (node->type == AST_FOR_IN) {
+    } else if (node->type == AST_FOR) {
     } else if (node->type == AST_MATCH) {
       AstMatch *p = node->p;
       rv = ast_match_search(p, outlines, out);
       if (rv) return rv;
     } else if (node->type == AST_SYMBOL) {
-      AstSymbol *p = node->p;
+    } else if (node->type == AST_REPLACE) {
+      AstReplace *p = node->p;
       rv = file_w_write(out, p->symbol->symbol.p, p->symbol->symbol.end);
       if (rv) return rv;
     } else {

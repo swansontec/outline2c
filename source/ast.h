@@ -30,7 +30,8 @@ typedef struct ast_outline_item         AstOutlineItem;
 typedef struct ast_outline_symbol       AstOutlineSymbol;
 typedef struct ast_outline_string       AstOutlineString;
 typedef struct ast_outline_number       AstOutlineNumber;
-typedef struct ast_for_in               AstForIn;
+typedef struct ast_for                  AstFor;
+typedef struct ast_in                   AstIn;
 typedef struct ast_filter               AstFilter;
 typedef struct ast_filter_tag           AstFilterTag;
 typedef struct ast_filter_not           AstFilterNot;
@@ -38,6 +39,7 @@ typedef struct ast_filter_and           AstFilterAnd;
 typedef struct ast_filter_or            AstFilterOr;
 typedef struct ast_symbol               AstSymbol;
 
+typedef struct ast_replace              AstReplace;
 typedef struct ast_match                AstMatch;
 typedef struct ast_match_line           AstMatchLine;
 typedef struct ast_pattern              AstPattern;
@@ -65,7 +67,8 @@ enum ast_type {
   AST_OUTLINE_SYMBOL,
   AST_OUTLINE_STRING,
   AST_OUTLINE_NUMBER,
-  AST_FOR_IN,
+  AST_FOR,
+  AST_IN,
   AST_FILTER,
   AST_FILTER_TAG,
   AST_FILTER_NOT,
@@ -73,6 +76,7 @@ enum ast_type {
   AST_FILTER_OR,
   AST_SYMBOL,
 
+  AST_REPLACE,
   AST_MATCH,
   AST_MATCH_LINE,
   AST_PATTERN,
@@ -97,6 +101,7 @@ struct ast_node {
  *  AstOutline
  *  AstSymbol
  *
+ *  AstReplace
  *  AstRule
  *  AstMatch
  */
@@ -155,6 +160,7 @@ AstFile            *ast_to_file(AstNode node);
 AstCode            *ast_to_code(AstNode node);
 AstOutlineList     *ast_to_outline_list(AstNode node);
 AstOutlineItem     *ast_to_outline_item(AstNode node);
+AstIn              *ast_to_in(AstNode node);
 AstFilter          *ast_to_filter(AstNode node);
 AstMatchLine       *ast_to_match_line(AstNode node);
 AstPattern         *ast_to_pattern(AstNode node);
@@ -230,13 +236,20 @@ struct ast_outline_number {
 };
 
 /**
- * A for ... in construction.
+ * A for statement.
  */
-struct ast_for_in {
-  String name;
-  String outline;
+struct ast_for {
+  AstIn *in;
   AstFilter *filter;
   AstCode *code;
+};
+
+/**
+ * An "x in y" portion of a for statement.
+ */
+struct ast_in {
+  String symbol;
+  String name;
 };
 
 /**
@@ -280,6 +293,13 @@ struct ast_filter_or {
  * A symbol to be replaced within a block of code.
  */
 struct ast_symbol {
+  int level;
+};
+
+/**
+ * A symbol to be replaced within a block of code (match-style).
+ */
+struct ast_replace {
   AstPatternAssign *symbol;
 };
 
@@ -323,14 +343,16 @@ AstOutlineItem     *ast_outline_item_new        (Pool *p, AstOutlineNode *nodes,
 AstOutlineSymbol   *ast_outline_symbol_new      (Pool *p, String symbol);
 AstOutlineString   *ast_outline_string_new      (Pool *p, String string);
 AstOutlineNumber   *ast_outline_number_new      (Pool *p, String number);
-AstForIn           *ast_for_in_new              (Pool *p, String name, String outline, AstFilter *filter, AstCode *code);
+AstFor             *ast_for_new                 (Pool *p, AstIn *in, AstFilter *filter, AstCode *code);
+AstIn              *ast_in_new                  (Pool *p, String symbol, String name);
 AstFilter          *ast_filter_new              (Pool *p, AstFilterNode test);
 AstFilterTag       *ast_filter_tag_new          (Pool *p, String tag);
 AstFilterNot       *ast_filter_not_new          (Pool *p, AstFilterNode test);
 AstFilterAnd       *ast_filter_and_new          (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
 AstFilterOr        *ast_filter_or_new           (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
-AstSymbol          *ast_symbol_new              (Pool *p, AstPatternAssign *symbol);
+AstSymbol          *ast_symbol_new              (Pool *p, int level);
 
+AstReplace         *ast_replace_new             (Pool *p, AstPatternAssign *symbol);
 AstMatch           *ast_match_new               (Pool *p, AstMatchLine **lines, AstMatchLine **lines_end);
 AstMatchLine       *ast_match_line_new          (Pool *p, AstPattern *pattern, AstCode *code);
 AstPattern         *ast_pattern_new             (Pool *p, AstPatternNode *nodes, AstPatternNode *nodes_end);

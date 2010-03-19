@@ -70,6 +70,31 @@ AstNode ast_builder_peek(AstBuilder *b)
 }
 
 /**
+ * Searches the stack for "x in y" nodes. If the symbol defined in the node
+ * matches the passed-in string, the function returns the depth at which the
+ * node occurred. The topmost "x in y" node would be 0, the "x in y" node below
+ * it (possibly with other stuff between) would be 1, etc.. Returns -1 if there
+ * is no match.
+ */
+int ast_builder_find_symbol(AstBuilder *b, String symbol)
+{
+  size_t top = b->stack_top;
+  int level = 0;
+
+  while (top) {
+    --top;
+    if (b->stack[top].type == AST_IN) {
+      AstIn *in = b->stack[top].p;
+      if (string_equal(in->symbol, symbol))
+        return level;
+      else
+        ++level;
+    }
+  }
+  return -1;
+}
+
+/**
  * Searches for an assignment statement in scope which has a name matching the
  * given symbol. This search is insanely inefficient, and could really use
  * some sort of fast data structure to accelerate it.
@@ -213,8 +238,9 @@ int ast_build_outline_number(AstBuilder *b, String number)
       pool_string_copy(&b->pool, number)));
 }
 
-int ast_build_for_in(AstBuilder *b, String name, String outline)
+int ast_build_for(AstBuilder *b)
 {
+  AstIn *in;
   AstFilter *filter;
   AstCode *code;
 
@@ -223,12 +249,18 @@ int ast_build_for_in(AstBuilder *b, String name, String outline)
   filter = ast_builder_peek(b).type == AST_FILTER ?
     ast_to_filter(ast_builder_pop(b)) : 0;
 
-  return ast_builder_push(b, AST_FOR_IN,
-    ast_for_in_new(&b->pool,
-      pool_string_copy(&b->pool, name),
-      pool_string_copy(&b->pool, outline),
-      filter,
-      code));
+  in = ast_to_in(ast_builder_pop(b));
+
+  return ast_builder_push(b, AST_FOR,
+    ast_for_new(&b->pool, in, filter, code));
+}
+
+int ast_build_in(AstBuilder *b, String symbol, String name)
+{
+  return ast_builder_push(b, AST_IN,
+    ast_in_new(&b->pool,
+      pool_string_copy(&b->pool, symbol),
+      pool_string_copy(&b->pool, name)));
 }
 
 int ast_build_filter(AstBuilder *b)
@@ -268,10 +300,17 @@ int ast_build_filter_or(AstBuilder *b)
       ast_to_filter_node(ast_builder_pop(b))));
 }
 
-int ast_build_symbol(AstBuilder *b, AstPatternAssign *symbol)
+int ast_build_symbol(AstBuilder *b, int level)
 {
   return ast_builder_push(b, AST_SYMBOL,
     ast_symbol_new(&b->pool,
+      level));
+}
+
+int ast_build_replace(AstBuilder *b, AstPatternAssign *symbol)
+{
+  return ast_builder_push(b, AST_REPLACE,
+    ast_replace_new(&b->pool,
       symbol));
 }
 

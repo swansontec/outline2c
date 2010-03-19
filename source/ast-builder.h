@@ -38,6 +38,7 @@ int ast_builder_push(AstBuilder *b, AstType type, void *p);
 AstNode ast_builder_pop(AstBuilder *b);
 AstNode ast_builder_peek(AstBuilder *b);
 
+int ast_builder_find_symbol(AstBuilder *b, String symbol);
 AstPatternAssign *ast_builder_find_assign(AstBuilder *b, String symbol);
 AstPatternAssign *ast_pattern_find_assign(AstPattern *pattern, String symbol);
 
@@ -54,14 +55,16 @@ int ast_build_outline_item(AstBuilder *b, size_t node_n);
 int ast_build_outline_symbol(AstBuilder *b, String symbol);
 int ast_build_outline_string(AstBuilder *b, String string);
 int ast_build_outline_number(AstBuilder *b, String number);
-int ast_build_for_in(AstBuilder *b, String name, String outline);
+int ast_build_for(AstBuilder *b);
+int ast_build_in(AstBuilder *b, String symbol, String name);
 int ast_build_filter(AstBuilder *b);
 int ast_build_filter_tag(AstBuilder *b, String tag);
 int ast_build_filter_not(AstBuilder *b);
 int ast_build_filter_and(AstBuilder *b);
 int ast_build_filter_or(AstBuilder *b);
-int ast_build_symbol(AstBuilder *b, AstPatternAssign *symbol);
+int ast_build_symbol(AstBuilder *b, int level);
 
+int ast_build_replace(AstBuilder *b, AstPatternAssign *symbol);
 int ast_build_match(AstBuilder *b, size_t line_n);
 int ast_build_match_line(AstBuilder *b);
 int ast_build_pattern(AstBuilder *b, size_t node_n);
