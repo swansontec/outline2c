@@ -22,13 +22,13 @@ objects = ast.o ast-builder.o debug.o file.o generate.o lexer.o main.o parser.o 
 # Inter-header dependencies:
 ast_h      = ../source/ast.h $(typedefs_h) $(string_h)
 ast_builder_h = ../source/ast-builder.h $(ast_h) $(pool_h)
-debug_h    = ../source/debug.h $(typedefs_h)
+debug_h    = ../source/debug.h $(ast_h)
 file_h     = ../source/file.h $(typedefs_h)
-generate_h = ../source/generate.h $(typedefs_h)
+generate_h = ../source/generate.h $(ast_h)
 lexer_h    = ../source/lexer.h
 parser_h   = ../source/parser.h $(typedefs_h)
 pool_h     = ../source/pool.h $(typedefs_h)
-search_h   = ../source/search.h $(typedefs_h) $(ast_h)
+search_h   = ../source/search.h $(ast_h)
 string_h   = ../source/string.h $(typedefs_h)
 typedefs_h = ../source/typedefs.h
 
@@ -46,7 +46,7 @@ debug.o: ../source/debug.c $(debug_h) $(string_h)
 file.o: ../source/file.c $(file_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/file.c
 
-generate.o: ../source/generate.c $(generate_h) $(parser_h) $(ast_builder_h) $(search_h) $(debug_h)
+generate.o: ../source/generate.c $(generate_h) $(parser_h) $(ast_builder_h) $(search_h) $(debug_h) $(file_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/generate.c
 
 lexer.o: ../source/lexer.c $(lexer_h) $(string_h)
@@ -78,4 +78,4 @@ install:
 
 run: outline2c
 	./outline2c test.c.o2c
-	diff test.c test.c.ref
+	diff test.c.ref test.c

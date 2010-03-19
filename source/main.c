@@ -71,7 +71,7 @@ int main_run(Main *m, int argc, char *argv[])
   }
 
   /* Munchify files: */
-  generate(argv[1], &m->file_out);
+  generate(&m->file_out, argv[1]);
   return 0;
 }
 

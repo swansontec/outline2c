@@ -24,18 +24,17 @@
 /* ast-builder.h */
 typedef struct ast_builder AstBuilder;
 
-/* string.h */
-typedef struct string String;
-
 /* file.h */
 typedef struct file_r FileR;
 typedef struct file_w FileW;
 
-/* outline.h */
-typedef struct outline_item OutlineItem;
-typedef struct outline      Outline;
-
 /* pool.h */
 typedef struct pool Pool;
+
+/* search.h */
+typedef struct scope Scope;
+
+/* string.h */
+typedef struct string String;
 
 #endif

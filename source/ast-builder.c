@@ -177,7 +177,7 @@ int ast_build_outline(AstBuilder *b, String name)
 {
   return ast_builder_push(b, AST_OUTLINE,
     ast_outline_new(&b->pool,
-      name,
+      pool_string_copy(&b->pool, name),
       ast_to_outline_list(ast_builder_pop(b))));
 }
 

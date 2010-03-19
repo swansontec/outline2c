@@ -13,24 +13,21 @@
 
 /* Generate a structure to hold the settings: */
 typedef struct {
-  @o2c match {
-    setting number name=<> { int name; }
-    setting string name=<> { char *name; }
-  }
+  @o2c for setting in settings with number { int setting; }
+  @o2c for setting in settings with string { char *setting; }
 } Settings;
 
 /* Generate a function to save the settings: */
 #define STRINGIFY(x) #x
 void save_settings(Settings *s, FILE *f)
 {
-  @o2c match {
-    setting number name=<> { fprintf(f, "%s=%d\n", STRINGIFY(name), s->name); }
-    setting string name=<> { fprintf(f, "%s=%s\n", STRINGIFY(name), s->name); }
-  }
+  @o2c for setting in settings with number {
+    fprintf(f, "%s=%d\n", STRINGIFY(setting), s->setting); }
+  @o2c for setting in settings with string {
+    fprintf(f, "%s=%s\n", STRINGIFY(setting), s->setting); }
 }
 
 int main(int argc, char *argv[])
 {
   return 0;
 }
-@o2c for x in t1 { @o2c for b in t2 { a b c x y z} }

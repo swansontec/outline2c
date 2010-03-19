@@ -25,6 +25,93 @@
 #include <stdlib.h>
 
 /**
+ * Determines whether an outline item satisfies a particular filter expression.
+ */
+int test_filter(AstFilter *test, AstOutlineItem *item)
+{
+  return test_filter_node(test->test, item);
+}
+
+int test_filter_node(AstFilterNode test, AstOutlineItem *item)
+{
+  switch (test.type) {
+  case AST_FILTER_TAG: return test_filter_tag(test.p, item);
+  case AST_FILTER_NOT: return test_filter_not(test.p, item);
+  case AST_FILTER_AND: return test_filter_and(test.p, item);
+  case AST_FILTER_OR:  return test_filter_or(test.p, item);
+  default: assert(0); return 0;
+  }
+}
+
+int test_filter_tag(AstFilterTag *test, AstOutlineItem *item)
+{
+  AstOutlineNode *node;
+
+  for (node = item->nodes; node != item->nodes_end; ++node) {
+    if (node->type == AST_OUTLINE_SYMBOL) {
+      AstOutlineSymbol *p = node->p;
+      if (string_equal(p->symbol, test->tag))
+        return 1;
+    }
+  }
+
+  return 0;
+}
+
+int test_filter_not(AstFilterNot *test, AstOutlineItem *item)
+{
+  return !test_filter_node(test->test, item);
+}
+
+int test_filter_and(AstFilterAnd *test, AstOutlineItem *item)
+{
+  return
+    test_filter_node(test->test_a, item) &&
+    test_filter_node(test->test_b, item);
+}
+
+int test_filter_or(AstFilterOr *test, AstOutlineItem *item)
+{
+  return
+    test_filter_node(test->test_a, item) ||
+    test_filter_node(test->test_b, item);
+}
+
+Scope scope_init(AstCode *code, Scope *outer, AstOutlineItem *item)
+{
+  Scope self;
+  self.code = code;
+  self.outer = outer;
+  self.item = item;
+  return self;
+}
+
+AstOutline *code_find_outline(AstCode *code, String name)
+{
+  AstCodeNode *node;
+  AstOutline *outline;
+
+  for (node = code->nodes; node != code->nodes_end; ++node) {
+    if (node->type == AST_OUTLINE) {
+      outline = node->p;
+      if (string_equal(outline->name, name))
+        return outline;
+    } else if (node->type == AST_INCLUDE) {
+      AstInclude *include = node->p;
+      outline = code_find_outline(include->file->code, name);
+      if (outline)
+        return outline;
+    }
+  }
+  return 0;
+}
+
+AstOutline *scope_find_outline(Scope *s, String name)
+{
+  return code_find_outline(s->code, name);
+}
+
+/**
  * Releases the memory held by an outline list. This only needs to be called
  * for lists allocated by outline_list_from_file.
  */

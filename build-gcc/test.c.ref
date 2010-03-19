@@ -7,28 +7,21 @@
 
 /* Generate a structure to hold the settings: */
 typedef struct {
-   int haystacks; 
- int needles; 
- int width; 
- int height; 
- int threads; 
- char *username; 
- char *save_dir; 
-
+   int width;  int height;  int threads; 
+   char *username;  char *save_dir; 
 } Settings;
 
 /* Generate a function to save the settings: */
 #define STRINGIFY(x) #x
 void save_settings(Settings *s, FILE *f)
 {
-   fprintf(f, "%s=%d\n", STRINGIFY(haystacks), s->haystacks); 
- fprintf(f, "%s=%d\n", STRINGIFY(needles), s->needles); 
- fprintf(f, "%s=%d\n", STRINGIFY(width), s->width); 
- fprintf(f, "%s=%d\n", STRINGIFY(height), s->height); 
- fprintf(f, "%s=%d\n", STRINGIFY(threads), s->threads); 
- fprintf(f, "%s=%s\n", STRINGIFY(username), s->username); 
- fprintf(f, "%s=%s\n", STRINGIFY(save_dir), s->save_dir); 
-
+  
+    fprintf(f, "%s=%d\n", STRINGIFY(width), s->width); 
+    fprintf(f, "%s=%d\n", STRINGIFY(height), s->height); 
+    fprintf(f, "%s=%d\n", STRINGIFY(threads), s->threads); 
+  
+    fprintf(f, "%s=%s\n", STRINGIFY(username), s->username); 
+    fprintf(f, "%s=%s\n", STRINGIFY(save_dir), s->save_dir); 
 }
 
 int main(int argc, char *argv[])

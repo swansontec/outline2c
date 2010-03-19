@@ -19,8 +19,31 @@
 #ifndef SEARCH_H_INCLUDED
 #define SEARCH_H_INCLUDED
 
-#include "typedefs.h"
 #include "ast.h"
+
+int test_filter(AstFilter *test, AstOutlineItem *item);
+int test_filter_node(AstFilterNode test, AstOutlineItem *item);
+int test_filter_tag(AstFilterTag *test, AstOutlineItem *item);
+int test_filter_not(AstFilterNot *test, AstOutlineItem *item);
+int test_filter_and(AstFilterAnd *test, AstOutlineItem *item);
+int test_filter_or(AstFilterOr *test, AstOutlineItem *item);
+
+/**
+ * Represents a collection of symbols that are in scope. For now, this struct
+ * simply contains the information needed to search for a particular symbol.
+ * At some point in the future, this structure will gain some sort of chaching
+ * ability to accelerate the search.
+ */
+struct scope {
+  /* The current code block being processed: */
+  AstCode *code;
+  /* The next-outer scope, if any: */
+  Scope *outer;
+  /* The current outline item being processed, if any: */
+  AstOutlineItem *item;
+};
+Scope scope_init(AstCode *code, Scope *outer, AstOutlineItem *item);
+AstOutline *scope_find_outline(Scope *s, String name);
 
 /*
  * Outline elements within the AST can contain lists of children, and the

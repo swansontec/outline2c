@@ -21,7 +21,6 @@
 #ifndef DEBUG_H_INCLUDED
 #define DEBUG_H_INCLUDED
 
-#include "typedefs.h"
 #include "ast.h"
 
 void dump_code(AstCode *p, int indent);

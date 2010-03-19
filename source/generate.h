@@ -17,8 +17,12 @@
 #ifndef GENERATE_H_INCLUDED
 #define GENERATE_H_INCLUDED
 
-#include "typedefs.h"
+#include "ast.h"
 
-int generate(char const *filename, FileW *out);
+int generate(FileW *out, char const *filename);
+
+int generate_code(FileW *out, Scope *s, AstCode *p);
+int generate_for(FileW *out, Scope *s, AstFor *p);
+int generate_symbol(FileW *out, Scope *s, AstSymbol *p);
 
 #endif

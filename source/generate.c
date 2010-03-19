@@ -19,18 +19,21 @@
 #include "ast-builder.h"
 #include "search.h"
 #include "debug.h"
+#include "file.h"
 #include <stdio.h>
+#include <assert.h>
 
 /**
  * Opens the file given in filename, parses it, processes it, and writes the
  * results to the output file.
  */
-int generate(char const *filename, FileW *out)
+int generate(FileW *out, char const *filename)
 {
   int rv;
   int debug = 0;
   AstBuilder b;
   AstFile *file;
+  Scope scope;
 
   rv = ast_builder_init(&b);
   if (rv) {
@@ -47,13 +50,88 @@ int generate(char const *filename, FileW *out)
     dump_code(file->code, 0);
   }
 
-  {
-    AstOutlineList list;
-    outline_list_from_file(&list, file);
-    ast_code_generate(file->code, &list, out);
-    outline_list_free(&list);
-  }
+  scope = scope_init(file->code, 0, 0);
+  generate_code(out, &scope, file->code);
 
   ast_builder_free(&b);
+  return 0;
+}
+
+/**
+ * Processes source code, writing the result to the output file.
+ */
+int generate_code(FileW *out, Scope *s, AstCode *p)
+{
+  int rv;
+  AstCodeNode *node;
+
+  for (node = p->nodes; node != p->nodes_end; ++node) {
+    if (node->type == AST_CODE_TEXT) {
+      AstCodeText *p = node->p;
+      rv = file_w_write(out, p->code.p, p->code.end);
+      if (rv) return rv;
+    } else if (node->type == AST_INCLUDE) {
+    } else if (node->type == AST_OUTLINE) {
+    } else if (node->type == AST_FOR) {
+      rv = generate_for(out, s, node->p);
+      if (rv) return rv;
+    } else if (node->type == AST_SYMBOL) {
+      rv = generate_symbol(out, s, node->p);
+      if (rv) return rv;
+    } else if (node->type == AST_REPLACE) {
+      AstReplace *p = node->p;
+      rv = file_w_write(out, p->symbol->symbol.p, p->symbol->symbol.end);
+      if (rv) return rv;
+    } else if (node->type == AST_MATCH) {
+    } else {
+      assert(0);
+    }
+  }
+  return 0;
+}
+
+/**
+ * Performs code-generation for a for statement node
+ */
+int generate_for(FileW *out, Scope *s, AstFor *p)
+{
+  AstOutline *outline;
+  AstOutlineItem **item;
+
+  outline = scope_find_outline(s, p->in->name);
+  if (!outline) {
+    char *temp = string_to_c(p->in->name);
+    fprintf(stderr, "Could not find outline %s.\n", temp);
+    free(temp);
+    return 1;
+  }
+
+  for (item = outline->children->items; item != outline->children->items_end; ++item) {
+    if (!p->filter || test_filter(p->filter, *item)) {
+      Scope scope = scope_init(p->code, s, *item);
+      generate_code(out, &scope, p->code);
+    }
+  }
+
+  return 0;
+}
+
+/**
+ * Performs code-generation for a symbol node
+ */
+int generate_symbol(FileW *out, Scope *s, AstSymbol *p)
+{
+  int i;
+  Scope *scope = s;
+  AstOutlineNode *node;
+
+  for (i = 0; i < p->level; ++i)
+    scope = scope->outer;
+
+  node = scope->item->nodes_end - 1;
+  if (node->type == AST_OUTLINE_SYMBOL) {
+    AstOutlineSymbol *name = node->p;
+    file_w_write(out, name->symbol.p, name->symbol.end);
+  }
   return 0;
 }
