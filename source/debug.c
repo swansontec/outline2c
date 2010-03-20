@@ -49,6 +49,8 @@ void dump_code(AstCode *p, int indent)
       dump_for(node->p);
     } else if (node->type == AST_SYMBOL) {
       dump_symbol(node->p);
+    } else if (node->type == AST_LOOKUP) {
+      dump_lookup(node->p);
     } else {
       printf("(Unknown code node %d)", node->type);
     }
@@ -119,7 +121,7 @@ void dump_for(AstFor *p)
   dump_in(p->in);
 
   if (p->filter) {
-    printf("with ");
+    printf(" with ");
     dump_filter(p->filter);
   }
 
@@ -194,13 +196,20 @@ void dump_filter_or(AstFilterOr *p)
 }
 
 /**
- * Prints a symbol for debugging purposes.
+ * Prints a symbol in a debug-friendly manner.
  */
 void dump_symbol(AstSymbol *p)
 {
-  int i;
-  printf("<");
-  for (i = 0; i <= p->level; ++i)
-    printf(".");
-  printf(">");
+  printf("<%d>", p->level);
+}
+
+/**
+ * Prints a lookup symbol.
+ */
+void dump_lookup(AstLookup *p)
+{
+  char *temp = string_to_c(p->name);
+  dump_symbol(p->symbol);
+  printf("\\%s", temp);
+  free(temp);
 }

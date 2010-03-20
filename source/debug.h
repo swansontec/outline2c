@@ -41,5 +41,6 @@ void dump_filter_and(AstFilterAnd *p);
 void dump_filter_or(AstFilterOr *p);
 
 void dump_symbol(AstSymbol *p);
+void dump_lookup(AstLookup *p);
 
 #endif

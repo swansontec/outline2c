@@ -167,7 +167,7 @@ int ast_build_outline_item(AstBuilder *b, String name, size_t tag_n)
   children = ast_builder_peek(b).type == AST_OUTLINE_LIST ?
     ast_to_outline_list(ast_builder_pop(b)) : 0;
 
-  tags = pool_alloc(&b->pool, tag_n*sizeof(AstOutlineTag));
+  tags = pool_alloc(&b->pool, tag_n*sizeof(AstOutlineTag*));
   if (!tags) return 1;
 
   b->stack_top -= tag_n;
@@ -175,7 +175,11 @@ int ast_build_outline_item(AstBuilder *b, String name, size_t tag_n)
     tags[i] = ast_to_outline_tag(b->stack[b->stack_top + i]);
 
   return ast_builder_push(b, AST_OUTLINE_ITEM,
-    ast_outline_item_new(&b->pool, tags, tags + tag_n, name, children));
+    ast_outline_item_new(&b->pool,
+      tags,
+      tags + tag_n,
+      pool_string_copy(&b->pool, name),
+      children));
 }
 
 int ast_build_outline_tag(AstBuilder *b, String symbol)
@@ -252,4 +256,12 @@ int ast_build_symbol(AstBuilder *b, int level)
   return ast_builder_push(b, AST_SYMBOL,
     ast_symbol_new(&b->pool,
       level));
+}
+
+int ast_build_lookup(AstBuilder *b, String name)
+{
+  return ast_builder_push(b, AST_LOOKUP,
+    ast_lookup_new(&b->pool,
+      ast_to_symbol(ast_builder_pop(b)),
+      name));
 }

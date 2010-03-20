@@ -25,7 +25,8 @@ int ast_is_code_node(AstNode node)
     node.type == AST_INCLUDE ||
     node.type == AST_OUTLINE ||
     node.type == AST_FOR ||
-    node.type == AST_SYMBOL;
+    node.type == AST_SYMBOL ||
+    node.type == AST_LOOKUP;
 }
 
 int ast_is_filter_node(AstNode node)
@@ -94,6 +95,12 @@ AstIn *ast_to_in(AstNode node)
 AstFilter *ast_to_filter(AstNode node)
 {
   assert(node.type == AST_FILTER);
+  return node.p;
+}
+
+AstSymbol *ast_to_symbol(AstNode node)
+{
+  assert(node.type == AST_SYMBOL);
   return node.p;
 }
 
@@ -289,5 +296,18 @@ AstSymbol *ast_symbol_new(Pool *p, int level)
   self = pool_alloc(p, sizeof(AstSymbol));
   if (!self) return 0;
   self->level = level;
+  return self;
+}
+
+AstLookup *ast_lookup_new(Pool *p, AstSymbol *symbol, String name)
+{
+  AstLookup *self;
+  if (!symbol) return 0;
+  if (!name.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstLookup));
+  if (!self) return 0;
+  self->symbol = symbol;
+  self->name = name;
   return self;
 }

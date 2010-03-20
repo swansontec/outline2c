@@ -78,6 +78,9 @@ int generate_code(FileW *out, Scope *s, AstCode *p)
     } else if (node->type == AST_SYMBOL) {
       rv = generate_symbol(out, s, node->p);
       if (rv) return rv;
+    } else if (node->type == AST_LOOKUP) {
+      rv = generate_lookup(out, s, node->p);
+      if (rv) return rv;
     } else {
       assert(0);
     }
@@ -122,4 +125,12 @@ int generate_symbol(FileW *out, Scope *s, AstSymbol *p)
 
   file_w_write(out, s->item->name.p, s->item->name.end);
   return 0;
+}
+
+/**
+ * Performs code-generation for a lookup node.
+ */
+int generate_lookup(FileW *out, Scope *s, AstLookup *p)
+{
+  return generate_symbol(out, s, p->symbol);
 }

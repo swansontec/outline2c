@@ -59,5 +59,6 @@ int ast_build_filter_not(AstBuilder *b);
 int ast_build_filter_and(AstBuilder *b);
 int ast_build_filter_or(AstBuilder *b);
 int ast_build_symbol(AstBuilder *b, int level);
+int ast_build_lookup(AstBuilder *b, String name);
 
 #endif

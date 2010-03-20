@@ -24,5 +24,6 @@ int generate(FileW *out, char const *filename);
 int generate_code(FileW *out, Scope *s, AstCode *p);
 int generate_for(FileW *out, Scope *s, AstFor *p);
 int generate_symbol(FileW *out, Scope *s, AstSymbol *p);
+int generate_lookup(FileW *out, Scope *s, AstLookup *p);
 
 #endif

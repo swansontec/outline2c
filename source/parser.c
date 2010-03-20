@@ -165,13 +165,22 @@ int parse_code(Context *ctx, AstBuilder *b, int scoped)
       start = ctx->cursor.p;
 
     /* Possibly a symbol to substitute: */
-    } else if (ctx->token == LEX_IDENTIFIER) {
+    } else if (scoped && ctx->token == LEX_IDENTIFIER) {
       int level;
       level = ast_builder_find_symbol(b, string_init(ctx->marker.p, ctx->cursor.p));
       if (0 <= level) {
         ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
         ENSURE_BUILD(ast_build_symbol(b, level)); ++node_n;
         start = ctx->cursor.p;
+        /* Is there a lookup modifier? */
+        advance(ctx, 1); /* TODO: Fix rest of loop so this is OK here. */
+        if (ctx->token == LEX_BANG) {
+          advance(ctx, 1);
+          if (ctx->token == LEX_IDENTIFIER) {
+            ENSURE_BUILD(ast_build_lookup(b, string_init(ctx->marker.p, ctx->cursor.p)));
+            start = ctx->cursor.p;
+          }
+        }
       }
 
     /* Opening brace: */

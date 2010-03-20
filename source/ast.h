@@ -36,12 +36,11 @@ typedef struct ast_filter_not           AstFilterNot;
 typedef struct ast_filter_and           AstFilterAnd;
 typedef struct ast_filter_or            AstFilterOr;
 typedef struct ast_symbol               AstSymbol;
+typedef struct ast_lookup               AstLookup;
 
 typedef struct ast_node                 AstNode;
 typedef struct ast_code_node            AstCodeNode;
-typedef struct ast_outline_node         AstOutlineNode;
 typedef struct ast_filter_node          AstFilterNode;
-typedef struct ast_pattern_node         AstPatternNode;
 
 /**
  * Types
@@ -62,7 +61,8 @@ enum ast_type {
   AST_FILTER_NOT,
   AST_FILTER_AND,
   AST_FILTER_OR,
-  AST_SYMBOL
+  AST_SYMBOL,
+  AST_LOOKUP
 };
 typedef enum ast_type AstType;
 
@@ -81,6 +81,7 @@ struct ast_node {
  *  AstOutline
  *  AstFor
  *  AstSymbol
+ *  AstLookup
  */
 struct ast_code_node {
   void *p;
@@ -114,6 +115,7 @@ AstOutlineItem     *ast_to_outline_item(AstNode node);
 AstOutlineTag      *ast_to_outline_tag(AstNode node);
 AstIn              *ast_to_in(AstNode node);
 AstFilter          *ast_to_filter(AstNode node);
+AstSymbol          *ast_to_symbol(AstNode node);
 
 /**
  * A source file. This is the top-level element of the AST.
@@ -239,6 +241,14 @@ struct ast_symbol {
   int level;
 };
 
+/**
+ * A modifier on a symbol.
+ */
+struct ast_lookup {
+  AstSymbol *symbol;
+  String name;
+};
+
 AstFile            *ast_file_new                (Pool *p, AstCode *code);
 AstCode            *ast_code_new                (Pool *p, AstCodeNode *nodes, AstCodeNode *nodes_end);
 AstCodeText        *ast_code_text_new           (Pool *p, String code);
@@ -255,5 +265,6 @@ AstFilterNot       *ast_filter_not_new          (Pool *p, AstFilterNode test);
 AstFilterAnd       *ast_filter_and_new          (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
 AstFilterOr        *ast_filter_or_new           (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
 AstSymbol          *ast_symbol_new              (Pool *p, int level);
+AstLookup          *ast_lookup_new              (Pool *p, AstSymbol *symbol, String name);
 
 #endif
