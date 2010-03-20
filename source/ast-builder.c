@@ -184,9 +184,15 @@ int ast_build_outline_item(AstBuilder *b, String name, size_t tag_n)
 
 int ast_build_outline_tag(AstBuilder *b, String symbol)
 {
+  AstCode *code;
+
+  code = ast_builder_peek(b).type == AST_CODE ?
+    ast_to_code(ast_builder_pop(b)) : 0;
+
   return ast_builder_push(b, AST_OUTLINE_TAG,
     ast_outline_tag_new(&b->pool,
-      pool_string_copy(&b->pool, symbol)));
+      pool_string_copy(&b->pool, symbol),
+      code));
 }
 
 int ast_build_for(AstBuilder *b)

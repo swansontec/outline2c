@@ -88,15 +88,21 @@ void dump_outline_list(AstOutlineList *p, int indent)
  */
 void dump_outline_item(AstOutlineItem *p, int indent)
 {
+  char *temp;
   AstOutlineTag **tag;
 
-  /* Words: */
+  /* Tags: */
   space(indent);
   for (tag = p->tags; tag != p->tags_end; ++tag) {
     if (tag != p->tags)
       printf(" ");
-    dump_outline_tag(*tag);
+    dump_outline_tag(*tag, indent);
   }
+
+  /* Item name: */
+  temp = string_to_c(p->name);
+  printf(" %s", temp);
+  free(temp);
 
   /* Children: */
   if (p->children && p->children->items != p->children->items_end)
@@ -105,11 +111,16 @@ void dump_outline_item(AstOutlineItem *p, int indent)
     printf(";\n");
 }
 
-void dump_outline_tag(AstOutlineTag *p)
+void dump_outline_tag(AstOutlineTag *p, int indent)
 {
-  char *temp = string_to_c(p->symbol);
+  char *temp = string_to_c(p->name);
   printf("%s", temp);
   free(temp);
+  if (p->value) {
+    printf("={");
+    dump_code(p->value, indent);
+    printf("}");
+  }
 }
 
 /**

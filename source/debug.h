@@ -28,7 +28,7 @@ void dump_code(AstCode *p, int indent);
 void dump_outline(AstOutline *p);
 void dump_outline_list(AstOutlineList *p, int indent);
 void dump_outline_item(AstOutlineItem *p, int indent);
-void dump_outline_tag(AstOutlineTag *p);
+void dump_outline_tag(AstOutlineTag *p, int indent);
 
 void dump_for(AstFor *p);
 void dump_in(AstIn *p);

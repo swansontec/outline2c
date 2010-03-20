@@ -190,14 +190,16 @@ AstOutlineItem *ast_outline_item_new(Pool *p, AstOutlineTag **tags, AstOutlineTa
   return self;
 }
 
-AstOutlineTag *ast_outline_tag_new(Pool *p, String symbol)
+AstOutlineTag *ast_outline_tag_new(Pool *p, String name, AstCode *value)
 {
   AstOutlineTag *self;
-  if (!symbol.p) return 0;
+  if (!name.p) return 0;
+  /* value may be NULL */
 
   self = pool_alloc(p, sizeof(AstOutlineTag));
   if (!self) return 0;
-  self->symbol = symbol;
+  self->name = name;
+  self->value = value;
   return self;
 }
 

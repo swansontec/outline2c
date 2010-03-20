@@ -338,6 +338,22 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
     }
     last = string_init(ctx->marker.p, ctx->cursor.p);
     advance(ctx, 0);
+    if (ctx->token == LEX_EQUALS) {
+      /* Opening brace: */
+      advance(ctx, 0);
+      if (ctx->token != LEX_BRACE_L) {
+        error(ctx, "A tag's value must be a code block.");
+        return 1;
+      }
+
+      rv = parse_code(ctx, b, 1);
+      ENSURE_SUCCESS(rv);
+      advance(ctx, 0);
+
+      ENSURE_BUILD(ast_build_outline_tag(b, last));
+      last.p = 0;
+      ++tag_n;
+    }
   }
   if (!last.p) {
     error(ctx, "An outline item must have a name.");

@@ -48,7 +48,7 @@ int test_filter_tag(AstFilterTag *test, AstOutlineItem *item)
   AstOutlineTag **tag;
 
   for (tag = item->tags; tag != item->tags_end; ++tag) {
-    if (string_equal((*tag)->symbol, test->tag))
+    if (string_equal((*tag)->name, test->tag))
       return 1;
   }
 
