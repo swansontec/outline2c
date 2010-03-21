@@ -107,3 +107,14 @@ AstOutline *scope_find_outline(Scope *s, String name)
 {
   return code_find_outline(s->code, name);
 }
+
+/**
+ * Obtains the OutlineItem at a certain level in the scope hierarchy.
+ */
+AstOutlineItem *scope_get_item(Scope *s,int level)
+{
+  int i;
+  for (i = 0; i < level; ++i)
+    s = s->outer;
+  return s->item;
+}

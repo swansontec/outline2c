@@ -4,11 +4,11 @@
 
 /* List the settings in a single location: */
 @o2c outline settings {
-  setting number width;
-  setting number height;
-  setting number threads;
-  setting string username;
-  setting string save_dir;
+  number width;
+  number height;
+  number threads;
+  string username;
+  string save_dir;
 }
 
 /* Generate a structure to hold the settings: */
@@ -18,13 +18,12 @@ typedef struct {
 } Settings;
 
 /* Generate a function to save the settings: */
-#define STRINGIFY(x) #x
 void save_settings(Settings *s, FILE *f)
 {
   @o2c for setting in settings with number {
-    fprintf(f, "%s=%d\n", STRINGIFY(setting), s->setting); }
+    fprintf(f, "%s=%d\n", setting!quote, s->setting); }
   @o2c for setting in settings with string {
-    fprintf(f, "%s=%s\n", STRINGIFY(setting), s->setting); }
+    fprintf(f, "%s=%s\n", setting!quote, s->setting); }
 }
 
 int main(int argc, char *argv[])

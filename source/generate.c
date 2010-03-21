@@ -119,11 +119,8 @@ int generate_for(FileW *out, Scope *s, AstFor *p)
  */
 int generate_symbol(FileW *out, Scope *s, AstSymbol *p)
 {
-  int i;
-  for (i = 0; i < p->level; ++i)
-    s = s->outer;
-
-  file_w_write(out, s->item->name.p, s->item->name.end);
+  AstOutlineItem *item = scope_get_item(s, p->level);
+  file_w_write(out, item->name.p, item->name.end);
   return 0;
 }
 
@@ -132,5 +129,50 @@ int generate_symbol(FileW *out, Scope *s, AstSymbol *p)
  */
 int generate_lookup(FileW *out, Scope *s, AstLookup *p)
 {
+  /* If a tag satisfies the lookup, generate that: */
+  if (generate_lookup_tag(out, s, p))
+    return 0;
+
+  /* If that didn't work, go try the built-in transforms: */
+  if (generate_lookup_builtin(out, s, p))
+    return 0;
+
   return generate_symbol(out, s, p->symbol);
+}
+
+/**
+ * Searches for a tag with the specified name in an outline item. If the tag
+ * exists and has a value, the function emits the value and returns 1.
+ * Otherwise, the function returns 0.
+ */
+int generate_lookup_tag(FileW *out, Scope *s, AstLookup *p)
+{
+  AstOutlineItem *item = scope_get_item(s, p->symbol->level);
+  AstOutlineTag **tag;
+
+  for (tag = item->tags; tag != item->tags_end; ++tag) {
+    if ((*tag)->value && string_equal((*tag)->name, p->name)) {
+      generate_code(out, s, (*tag)->value);
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+/**
+ * If the lookup name matches one of the built-in transformations, generate
+ * that and return 1. Otherwise, return 0.
+ */
+int generate_lookup_builtin(FileW *out, Scope *s, AstLookup *p)
+{
+  if (string_equal(p->name, string_init_l("quote", 5))) {
+    char q = '"';
+    file_w_write(out, &q, &q + 1);
+    generate_symbol(out, s, p->symbol);
+    file_w_write(out, &q, &q + 1);
+    return 1;
+  }
+
+  return 0;
 }
