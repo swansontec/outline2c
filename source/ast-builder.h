@@ -51,6 +51,8 @@ int ast_build_outline(AstBuilder *b, String name);
 int ast_build_outline_list(AstBuilder *b, size_t item_n);
 int ast_build_outline_item(AstBuilder *b, String name, size_t node_n);
 int ast_build_outline_tag(AstBuilder *b, String symbol);
+int ast_build_map(AstBuilder *b, String name, size_t line_n);
+int ast_build_map_line(AstBuilder *b);
 int ast_build_for(AstBuilder *b);
 int ast_build_in(AstBuilder *b, String symbol, String name);
 int ast_build_filter(AstBuilder *b);

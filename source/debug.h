@@ -30,6 +30,9 @@ void dump_outline_list(AstOutlineList *p, int indent);
 void dump_outline_item(AstOutlineItem *p, int indent);
 void dump_outline_tag(AstOutlineTag *p, int indent);
 
+void dump_map(AstMap *p);
+void dump_map_line(AstMapLine *p);
+
 void dump_for(AstFor *p);
 void dump_in(AstIn *p);
 

@@ -13,17 +13,22 @@
 
 /* Generate a structure to hold the settings: */
 typedef struct {
-  @o2c for setting in settings with number { int setting; }
-  @o2c for setting in settings with string { char *setting; }
+  @o2c map type {
+    number { int }
+    string { char * }
+  }
+  @o2c for setting in settings { setting!type setting; }
 } Settings;
 
 /* Generate a function to save the settings: */
 void save_settings(Settings *s, FILE *f)
 {
-  @o2c for setting in settings with number {
-    fprintf(f, "%s=%d\n", setting!quote, s->setting); }
-  @o2c for setting in settings with string {
-    fprintf(f, "%s=%s\n", setting!quote, s->setting); }
+  @o2c map format {
+    number {"%s=%d\n"}
+    string {"%s=%s\n"}
+  }
+  @o2c for setting in settings {
+    fprintf(f, setting!format, setting!quote, s->setting); }
 }
 
 int main(int argc, char *argv[])

@@ -195,6 +195,36 @@ int ast_build_outline_tag(AstBuilder *b, String symbol)
       code));
 }
 
+int ast_build_map(AstBuilder *b, String name, size_t line_n)
+{
+  size_t i;
+  AstMapLine **lines;
+
+  lines = pool_alloc(&b->pool, line_n*sizeof(AstMapLine*));
+  if (!lines) return 1;
+
+  b->stack_top -= line_n;
+  for (i = 0; i < line_n; ++i)
+    lines[i] = ast_to_map_line(b->stack[b->stack_top + i]);
+
+  return ast_builder_push(b, AST_MAP,
+    ast_map_new(&b->pool,
+      pool_string_copy(&b->pool, name),
+      lines, lines + line_n));
+}
+
+int ast_build_map_line(AstBuilder *b)
+{
+  AstFilter *filter;
+  AstCode *code;
+
+  code = ast_to_code(ast_builder_pop(b));
+  filter = ast_to_filter(ast_builder_pop(b));
+
+  return ast_builder_push(b, AST_MAP_LINE,
+    ast_map_line_new(&b->pool, filter, code));
+}
+
 int ast_build_for(AstBuilder *b)
 {
   AstIn *in;

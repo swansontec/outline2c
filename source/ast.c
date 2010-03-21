@@ -24,6 +24,7 @@ int ast_is_code_node(AstNode node)
     node.type == AST_CODE_TEXT ||
     node.type == AST_INCLUDE ||
     node.type == AST_OUTLINE ||
+    node.type == AST_MAP ||
     node.type == AST_FOR ||
     node.type == AST_SYMBOL ||
     node.type == AST_LOOKUP;
@@ -83,6 +84,12 @@ AstOutlineItem *ast_to_outline_item(AstNode node)
 AstOutlineTag *ast_to_outline_tag(AstNode node)
 {
   assert(node.type == AST_OUTLINE_TAG);
+  return node.p;
+}
+
+AstMapLine *ast_to_map_line(AstNode node)
+{
+  assert(node.type == AST_MAP_LINE);
   return node.p;
 }
 
@@ -200,6 +207,33 @@ AstOutlineTag *ast_outline_tag_new(Pool *p, String name, AstCode *value)
   if (!self) return 0;
   self->name = name;
   self->value = value;
+  return self;
+}
+
+AstMap *ast_map_new(Pool *p, String name, AstMapLine **lines, AstMapLine **lines_end)
+{
+  AstMap *self;
+  if (!name.p) return 0;
+  if (!lines) return 0;
+
+  self = pool_alloc(p, sizeof(AstMap));
+  if (!self) return 0;
+  self->name = name;
+  self->lines = lines;
+  self->lines_end = lines_end;
+  return self;
+}
+
+AstMapLine *ast_map_line_new(Pool *p, AstFilter *filter, AstCode *code)
+{
+  AstMapLine *self;
+  if (!filter) return 0;
+  if (!code) return 0;
+
+  self = pool_alloc(p, sizeof(AstMapLine));
+  if (!self) return 0;
+  self->filter = filter;
+  self->code = code;
   return self;
 }
 

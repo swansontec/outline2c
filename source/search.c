@@ -83,7 +83,7 @@ Scope scope_init(AstCode *code, Scope *outer, AstOutlineItem *item)
   return self;
 }
 
-AstOutline *code_find_outline(AstCode *code, String name)
+static AstOutline *code_find_outline(AstCode *code, String name)
 {
   AstCodeNode *node;
   AstOutline *outline;
@@ -105,7 +105,44 @@ AstOutline *code_find_outline(AstCode *code, String name)
 
 AstOutline *scope_find_outline(Scope *s, String name)
 {
-  return code_find_outline(s->code, name);
+  AstOutline *outline;
+  while (s) {
+    outline = code_find_outline(s->code, name);
+    if (outline) return outline;
+    s = s->outer;
+  }
+  return 0;
+}
+
+static AstMap *code_find_map(AstCode *code, String name)
+{
+  AstCodeNode *node;
+  AstMap *map;
+
+  for (node = code->nodes; node != code->nodes_end; ++node) {
+    if (node->type == AST_MAP) {
+      map = node->p;
+      if (string_equal(map->name, name))
+        return map;
+    } else if (node->type == AST_INCLUDE) {
+      AstInclude *include = node->p;
+      map = code_find_map(include->file->code, name);
+      if (map)
+        return map;
+    }
+  }
+  return 0;
+}
+
+AstMap *scope_find_map(Scope *s, String name)
+{
+  AstMap *map;
+  while (s) {
+    map = code_find_map(s->code, name);
+    if (map) return map;
+    s = s->outer;
+  }
+  return 0;
 }
 
 /**

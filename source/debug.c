@@ -45,6 +45,8 @@ void dump_code(AstCode *p, int indent)
       printf("}}}\n");
     } else if (node->type == AST_OUTLINE) {
       dump_outline(node->p);
+    } else if (node->type == AST_MAP) {
+      dump_map(node->p);
     } else if (node->type == AST_FOR) {
       dump_for(node->p);
     } else if (node->type == AST_SYMBOL) {
@@ -76,11 +78,10 @@ void dump_outline_list(AstOutlineList *p, int indent)
   AstOutlineItem **item;
 
   printf(" {\n");
-  for (item = p->items; item != p->items_end; ++item) {
+  for (item = p->items; item != p->items_end; ++item)
     dump_outline_item(*item, indent + 1);
-  }
   space(indent);
-  printf("}\n");
+  printf("}");
 }
 
 /**
@@ -121,6 +122,33 @@ void dump_outline_tag(AstOutlineTag *p, int indent)
     dump_code(p->value, indent);
     printf("}");
   }
+}
+
+/**
+ * Prints a map statement for debugging purposes.
+ */
+void dump_map(AstMap *p)
+{
+  char *temp;
+  AstMapLine **line;
+
+  temp = string_to_c(p->name);
+  printf("@o2c map %s {\n", temp);
+  free(temp);
+
+  for (line = p->lines; line != p->lines_end; ++line)
+    dump_map_line(*line);
+
+  printf("}");
+}
+
+void dump_map_line(AstMapLine *p)
+{
+  printf("  ");
+  dump_filter(p->filter);
+  printf(" {");
+  dump_code(p->code, 1);
+  printf("}\n");
 }
 
 /**

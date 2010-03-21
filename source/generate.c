@@ -72,6 +72,7 @@ int generate_code(FileW *out, Scope *s, AstCode *p)
       if (rv) return rv;
     } else if (node->type == AST_INCLUDE) {
     } else if (node->type == AST_OUTLINE) {
+    } else if (node->type == AST_MAP) {
     } else if (node->type == AST_FOR) {
       rv = generate_for(out, s, node->p);
       if (rv) return rv;
@@ -137,7 +138,16 @@ int generate_lookup(FileW *out, Scope *s, AstLookup *p)
   if (generate_lookup_builtin(out, s, p))
     return 0;
 
-  return generate_symbol(out, s, p->symbol);
+  /* If that didn't work, go on to search for maps: */
+  if (generate_lookup_map(out, s, p))
+    return 0;
+
+  {
+    char *temp = string_to_c(p->name);
+    fprintf(stderr, "Could not find a transform named %s.\n", temp);
+    free(temp);
+  }
+  return 1;
 }
 
 /**
@@ -172,6 +182,29 @@ int generate_lookup_builtin(FileW *out, Scope *s, AstLookup *p)
     generate_symbol(out, s, p->symbol);
     file_w_write(out, &q, &q + 1);
     return 1;
+  }
+
+  return 0;
+}
+
+/**
+ * Searches the current scope for map statements that match the lookup's name.
+ * If one does, generate that and return 1. Otherwise, return 0.
+ */
+int generate_lookup_map(FileW *out, Scope *s, AstLookup *p)
+{
+  AstOutlineItem *item = scope_get_item(s, p->symbol->level);
+  AstMap *map;
+
+  map = scope_find_map(s, p->name);
+  if (map) {
+    AstMapLine **line;
+    for (line = map->lines; line != map->lines_end; ++line) {
+      if (test_filter((*line)->filter, item)) {
+        generate_code(out, s, (*line)->code);
+        return 1;
+      }
+    }
   }
 
   return 0;

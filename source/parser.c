@@ -60,6 +60,9 @@ int parse_outline(Context *ctx, AstBuilder *b);
 int parse_outline_list(Context *ctx, AstBuilder *b);
 int parse_outline_item(Context *ctx, AstBuilder *b);
 
+int parse_map(Context *ctx, AstBuilder *b);
+int parse_map_line(Context *ctx, AstBuilder *b);
+
 int parse_for(Context *ctx, AstBuilder *b);
 int parse_in(Context *ctx, AstBuilder *b);
 
@@ -231,6 +234,9 @@ int parse_escape(Context *ctx, AstBuilder *b)
     } else if (string_equal(temp, string_init_l("outline", 7))) {
       advance(ctx, 0);
       return parse_outline(ctx, b);
+    } else if (string_equal(temp, string_init_l("map", 3))) {
+      advance(ctx, 0);
+      return parse_map(ctx, b);
     } else if (string_equal(temp, string_init_l("for", 3))) {
       advance(ctx, 0);
       return parse_for(ctx, b);
@@ -375,6 +381,65 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
     error(ctx, "An outline can only end with a semicolon or an opening brace.");
     return 1;
   }
+}
+
+/**
+ * Parses a map statement.
+ */
+int parse_map(Context *ctx, AstBuilder *b)
+{
+  int rv;
+  String name;
+  size_t line_n = 0;
+
+  /* Outline name: */
+  if (ctx->token != LEX_IDENTIFIER) {
+    error(ctx, "An map stament must begin with a name.");
+    return 1;
+  }
+  name = string_init(ctx->marker.p, ctx->cursor.p);
+  advance(ctx, 0);
+
+  /* Opening brace: */
+  if (ctx->token != LEX_BRACE_L) {
+    error(ctx, "An opening { must come after the name of a map.");
+    return 1;
+  }
+
+  /* Lines: */
+  advance(ctx, 0);
+  while (ctx->token != LEX_BRACE_R) {
+    rv = parse_map_line(ctx, b); ++line_n;
+    ENSURE_SUCCESS(rv);
+    advance(ctx, 0);
+  }
+
+  ENSURE_BUILD(ast_build_map(b, name, line_n));
+  return 0;
+}
+
+/**
+ * Parses an individual line within a map statement.
+ */
+int parse_map_line(Context *ctx, AstBuilder *b)
+{
+  int rv;
+
+  rv = parse_filter(ctx, b);
+  ENSURE_SUCCESS(rv);
+
+  /* Opening brace: */
+  if (ctx->token != LEX_BRACE_L) {
+    error(ctx, "A line within a \"map\" staement must end with a code block.");
+    return 1;
+  }
+
+  /* Parse the code: */
+  rv = parse_code(ctx, b, 1);
+  ENSURE_SUCCESS(rv);
+
+  ENSURE_BUILD(ast_build_map_line(b));
+  return 0;
 }
 
 /**

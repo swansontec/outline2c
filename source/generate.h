@@ -27,5 +27,6 @@ int generate_symbol(FileW *out, Scope *s, AstSymbol *p);
 int generate_lookup(FileW *out, Scope *s, AstLookup *p);
 int generate_lookup_tag(FileW *out, Scope *s, AstLookup *p);
 int generate_lookup_builtin(FileW *out, Scope *s, AstLookup *p);
+int generate_lookup_map(FileW *out, Scope *s, AstLookup *p);
 
 #endif

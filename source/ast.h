@@ -28,6 +28,8 @@ typedef struct ast_outline              AstOutline;
 typedef struct ast_outline_list         AstOutlineList;
 typedef struct ast_outline_item         AstOutlineItem;
 typedef struct ast_outline_tag          AstOutlineTag;
+typedef struct ast_map                  AstMap;
+typedef struct ast_map_line             AstMapLine;
 typedef struct ast_for                  AstFor;
 typedef struct ast_in                   AstIn;
 typedef struct ast_filter               AstFilter;
@@ -54,6 +56,8 @@ enum ast_type {
   AST_OUTLINE_LIST,
   AST_OUTLINE_ITEM,
   AST_OUTLINE_TAG,
+  AST_MAP,
+  AST_MAP_LINE,
   AST_FOR,
   AST_IN,
   AST_FILTER,
@@ -79,6 +83,7 @@ struct ast_node {
  *  AstCodeText
  *  AstInclude
  *  AstOutline
+ *  AstMap
  *  AstFor
  *  AstSymbol
  *  AstLookup
@@ -113,6 +118,7 @@ AstCode            *ast_to_code(AstNode node);
 AstOutlineList     *ast_to_outline_list(AstNode node);
 AstOutlineItem     *ast_to_outline_item(AstNode node);
 AstOutlineTag      *ast_to_outline_tag(AstNode node);
+AstMapLine         *ast_to_map_line(AstNode node);
 AstIn              *ast_to_in(AstNode node);
 AstFilter          *ast_to_filter(AstNode node);
 AstSymbol          *ast_to_symbol(AstNode node);
@@ -179,6 +185,22 @@ struct ast_outline_item {
 struct ast_outline_tag {
   String name;
   AstCode *value;
+};
+
+/**
+ * A map statement
+ */
+struct ast_map
+{
+  String name;
+  AstMapLine **lines;
+  AstMapLine **lines_end;
+};
+
+struct ast_map_line
+{
+  AstFilter *filter;
+  AstCode *code;
 };
 
 /**
@@ -258,6 +280,8 @@ AstOutline         *ast_outline_new             (Pool *p, String name, AstOutlin
 AstOutlineList     *ast_outline_list_new        (Pool *p, AstOutlineItem **items, AstOutlineItem **items_end);
 AstOutlineItem     *ast_outline_item_new        (Pool *p, AstOutlineTag **tags, AstOutlineTag **tags_end, String name, AstOutlineList *children);
 AstOutlineTag      *ast_outline_tag_new         (Pool *p, String name, AstCode *value);
+AstMap             *ast_map_new                 (Pool *p, String name, AstMapLine **lines, AstMapLine **lines_end);
+AstMapLine         *ast_map_line_new            (Pool *p, AstFilter *filter, AstCode *code);
 AstFor             *ast_for_new                 (Pool *p, AstIn *in, AstFilter *filter, AstCode *code);
 AstIn              *ast_in_new                  (Pool *p, String symbol, String name);
 AstFilter          *ast_filter_new              (Pool *p, AstFilterNode test);
