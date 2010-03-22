@@ -37,11 +37,16 @@ int main(int argc, char *argv[])
 }
 
 /* Test nested outlines: */
-@o2c outline test1 {
+@o2c outline test_nesting {
   item0 { sub0; sub1; }
   item1 { sub2; sub3; }
   item2;
 }
-@o2c for i in test1 {
+@o2c for i in test_nesting {
   i: @o2c for j in . { j; }
 }
+
+/* Test pasting: */
+@o2c outline test_paste { thing; }
+@o2c for i in test_paste { some\\i\\_test }
+foo\\bar

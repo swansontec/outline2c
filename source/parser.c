@@ -141,67 +141,90 @@ int parse_file(char const *filename, AstBuilder *b)
 
 /**
  * Parses a block of code in the host language, looking for escape sequences
- * and replacement keywords. This function should be called without advancing
- * the cursor to the first token, as is normal for the other parser methods.
+ * and replacement symbols.
+ *
+ * When this function is called, the current token should be either the start
+ * of the file or the opening brace. When this function returns, the current
+ * token will be either the end of the file or the closing brace.
+ *
  * @param scoped If this parameter is non-zero, the parser will stop at the
  * first unbalanced }. Otherwise, the parser will stop at the end of the file.
  */
 int parse_code(Context *ctx, AstBuilder *b, int scoped)
 {
   int rv;
+  int level;
   int indent = 1;
   size_t node_n = 0;
   char const *start;
 
-  start = ctx->cursor.p;
-  while (ctx->token != LEX_END && indent) {
-    advance(ctx, 1);
-    /* Sub-match expression: */
-    if (ctx->token == LEX_ESCAPE_O2C) {
-      /* Write the input so far: */
-      ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
+  advance(ctx, 1);
+  start = ctx->marker.p;
 
-      /* Process the expression: */
-      advance(ctx, 0);
-      rv = parse_escape(ctx, b); ++node_n;
-      ENSURE_SUCCESS(rv);
-      start = ctx->cursor.p;
-
-    /* Possibly a symbol to substitute: */
-    } else if (scoped && ctx->token == LEX_IDENTIFIER) {
-      int level;
-      level = ast_builder_find_symbol(b, string_init(ctx->marker.p, ctx->cursor.p));
-      if (0 <= level) {
-        ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
-        ENSURE_BUILD(ast_build_symbol(b, level)); ++node_n;
-        start = ctx->cursor.p;
-        /* Is there a lookup modifier? */
-        advance(ctx, 1); /* TODO: Fix rest of loop so this is OK here. */
-        if (ctx->token == LEX_BANG) {
-          advance(ctx, 1);
-          if (ctx->token == LEX_IDENTIFIER) {
-            ENSURE_BUILD(ast_build_lookup(b, string_init(ctx->marker.p, ctx->cursor.p)));
-            start = ctx->cursor.p;
-          }
-        }
-      }
-
-    /* Opening brace: */
-    } else if (scoped && ctx->token == LEX_BRACE_L) {
-      ++indent;
-    /* Closing brace: */
-    } else if (scoped && ctx->token == LEX_BRACE_R) {
-      --indent;
-    }
-    /* Anything else is C code; continue with the loop. */
+code:
+  /* We are in a block of host-language code. Select a course of action: */
+  if (ctx->token == LEX_END) goto done;
+  if (ctx->token == LEX_PASTE) goto paste;
+  if (ctx->token == LEX_ESCAPE_O2C) goto escape;
+  if (scoped && ctx->token == LEX_IDENTIFIER) {
+    level = ast_builder_find_symbol(b, string_init(ctx->marker.p, ctx->cursor.p));
+    if (0 <= level)
+      goto symbol;
+  } else if (scoped && ctx->token == LEX_BRACE_R) {
+    if (!--indent)
+      goto done;
+  } else if (scoped && ctx->token == LEX_BRACE_L) {
+    ++indent;
   }
+  advance(ctx, 1);
+  goto code;
+
+paste:
+  ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
+
+  /* Handle token pasting: */
+  advance(ctx, 1);
+  start = ctx->marker.p;
+  goto code;
+
+escape:
+  ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
+
+  /* Handle @o2c escape sequences: */
+  advance(ctx, 0);
+  rv = parse_escape(ctx, b); ++node_n;
+  ENSURE_SUCCESS(rv);
+  advance(ctx, 1);
+  start = ctx->marker.p;
+  goto code;
+
+symbol:
+  ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
+
+  /* Handle symbol replacement: */
+  ENSURE_BUILD(ast_build_symbol(b, level)); ++node_n;
+  advance(ctx, 1);
+  start = ctx->marker.p;
+  /* Is there a lookup modifier? */
+  if (ctx->token == LEX_BANG) {
+    advance(ctx, 1);
+    if (ctx->token == LEX_IDENTIFIER) {
+      ENSURE_BUILD(ast_build_lookup(b, string_init(ctx->marker.p, ctx->cursor.p)));
+      advance(ctx, 1);
+      start = ctx->marker.p;
+    }
+  }
+  goto code;
+
+done:
+  ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
+
+  /* Handle end-of-code: */
   if (scoped && ctx->token == LEX_END) {
     error(ctx, "Unexpected end of input in code block.");
     return 1;
   }
-  ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
   ENSURE_BUILD(ast_build_code(b, node_n));
-
   return 0;
 }
 

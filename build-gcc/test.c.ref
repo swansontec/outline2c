@@ -27,3 +27,18 @@ int main(int argc, char *argv[])
 {
   return 0;
 }
+
+/* Test nested outlines: */
+
+
+  item0:  sub0;  sub1; 
+
+  item1:  sub2;  sub3; 
+
+  item2: 
+
+
+/* Test pasting: */
+
+ something_test 
+foobar

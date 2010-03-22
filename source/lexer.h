@@ -48,6 +48,7 @@ enum token {
   LEX_IDENTIFIER,       /* [_a-zA-Z][_a-zA-Z0-9]* */
   LEX_ESCAPE,           /* @[_a-zA-Z0-9]+ */
   LEX_ESCAPE_O2C,       /* @o2c */
+  LEX_PASTE,            /* \\ */
 
   LEX_BANG,             /* ! */
   LEX_AMP,              /* & */
@@ -59,6 +60,7 @@ enum token {
   LEX_LT,               /* < */
   LEX_EQUALS,           /* = */
   LEX_GT,               /* > */
+  LEX_BACKSLASH,        /* \ */
   LEX_BRACE_L,          /* { */
   LEX_PIPE,             /* | */
   LEX_BRACE_R           /* } */

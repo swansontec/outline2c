@@ -155,17 +155,26 @@ Token lex(Cursor *cursor, char const *end)
     if (string_equal(token, string_init_l("@o2c", 4)))
       return LEX_ESCAPE_O2C;
     return LEX_ESCAPE;
-
+  /* Token-pasting: */
+  } else if (*cursor->p == '\\') {
+    if (!advance(cursor, end)) return LEX_BACKSLASH;
+    if (*cursor->p == '\\') {
+      advance(cursor, end);
+      return LEX_PASTE;
+    }
+    return LEX_BACKSLASH;
   /* Symbols: */
   } else if (*cursor->p == '!') { advance(cursor, end); return LEX_BANG;
   } else if (*cursor->p == '&') { advance(cursor, end); return LEX_AMP;
   } else if (*cursor->p == '(') { advance(cursor, end); return LEX_PAREN_L;
   } else if (*cursor->p == ')') { advance(cursor, end); return LEX_PAREN_R;
   } else if (*cursor->p == '.') { advance(cursor, end); return LEX_DOT;
+  /* LEX_SLASH was recognized earlier. */
   } else if (*cursor->p == ';') { advance(cursor, end); return LEX_SEMICOLON;
   } else if (*cursor->p == '<') { advance(cursor, end); return LEX_LT;
   } else if (*cursor->p == '=') { advance(cursor, end); return LEX_EQUALS;
   } else if (*cursor->p == '>') { advance(cursor, end); return LEX_GT;
+  /* LEX_BACKSLASH was recognized earlier. */
   } else if (*cursor->p == '{') { advance(cursor, end); return LEX_BRACE_L;
   } else if (*cursor->p == '|') { advance(cursor, end); return LEX_PIPE;
   } else if (*cursor->p == '}') { advance(cursor, end); return LEX_BRACE_R;
