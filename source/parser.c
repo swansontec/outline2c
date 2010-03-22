@@ -504,11 +504,14 @@ int parse_in(Context *ctx, AstBuilder *b)
   advance(ctx, 0);
 
   /* Outline name: */
-  if (ctx->token != LEX_IDENTIFIER) {
+  if (ctx->token == LEX_DOT) {
+    name = string_null();
+  } else if (ctx->token == LEX_IDENTIFIER) {
+    name = string_init(ctx->marker.p, ctx->cursor.p);
+  } else {
     error(ctx, "Expecting an outline name here.");
     return 1;
   }
-  name = string_init(ctx->marker.p, ctx->cursor.p);
 
   ENSURE_BUILD(ast_build_in(b, symbol, name));
   return 0;

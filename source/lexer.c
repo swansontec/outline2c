@@ -161,6 +161,7 @@ Token lex(Cursor *cursor, char const *end)
   } else if (*cursor->p == '&') { advance(cursor, end); return LEX_AMP;
   } else if (*cursor->p == '(') { advance(cursor, end); return LEX_PAREN_L;
   } else if (*cursor->p == ')') { advance(cursor, end); return LEX_PAREN_R;
+  } else if (*cursor->p == '.') { advance(cursor, end); return LEX_DOT;
   } else if (*cursor->p == ';') { advance(cursor, end); return LEX_SEMICOLON;
   } else if (*cursor->p == '<') { advance(cursor, end); return LEX_LT;
   } else if (*cursor->p == '=') { advance(cursor, end); return LEX_EQUALS;

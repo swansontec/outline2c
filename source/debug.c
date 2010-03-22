@@ -175,10 +175,14 @@ void dump_for(AstFor *p)
 void dump_in(AstIn *p)
 {
   char *symbol = string_to_c(p->symbol);
-  char *name = string_to_c(p->name);
-  printf("%s in %s", symbol, name);
+  if (p->name.p) {
+    char *name = string_to_c(p->name);
+    printf("%s in %s", symbol, name);
+    free(name);
+  } else {
+    printf("%s in .", symbol);
+  }
   free(symbol);
-  free(name);
 }
 
 /**

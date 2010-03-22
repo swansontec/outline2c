@@ -53,6 +53,7 @@ enum token {
   LEX_AMP,              /* & */
   LEX_PAREN_L,          /* ( */
   LEX_PAREN_R,          /* ) */
+  LEX_DOT,              /* . */
   LEX_SLASH,            /* / */
   LEX_SEMICOLON,        /* ; */
   LEX_LT,               /* < */

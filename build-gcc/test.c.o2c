@@ -35,3 +35,13 @@ int main(int argc, char *argv[])
 {
   return 0;
 }
+
+/* Test nested outlines: */
+@o2c outline test1 {
+  item0 { sub0; sub1; }
+  item1 { sub2; sub3; }
+  item2;
+}
+@o2c for i in test1 {
+  i: @o2c for j in . { j; }
+}

@@ -94,18 +94,31 @@ int generate_code(FileW *out, Scope *s, AstCode *p)
  */
 int generate_for(FileW *out, Scope *s, AstFor *p)
 {
-  AstOutline *outline;
+  AstOutlineList *items;
   AstOutlineItem **item;
 
-  outline = scope_find_outline(s, p->in->name);
-  if (!outline) {
-    char *temp = string_to_c(p->in->name);
-    fprintf(stderr, "Could not find outline %s.\n", temp);
-    free(temp);
-    return 1;
+  /* Find the outline list to process: */
+  if (p->in->name.p) {
+    AstOutline *outline = scope_find_outline(s, p->in->name);
+    if (!outline) {
+      char *temp = string_to_c(p->in->name);
+      fprintf(stderr, "Could not find outline %s.\n", temp);
+      free(temp);
+      return 1;
+    }
+    items = outline->children;
+  } else {
+    if (!s->item) {
+      fprintf(stderr, "There is no outer for loop.\n");
+      return 1;
+    }
+    items = s->item->children;
   }
+  if (!items)
+    return 0;
 
-  for (item = outline->children->items; item != outline->children->items_end; ++item) {
+  /* Process the list: */
+  for (item = items->items; item != items->items_end; ++item) {
     if (!p->filter || test_filter(p->filter, *item)) {
       Scope scope = scope_init(p->code, s, *item);
       generate_code(out, &scope, p->code);

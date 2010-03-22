@@ -256,7 +256,7 @@ AstIn *ast_in_new(Pool *p, String symbol, String name)
 {
   AstIn *self;
   if (!symbol.p) return 0;
-  if (!name.p) return 0;
+  /* name may be NULL */
 
   self = pool_alloc(p, sizeof(AstIn));
   if (!self) return 0;

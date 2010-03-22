@@ -247,7 +247,7 @@ int ast_build_in(AstBuilder *b, String symbol, String name)
   return ast_builder_push(b, AST_IN,
     ast_in_new(&b->pool,
       pool_string_copy(&b->pool, symbol),
-      pool_string_copy(&b->pool, name)));
+      name.p ? pool_string_copy(&b->pool, name) : string_null()));
 }
 
 int ast_build_filter(AstBuilder *b)
