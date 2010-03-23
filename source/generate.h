@@ -29,4 +29,14 @@ int generate_lookup_tag(FileW *out, Scope *s, AstLookup *p);
 int generate_lookup_builtin(FileW *out, Scope *s, AstLookup *p);
 int generate_lookup_map(FileW *out, Scope *s, AstLookup *p);
 
+int generate_lower(FileW *out, String s);
+int generate_upper(FileW *out, String s);
+int generate_camel(FileW *out, String s);
+int generate_mixed(FileW *out, String s);
+
+String scan_symbol(String s);
+int write_lower(FileW *out, String s);
+int write_upper(FileW *out, String s);
+int write_cap(FileW *out, String s);
+
 #endif

@@ -42,3 +42,12 @@ int main(int argc, char *argv[])
 
  something_test 
 foobar
+
+/* Test case transformations: */
+
+
+  lower: set_cpu_speed_23_foo
+  upper: SET_CPU_SPEED_23_FOO 
+  camel: SetCpuSpeed23Foo
+  mixed: setCpuSpeed23Foo
+

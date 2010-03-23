@@ -195,6 +195,14 @@ int generate_lookup_builtin(FileW *out, Scope *s, AstLookup *p)
     generate_symbol(out, s, p->symbol);
     file_w_write(out, &q, &q + 1);
     return 1;
+  } else if (string_equal(p->name, string_init_l("lower", 5))) {
+    return !generate_lower(out, scope_get_item(s, p->symbol->level)->name);
+  } else if (string_equal(p->name, string_init_l("upper", 5))) {
+    return !generate_upper(out, scope_get_item(s, p->symbol->level)->name);
+  } else if (string_equal(p->name, string_init_l("camel", 5))) {
+    return !generate_camel(out, scope_get_item(s, p->symbol->level)->name);
+  } else if (string_equal(p->name, string_init_l("mixed", 5))) {
+    return !generate_mixed(out, scope_get_item(s, p->symbol->level)->name);
   }
 
   return 0;
@@ -220,5 +228,166 @@ int generate_lookup_map(FileW *out, Scope *s, AstLookup *p)
     }
   }
 
+  return 0;
+}
+
+/**
+ * Writes a string to the output file, converting it to lower_case
+ */
+int generate_lower(FileW *out, String s)
+{
+  String word = scan_symbol(s);
+  while (word.p) {
+    write_lower(out, word);
+    s.p = word.end;
+    word = scan_symbol(s);
+    if (word.p) {
+      char c = '_';
+      file_w_write(out, &c, &c + 1);
+    }
+  }
+  return 0;
+}
+
+/**
+ * Writes a string to the output file, converting it to UPPER_CASE
+ */
+int generate_upper(FileW *out, String s)
+{
+  String word = scan_symbol(s);
+  while (word.p) {
+    write_upper(out, word);
+    s.p = word.end;
+    word = scan_symbol(s);
+    if (word.p) {
+      char c = '_';
+      file_w_write(out, &c, &c + 1);
+    }
+  }
+  return 0;
+}
+
+/**
+ * Writes a string to the output file, converting it to CamelCase
+ */
+int generate_camel(FileW *out, String s)
+{
+  String word = scan_symbol(s);
+  while (word.p) {
+    write_cap(out, word);
+    s.p = word.end;
+    word = scan_symbol(s);
+  }
+  return 0;
+}
+
+/**
+ * Writes a string to the output file, converting it to mixedCase
+ */
+int generate_mixed(FileW *out, String s)
+{
+  String word = scan_symbol(s);
+  write_lower(out, word);
+  s.p = word.end;
+  word = scan_symbol(s);
+  while (word.p) {
+    write_cap(out, word);
+    s.p = word.end;
+    word = scan_symbol(s);
+  }
+  return 0;
+}
+
+/**
+ * Locates individual words within an indentifier. 
+ */
+String scan_symbol(String s)
+{
+  char const *p = s.p;
+  char const *start;
+
+  /* Eat leading junk: */
+  while (p < s.end && *p == '_')
+    ++p;
+  if (p == s.end)
+    return string_null();
+  start = p;
+
+  /* Numbers? */
+  if ('0' <= *p && *p <= '9') {
+    do {
+      ++p;
+    } while (p < s.end && '0' <= *p && *p <= '9');
+    return string_init(start, p);
+  }
+
+  /* Lower-case letters? */
+  if ('a' <= *p && *p <= 'z') {
+    do {
+      ++p;
+    } while (p < s.end && 'a' <= *p && *p <= 'z');
+    return string_init(start, p);
+  }
+
+  /* Upper-case letters? */
+  if ('A' <= *p && *p <= 'Z') {
+    do {
+      ++p;
+    } while (p < s.end && 'A' <= *p && *p <= 'Z');
+    /* Did the last upper-case letter start a lower-case word? */
+    if (p < s.end && 'a' <= *p && *p <= 'z') {
+      --p;
+      if (p == start) {
+        do {
+          ++p;
+        } while (p < s.end && 'a' <= *p && *p <= 'z');
+      }
+    }
+    return string_init(start, p);
+  }
+
+  /* Anything else is a bug */
+  assert(0);
+  return string_null();
+}
+
+/**
+ * Writes a word to a file in lower case.
+ */
+int write_lower(FileW *out, String s)
+{
+  char const *p;
+  for (p = s.p; p != s.end; ++p) {
+    char c = 'A' <= *p && *p <= 'Z' ? *p - 'A' + 'a' : *p;
+    if (file_w_write(out, &c, &c + 1)) return 1;
+  }
+  return 0;
+}
+
+/**
+ * Writes a word to a file in UPPER case.
+ */
+int write_upper(FileW *out, String s)
+{
+  char const *p;
+  for (p = s.p; p != s.end; ++p) {
+    char c = 'a' <= *p && *p <= 'z' ? *p - 'a' + 'A' : *p;
+    if (file_w_write(out, &c, &c + 1)) return 1;
+  }
+  return 0;
+}
+
+/**
+ * Writes a word to a file in Capitalized case.
+ */
+int write_cap(FileW *out, String s)
+{
+  char const *p;
+  for (p = s.p; p != s.end; ++p) {
+    char c = p == s.p ?
+      ('a' <= *p && *p <= 'z' ? *p - 'a' + 'A' : *p) :
+      ('A' <= *p && *p <= 'Z' ? *p - 'A' + 'a' : *p) ;
+    if (file_w_write(out, &c, &c + 1)) return 1;
+  }
   return 0;
 }

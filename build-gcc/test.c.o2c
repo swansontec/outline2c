@@ -50,3 +50,12 @@ int main(int argc, char *argv[])
 @o2c outline test_paste { thing; }
 @o2c for i in test_paste { some\\i\\_test }
 foo\\bar
+
+/* Test case transformations: */
+@o2c outline test_case { SetCPUSpeed23_FOO; }
+@o2c for i in test_case {
+  lower: i!lower
+  upper: i!upper 
+  camel: i!camel
+  mixed: i!mixed
+}
