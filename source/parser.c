@@ -474,7 +474,6 @@ int parse_for(Context *ctx, AstBuilder *b)
 
   rv = parse_in(ctx, b);
   ENSURE_SUCCESS(rv);
-  advance(ctx, 0);
 
   /* with keyword: */
   if (ctx->token == LEX_IDENTIFIER && string_equal(
@@ -507,6 +506,7 @@ int parse_in(Context *ctx, AstBuilder *b)
 {
   String symbol;
   String name;
+  int reverse = 0;
 
   /* Replacement symbol: */
   if (ctx->token != LEX_IDENTIFIER) {
@@ -535,8 +535,18 @@ int parse_in(Context *ctx, AstBuilder *b)
     error(ctx, "Expecting an outline name here.");
     return 1;
   }
+  advance(ctx, 0);
 
-  ENSURE_BUILD(ast_build_in(b, symbol, name));
+  /* "reverse" keyword: */
+  if (ctx->token == LEX_IDENTIFIER && string_equal(
+    string_init(ctx->marker.p, ctx->cursor.p),
+    string_init_l("reverse", 7))
+  ) {
+    reverse = 1;
+    advance(ctx, 0);
+  }
+
+  ENSURE_BUILD(ast_build_in(b, symbol, name, reverse));
   return 0;
 }
 

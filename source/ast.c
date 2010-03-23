@@ -253,7 +253,7 @@ AstFor *ast_for_new(Pool *p, AstIn *in, AstFilter *filter, AstCode *code)
   return self;
 }
 
-AstIn *ast_in_new(Pool *p, String symbol, String name)
+AstIn *ast_in_new(Pool *p, String symbol, String name, int reverse)
 {
   AstIn *self;
   if (!symbol.p) return 0;
@@ -263,6 +263,7 @@ AstIn *ast_in_new(Pool *p, String symbol, String name)
   if (!self) return 0;
   self->symbol = symbol;
   self->name = name;
+  self->reverse = reverse;
   return self;
 }
 

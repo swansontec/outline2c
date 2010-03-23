@@ -51,3 +51,7 @@ foobar
   camel: SetCpuSpeed23Foo
   mixed: setCpuSpeed23Foo
 
+
+/* Test reverse lists: */
+
+ d  c  b  a 

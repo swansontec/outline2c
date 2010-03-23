@@ -54,7 +54,7 @@ int ast_build_outline_tag(AstBuilder *b, String symbol);
 int ast_build_map(AstBuilder *b, String name, size_t line_n);
 int ast_build_map_line(AstBuilder *b);
 int ast_build_for(AstBuilder *b);
-int ast_build_in(AstBuilder *b, String symbol, String name);
+int ast_build_in(AstBuilder *b, String symbol, String name, int reverse);
 int ast_build_filter(AstBuilder *b);
 int ast_build_filter_tag(AstBuilder *b, String tag);
 int ast_build_filter_any(AstBuilder *b);

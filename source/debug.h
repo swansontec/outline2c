@@ -39,6 +39,7 @@ void dump_in(AstIn *p);
 void dump_filter(AstFilter *p);
 void dump_filter_node(AstFilterNode node);
 void dump_filter_tag(AstFilterTag *p);
+void dump_filter_any(AstFilterAny *p);
 void dump_filter_not(AstFilterNot *p);
 void dump_filter_and(AstFilterAnd *p);
 void dump_filter_or(AstFilterOr *p);

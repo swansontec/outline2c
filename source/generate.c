@@ -119,11 +119,21 @@ int generate_for(FileW *out, Scope *s, AstFor *p)
     return 0;
 
   /* Process the list: */
-  for (item = items->items; item != items->items_end; ++item) {
-    if (!p->filter || test_filter(p->filter, *item)) {
-      Scope scope = scope_init(p->code, s, *item);
-      if (generate_code(out, &scope, p->code))
-        return 1;
+  if (p->in->reverse) {
+    for (item = items->items_end - 1; item != items->items - 1; --item) {
+      if (!p->filter || test_filter(p->filter, *item)) {
+        Scope scope = scope_init(p->code, s, *item);
+        if (generate_code(out, &scope, p->code))
+          return 1;
+      }
+    }
+  } else {
+    for (item = items->items; item != items->items_end; ++item) {
+      if (!p->filter || test_filter(p->filter, *item)) {
+        Scope scope = scope_init(p->code, s, *item);
+        if (generate_code(out, &scope, p->code))
+          return 1;
+      }
     }
   }
 

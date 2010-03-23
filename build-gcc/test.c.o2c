@@ -59,3 +59,7 @@ foo\\bar
   camel: i!camel
   mixed: i!mixed
 }
+
+/* Test reverse lists: */
+@o2c outline test_rev { a; b; c; d; }
+@o2c for i in test_rev reverse { i }

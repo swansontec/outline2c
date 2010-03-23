@@ -183,6 +183,8 @@ void dump_in(AstIn *p)
     printf("%s in .", symbol);
   }
   free(symbol);
+  if (p->reverse)
+    printf(" reverse");
 }
 
 /**
@@ -200,6 +202,7 @@ void dump_filter_node(AstFilterNode node)
 {
   switch (node.type) {
   case AST_FILTER_TAG: dump_filter_tag(node.p); break;
+  case AST_FILTER_ANY: dump_filter_any(node.p); break;
   case AST_FILTER_NOT: dump_filter_not(node.p); break;
   case AST_FILTER_AND: dump_filter_and(node.p); break;
   case AST_FILTER_OR:  dump_filter_or(node.p);  break;
@@ -212,6 +215,11 @@ void dump_filter_tag(AstFilterTag *p)
   char *temp = string_to_c(p->tag);
   printf("%s", temp);
   free(temp);
+}
+
+void dump_filter_any(AstFilterAny *p)
+{
+  printf("*");
 }
 
 void dump_filter_not(AstFilterNot *p)
