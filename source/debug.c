@@ -185,6 +185,8 @@ void dump_in(AstIn *p)
   free(symbol);
   if (p->reverse)
     printf(" reverse");
+  if (p->list)
+    printf(" list");
 }
 
 /**

@@ -507,6 +507,7 @@ int parse_in(Context *ctx, AstBuilder *b)
   String symbol;
   String name;
   int reverse = 0;
+  int list = 0;
 
   /* Replacement symbol: */
   if (ctx->token != LEX_IDENTIFIER) {
@@ -537,16 +538,22 @@ int parse_in(Context *ctx, AstBuilder *b)
   }
   advance(ctx, 0);
 
-  /* "reverse" keyword: */
-  if (ctx->token == LEX_IDENTIFIER && string_equal(
-    string_init(ctx->marker.p, ctx->cursor.p),
-    string_init_l("reverse", 7))
-  ) {
-    reverse = 1;
-    advance(ctx, 0);
+  /* "reverse" or "list" keywords: */
+  if (ctx->token == LEX_IDENTIFIER) {
+    if (string_equal(
+      string_init(ctx->marker.p, ctx->cursor.p), string_init_l("reverse", 7))
+    ) {
+      reverse = 1;
+      advance(ctx, 0);
+    } else if (string_equal(
+      string_init(ctx->marker.p, ctx->cursor.p), string_init_l("list", 4))
+    ) {
+      list = 1;
+      advance(ctx, 0);
+    }
   }
 
-  ENSURE_BUILD(ast_build_in(b, symbol, name, reverse));
+  ENSURE_BUILD(ast_build_in(b, symbol, name, reverse, list));
   return 0;
 }
 

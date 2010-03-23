@@ -133,6 +133,10 @@ int generate_for(FileW *out, Scope *s, AstFor *p)
         Scope scope = scope_init(p->code, s, *item);
         if (generate_code(out, &scope, p->code))
           return 1;
+        if (p->in->list && item != items->items_end - 1) {
+          char c = ',';
+          file_w_write(out, &c, &c + 1);
+        }
       }
     }
   }

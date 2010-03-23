@@ -55,3 +55,7 @@ foobar
 /* Test reverse lists: */
 
  d  c  b  a 
+
+/* Test list separation: */
+
+ a , b , c , d 

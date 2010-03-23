@@ -242,13 +242,14 @@ int ast_build_for(AstBuilder *b)
     ast_for_new(&b->pool, in, filter, code));
 }
 
-int ast_build_in(AstBuilder *b, String symbol, String name, int reverse)
+int ast_build_in(AstBuilder *b, String symbol, String name, int reverse, int list)
 {
   return ast_builder_push(b, AST_IN,
     ast_in_new(&b->pool,
       pool_string_copy(&b->pool, symbol),
       name.p ? pool_string_copy(&b->pool, name) : string_null(),
-      reverse));
+      reverse,
+      list));
 }
 
 int ast_build_filter(AstBuilder *b)
