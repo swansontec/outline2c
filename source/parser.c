@@ -555,6 +555,11 @@ want_term:
     advance(ctx, 0);
     goto want_operator;
 
+  } else if (ctx->token == LEX_STAR) {
+    ENSURE_BUILD(ast_build_filter_any(b));
+    advance(ctx, 0);
+    goto want_operator;
+
   } else if (ctx->token == LEX_BANG) {
     stack[top++] = NOT;
     advance(ctx, 0);

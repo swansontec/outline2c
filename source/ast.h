@@ -34,6 +34,7 @@ typedef struct ast_for                  AstFor;
 typedef struct ast_in                   AstIn;
 typedef struct ast_filter               AstFilter;
 typedef struct ast_filter_tag           AstFilterTag;
+typedef struct ast_filter_any           AstFilterAny;
 typedef struct ast_filter_not           AstFilterNot;
 typedef struct ast_filter_and           AstFilterAnd;
 typedef struct ast_filter_or            AstFilterOr;
@@ -62,6 +63,7 @@ enum ast_type {
   AST_IN,
   AST_FILTER,
   AST_FILTER_TAG,
+  AST_FILTER_ANY,
   AST_FILTER_NOT,
   AST_FILTER_AND,
   AST_FILTER_OR,
@@ -96,6 +98,7 @@ struct ast_code_node {
 /**
  * Points to one of:
  *  AstFilterTag
+ *  AstFilterAny
  *  AstFilterNot
  *  AstFilterAnd
  *  AstFilterOr
@@ -235,6 +238,13 @@ struct ast_filter_tag {
 };
 
 /**
+ * Always returns true.
+ */
+struct ast_filter_any {
+  int dummy;
+};
+
+/**
  * Accepts an outline item if the sub-conditions is false.
  */
 struct ast_filter_not {
@@ -286,6 +296,7 @@ AstFor             *ast_for_new                 (Pool *p, AstIn *in, AstFilter *
 AstIn              *ast_in_new                  (Pool *p, String symbol, String name);
 AstFilter          *ast_filter_new              (Pool *p, AstFilterNode test);
 AstFilterTag       *ast_filter_tag_new          (Pool *p, String tag);
+AstFilterAny       *ast_filter_any_new          (Pool *p);
 AstFilterNot       *ast_filter_not_new          (Pool *p, AstFilterNode test);
 AstFilterAnd       *ast_filter_and_new          (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
 AstFilterOr        *ast_filter_or_new           (Pool *p, AstFilterNode test_a, AstFilterNode test_b);

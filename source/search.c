@@ -36,6 +36,7 @@ int test_filter_node(AstFilterNode test, AstOutlineItem *item)
 {
   switch (test.type) {
   case AST_FILTER_TAG: return test_filter_tag(test.p, item);
+  case AST_FILTER_ANY: return 1;
   case AST_FILTER_NOT: return test_filter_not(test.p, item);
   case AST_FILTER_AND: return test_filter_and(test.p, item);
   case AST_FILTER_OR:  return test_filter_or(test.p, item);

@@ -57,6 +57,7 @@ int ast_build_for(AstBuilder *b);
 int ast_build_in(AstBuilder *b, String symbol, String name);
 int ast_build_filter(AstBuilder *b);
 int ast_build_filter_tag(AstBuilder *b, String tag);
+int ast_build_filter_any(AstBuilder *b);
 int ast_build_filter_not(AstBuilder *b);
 int ast_build_filter_and(AstBuilder *b);
 int ast_build_filter_or(AstBuilder *b);

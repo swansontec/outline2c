@@ -33,10 +33,11 @@ int ast_is_code_node(AstNode node)
 int ast_is_filter_node(AstNode node)
 {
   return
-    node.type == AST_FILTER_AND ||
-    node.type == AST_FILTER_OR ||
+    node.type == AST_FILTER_TAG ||
+    node.type == AST_FILTER_ANY ||
     node.type == AST_FILTER_NOT ||
-    node.type == AST_FILTER_TAG;
+    node.type == AST_FILTER_OR ||
+    node.type == AST_FILTER_AND;
 }
 
 AstCodeNode ast_to_code_node(AstNode node)
@@ -284,6 +285,15 @@ AstFilterTag *ast_filter_tag_new(Pool *p, String tag)
   self = pool_alloc(p, sizeof(AstFilterTag));
   if (!self) return 0;
   self->tag = tag;
+  return self;
+}
+
+AstFilterAny *ast_filter_any_new(Pool *p)
+{
+  AstFilterAny *self;
+
+  self = pool_alloc(p, sizeof(AstFilterAny));
+  if (!self) return 0;
   return self;
 }
 

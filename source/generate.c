@@ -51,7 +51,8 @@ int generate(FileW *out, char const *filename)
   }
 
   scope = scope_init(file->code, 0, 0);
-  generate_code(out, &scope, file->code);
+  if (generate_code(out, &scope, file->code))
+    return 1;
 
   ast_builder_free(&b);
   return 0;
@@ -121,7 +122,8 @@ int generate_for(FileW *out, Scope *s, AstFor *p)
   for (item = items->items; item != items->items_end; ++item) {
     if (!p->filter || test_filter(p->filter, *item)) {
       Scope scope = scope_init(p->code, s, *item);
-      generate_code(out, &scope, p->code);
+      if (generate_code(out, &scope, p->code))
+        return 1;
     }
   }
 
@@ -143,17 +145,21 @@ int generate_symbol(FileW *out, Scope *s, AstSymbol *p)
  */
 int generate_lookup(FileW *out, Scope *s, AstLookup *p)
 {
-  /* If a tag satisfies the lookup, generate that: */
-  if (generate_lookup_tag(out, s, p))
-    return 0;
+  int rv;
 
-  /* If that didn't work, go try the built-in transforms: */
+  /* If a tag satisfies the lookup, generate that: */
+  rv = generate_lookup_tag(out, s, p);
+  if (rv == 1) return 0;
+  if (rv == -1) return 1;
+
+  /* If that didn't work, try the built-in transforms: */
   if (generate_lookup_builtin(out, s, p))
     return 0;
 
   /* If that didn't work, go on to search for maps: */
-  if (generate_lookup_map(out, s, p))
-    return 0;
+  rv = generate_lookup_map(out, s, p);
+  if (rv == 1) return 0;
+  if (rv == -1) return 1;
 
   {
     char *temp = string_to_c(p->name);
@@ -166,7 +172,7 @@ int generate_lookup(FileW *out, Scope *s, AstLookup *p)
 /**
  * Searches for a tag with the specified name in an outline item. If the tag
  * exists and has a value, the function emits the value and returns 1.
- * Otherwise, the function returns 0.
+ * Otherwise, the function returns 0. Returns -1 for errors.
  */
 int generate_lookup_tag(FileW *out, Scope *s, AstLookup *p)
 {
@@ -175,7 +181,8 @@ int generate_lookup_tag(FileW *out, Scope *s, AstLookup *p)
 
   for (tag = item->tags; tag != item->tags_end; ++tag) {
     if ((*tag)->value && string_equal((*tag)->name, p->name)) {
-      generate_code(out, s, (*tag)->value);
+      if (generate_code(out, s, (*tag)->value))
+        return -1;
       return 1;
     }
   }
@@ -210,25 +217,33 @@ int generate_lookup_builtin(FileW *out, Scope *s, AstLookup *p)
 
 /**
  * Searches the current scope for map statements that match the lookup's name.
- * If one does, generate that and return 1. Otherwise, return 0.
+ * If one does, generate that and return 1. Otherwise, return 0. Returns -1
+ * for errors.
  */
 int generate_lookup_map(FileW *out, Scope *s, AstLookup *p)
 {
   AstOutlineItem *item = scope_get_item(s, p->symbol->level);
   AstMap *map;
+  AstMapLine **line;
 
   map = scope_find_map(s, p->name);
-  if (map) {
-    AstMapLine **line;
-    for (line = map->lines; line != map->lines_end; ++line) {
-      if (test_filter((*line)->filter, item)) {
-        generate_code(out, s, (*line)->code);
-        return 1;
-      }
+  if (!map)
+    return 0;
+
+  for (line = map->lines; line != map->lines_end; ++line) {
+    if (test_filter((*line)->filter, item)) {
+      if (generate_code(out, s, (*line)->code))
+        return -1;
+      return 1;
     }
   }
 
-  return 0;
+  {
+    char *temp = string_to_c(p->name);
+    fprintf(stderr, "Could not match against map \"%s\".\n", temp);
+    free(temp);
+  }
+  return -1;
 }
 
 /**

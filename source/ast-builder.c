@@ -271,6 +271,12 @@ int ast_build_filter_not(AstBuilder *b)
       ast_to_filter_node(ast_builder_pop(b))));
 }
 
+int ast_build_filter_any(AstBuilder *b)
+{
+  return ast_builder_push(b, AST_FILTER_ANY,
+    ast_filter_any_new(&b->pool));
+}
+
 int ast_build_filter_and(AstBuilder *b)
 {
   return ast_builder_push(b, AST_FILTER_AND,
