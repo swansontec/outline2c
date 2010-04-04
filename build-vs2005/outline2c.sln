@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "outline-to-c", "outline-to-c.vcproj", "{40C19D2A-9CF7-4459-89EB-C799FBA1E9DB}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "outline2c", "outline2c.vcproj", "{40C19D2A-9CF7-4459-89EB-C799FBA1E9DB}"
 	ProjectSection(WebsiteProperties) = preProject
 		Debug.AspNetCompiler.Debug = "True"
 		Release.AspNetCompiler.Debug = "False"

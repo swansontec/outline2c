@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="outline-to-c"
+	Name="outline2c"
 	ProjectGUID="{40C19D2A-9CF7-4459-89EB-C799FBA1E9DB}"
-	RootNamespace="outlinetoc"
+	RootNamespace="outline2c"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -13,6 +13,9 @@
 		/>
 	</Platforms>
 	<ToolFiles>
+		<ToolFile
+			RelativePath=".\outline2c.rules"
+		/>
 	</ToolFiles>
 	<Configurations>
 		<Configuration
@@ -27,6 +30,9 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="outline2c"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -104,6 +110,9 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="outline2c"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
