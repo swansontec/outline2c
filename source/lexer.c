@@ -161,6 +161,13 @@ Token lex(Cursor *cursor, char const *end)
     if (*cursor->p == '\\') {
       advance(cursor, end);
       return LEX_PASTE;
+    } else if (*cursor->p == 'o') {
+      if (!advance(cursor, end)) return LEX_ESCAPE;
+      if (*cursor->p == 'l') {
+        advance(cursor, end);
+        return LEX_ESCAPE_O2C;
+      }
+      return LEX_ESCAPE;
     }
     return LEX_BACKSLASH;
   /* Symbols: */
