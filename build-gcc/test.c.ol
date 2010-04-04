@@ -1,9 +1,9 @@
 #include <stdio.h>
 
-@o2c include "test.ol";
+\ol include "test.ol";
 
 /* List the settings in a single location: */
-@o2c outline settings {
+\ol outline settings {
   number width;
   number height;
   number threads;
@@ -13,21 +13,21 @@
 
 /* Generate a structure to hold the settings: */
 typedef struct {
-  @o2c map type {
+  \ol map type {
     number { int }
     string { char * }
   }
-  @o2c for setting in settings { setting!type setting; }
+  \ol for setting in settings { setting!type setting; }
 } Settings;
 
 /* Generate a function to save the settings: */
 void save_settings(Settings *s, FILE *f)
 {
-  @o2c map format {
+  \ol map format {
     number {"%s=%d\n"}
     string {"%s=%s\n"}
   }
-  @o2c for setting in settings {
+  \ol for setting in settings {
     fprintf(f, setting!format, setting!quote, s->setting); }
 }
 
@@ -37,23 +37,23 @@ int main(int argc, char *argv[])
 }
 
 /* Test nested outlines: */
-@o2c outline test_nesting {
+\ol outline test_nesting {
   item0 { sub0; sub1; }
   item1 { sub2; sub3; }
   item2;
 }
-@o2c for i in test_nesting {
-  i: @o2c for j in . { j; }
+\ol for i in test_nesting {
+  i: \ol for j in . { j; }
 }
 
 /* Test pasting: */
-@o2c outline test_paste { thing; }
-@o2c for i in test_paste { some\\i\\_test }
+\ol outline test_paste { thing; }
+\ol for i in test_paste { some\\i\\_test }
 foo\\bar
 
 /* Test case transformations: */
-@o2c outline test_case { SetCPUSpeed23_FOO; }
-@o2c for i in test_case {
+\ol outline test_case { SetCPUSpeed23_FOO; }
+\ol for i in test_case {
   lower: i!lower
   upper: i!upper 
   camel: i!camel
@@ -61,9 +61,9 @@ foo\\bar
 }
 
 /* Test reverse lists: */
-@o2c outline test_rev { a; b; c; d; }
-@o2c for i in test_rev reverse { i }
+\ol outline test_rev { a; b; c; d; }
+\ol for i in test_rev reverse { i }
 
 /* Test list separation: */
-@o2c outline test_list { a; b; c; d; }
-@o2c for i in test_rev list { i }
+\ol outline test_list { a; b; c; d; }
+\ol for i in test_rev list { i }

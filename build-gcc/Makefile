@@ -77,5 +77,5 @@ install:
 	cp outline2c /usr/bin/outline2c
 
 run: outline2c
-	./outline2c test.c.o2c
+	./outline2c test.c.ol
 	diff test.c.ref test.c
