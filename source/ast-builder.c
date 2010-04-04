@@ -307,5 +307,5 @@ int ast_build_lookup(AstBuilder *b, String name)
   return ast_builder_push(b, AST_LOOKUP,
     ast_lookup_new(&b->pool,
       ast_to_symbol(ast_builder_pop(b)),
-      name));
+      pool_string_copy(&b->pool, name)));
 }
