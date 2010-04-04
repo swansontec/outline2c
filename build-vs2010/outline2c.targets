@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <PropertyPageSchema
+      Include="$(MSBuildThisFileDirectory)$(MSBuildThisFileName).xml" />
+    <AvailableItemName
+      Include="outline2c">
+      <Targets>_outline2c</Targets>
+    </AvailableItemName>
+  </ItemGroup>
+  <UsingTask
+    TaskName="outline2c"
+    TaskFactory="XamlTaskFactory"
+    AssemblyName="Microsoft.Build.Tasks.v4.0">
+    <Task>$(MSBuildThisFileDirectory)$(MSBuildThisFileName).xml</Task>
+  </UsingTask>
+  <Target
+    Name="_outline2c"
+    BeforeTargets="$(outline2cBeforeTargets)"
+    AfterTargets="$(outline2cAfterTargets)"
+    Condition="'@(outline2c)' != ''"
+    DependsOnTargets="$(outline2cDependsOn);Computeoutline2cOutput"
+    Outputs="%(outline2c.Outputs)"
+    Inputs="%(outline2c.Identity);%(outline2c.AdditionalDependencies);$(MSBuildProjectFile)">
+    <ItemGroup
+      Condition="'@(SelectedFiles)' != ''">
+      <outline2c
+        Remove="@(outline2c)"
+        Condition="'%(Identity)' != '@(SelectedFiles)'" />
+    </ItemGroup>
+    <ItemGroup>
+      <outline2c_tlog
+        Include="%(outline2c.Outputs)"
+        Condition="'%(outline2c.Outputs)' != '' and '%(outline2c.ExcludedFromBuild)' != 'true'">
+        <Source>@(outline2c, '|')</Source>
+      </outline2c_tlog>
+    </ItemGroup>
+    <Message
+      Importance="High"
+      Text="%(outline2c.ExecutionDescription)" />
+    <WriteLinesToFile
+      Condition="'@(outline2c_tlog)' != '' and '%(outline2c_tlog.ExcludedFromBuild)' != 'true'"
+      File="$(IntDir)$(ProjectName).write.1.tlog"
+      Lines="^%(outline2c_tlog.Source);@(outline2c_tlog-&gt;'%(Fullpath)')" />
+    <outline2c
+      Condition="'@(outline2c)' != '' and '%(outline2c.ExcludedFromBuild)' != 'true'"
+      CommandLineTemplate="%(outline2c.CommandLineTemplate)"
+      AdditionalOptions="%(outline2c.AdditionalOptions)"
+      Inputs="%(outline2c.Identity)" />
+  </Target>
+  <PropertyGroup>
+    <ComputeLinkInputsTargets>
+            $(ComputeLinkInputsTargets);
+            Computeoutline2cOutput;
+          </ComputeLinkInputsTargets>
+    <ComputeLibInputsTargets>
+            $(ComputeLibInputsTargets);
+            Computeoutline2cOutput;
+          </ComputeLibInputsTargets>
+  </PropertyGroup>
+  <Target
+    Name="Computeoutline2cOutput"
+    Condition="'@(outline2c)' != ''">
+    <ItemGroup>
+      <outline2cDirsToMake
+        Condition="'@(outline2c)' != '' and '%(outline2c.ExcludedFromBuild)' != 'true'"
+        Include="%(outline2c.Outputs)" />
+      <Link
+        Include="%(outline2cDirsToMake.Identity)"
+        Condition="'%(Extension)'=='.obj' or '%(Extension)'=='.res' or '%(Extension)'=='.rsc' or '%(Extension)'=='.lib'" />
+      <Lib
+        Include="%(outline2cDirsToMake.Identity)"
+        Condition="'%(Extension)'=='.obj' or '%(Extension)'=='.res' or '%(Extension)'=='.rsc' or '%(Extension)'=='.lib'" />
+      <ImpLib
+        Include="%(outline2cDirsToMake.Identity)"
+        Condition="'%(Extension)'=='.obj' or '%(Extension)'=='.res' or '%(Extension)'=='.rsc' or '%(Extension)'=='.lib'" />
+    </ItemGroup>
+    <MakeDir
+      Directories="@(outline2cDirsToMake-&gt;'%(RootDir)%(Directory)')" />
+  </Target>
+</Project>
