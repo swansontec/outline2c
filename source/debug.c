@@ -35,7 +35,7 @@ void dump_code(AstCode *p, int indent)
   for (node = p->nodes; node != p->nodes_end; ++node) {
     if (node->type == AST_CODE_TEXT) {
       AstCodeText *p = node->p;
-      char *temp = string_to_c(string_init(p->code.p, p->code.end));
+      char *temp = string_to_c(p->code);
       printf("%s", temp);
       free(temp);
     } else if (node->type == AST_INCLUDE) {
@@ -175,7 +175,7 @@ void dump_for(AstFor *p)
 void dump_in(AstIn *p)
 {
   char *symbol = string_to_c(p->symbol);
-  if (p->name.p) {
+  if (string_size(p->name)) {
     char *name = string_to_c(p->name);
     printf("%s in %s", symbol, name);
     free(name);

@@ -361,7 +361,7 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
   /* Handle the words making up the item: */
   ENSURE_BUILD(ast_builder_push_start(b));
   while (ctx->token == LEX_IDENTIFIER) {
-    if (last.p) {
+    if (string_size(last)) {
       ENSURE_BUILD(ast_build_outline_tag(b, last));
     }
     last = string_init(ctx->marker.p, ctx->cursor.p);
@@ -379,10 +379,10 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
       advance(ctx, 0);
 
       ENSURE_BUILD(ast_build_outline_tag(b, last));
-      last.p = 0;
+      last = string_null();
     }
   }
-  if (!last.p) {
+  if (!string_size(last)) {
     error(ctx, "An outline item must have a name.");
     return 1;
   }

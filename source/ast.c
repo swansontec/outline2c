@@ -138,7 +138,7 @@ AstCode *ast_code_new(Pool *p, AstCodeNode *nodes, AstCodeNode *nodes_end)
 AstCodeText *ast_code_text_new(Pool *p, String code)
 {
   AstCodeText *self;
-  if (!code.p) return 0;
+  if (!string_size(code)) return 0;
 
   self = pool_alloc(p, sizeof(AstCodeText));
   if (!self) return 0;
@@ -160,7 +160,7 @@ AstInclude *ast_include_new(Pool *p, AstFile *file)
 AstOutline *ast_outline_new(Pool *p, String name, AstOutlineList *children)
 {
   AstOutline *self;
-  if (!name.p) return 0;
+  if (!string_size(name)) return 0;
   if (!children) return 0;
 
   self = pool_alloc(p, sizeof(AstOutline));
@@ -186,7 +186,7 @@ AstOutlineItem *ast_outline_item_new(Pool *p, AstOutlineTag **tags, AstOutlineTa
 {
   AstOutlineItem *self;
   if (!tags) return 0;
-  if (!name.p) return 0;
+  if (!string_size(name)) return 0;
   /* children may be NULL */
 
   self = pool_alloc(p, sizeof(AstOutlineItem));
@@ -201,7 +201,7 @@ AstOutlineItem *ast_outline_item_new(Pool *p, AstOutlineTag **tags, AstOutlineTa
 AstOutlineTag *ast_outline_tag_new(Pool *p, String name, AstCode *value)
 {
   AstOutlineTag *self;
-  if (!name.p) return 0;
+  if (!string_size(name)) return 0;
   /* value may be NULL */
 
   self = pool_alloc(p, sizeof(AstOutlineTag));
@@ -214,7 +214,7 @@ AstOutlineTag *ast_outline_tag_new(Pool *p, String name, AstCode *value)
 AstMap *ast_map_new(Pool *p, String name, AstMapLine **lines, AstMapLine **lines_end)
 {
   AstMap *self;
-  if (!name.p) return 0;
+  if (!string_size(name)) return 0;
   if (!lines) return 0;
 
   self = pool_alloc(p, sizeof(AstMap));
@@ -256,7 +256,7 @@ AstFor *ast_for_new(Pool *p, AstIn *in, AstFilter *filter, AstCode *code)
 AstIn *ast_in_new(Pool *p, String symbol, String name, int reverse, int list)
 {
   AstIn *self;
-  if (!symbol.p) return 0;
+  if (!string_size(symbol)) return 0;
   /* name may be NULL */
 
   self = pool_alloc(p, sizeof(AstIn));
@@ -282,7 +282,7 @@ AstFilter *ast_filter_new(Pool *p, AstFilterNode test)
 AstFilterTag *ast_filter_tag_new(Pool *p, String tag)
 {
   AstFilterTag *self;
-  if (!tag.p) return 0;
+  if (!string_size(tag)) return 0;
 
   self = pool_alloc(p, sizeof(AstFilterTag));
   if (!self) return 0;
@@ -351,7 +351,7 @@ AstLookup *ast_lookup_new(Pool *p, AstSymbol *symbol, String name)
 {
   AstLookup *self;
   if (!symbol) return 0;
-  if (!name.p) return 0;
+  if (!string_size(name)) return 0;
 
   self = pool_alloc(p, sizeof(AstLookup));
   if (!self) return 0;

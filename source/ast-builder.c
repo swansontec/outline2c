@@ -144,6 +144,9 @@ int ast_build_code(AstBuilder *b)
 
 int ast_build_code_text(AstBuilder *b, String code)
 {
+  if (!string_size(code))
+    return 0;
+
   return ast_builder_push(b, AST_CODE_TEXT,
     ast_code_text_new(&b->pool,
       pool_string_copy(&b->pool, code)));
@@ -278,7 +281,7 @@ int ast_build_in(AstBuilder *b, String symbol, String name, int reverse, int lis
   return ast_builder_push(b, AST_IN,
     ast_in_new(&b->pool,
       pool_string_copy(&b->pool, symbol),
-      name.p ? pool_string_copy(&b->pool, name) : string_null(),
+      pool_string_copy(&b->pool, name),
       reverse,
       list));
 }

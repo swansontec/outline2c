@@ -56,7 +56,7 @@ int main_run(Main *m, int argc, char *argv[])
   }
 
   /* Determine output file name: */
-  in_name = string_init_l(argv[1], strlen(argv[1]));
+  in_name = string_from_c(argv[1]);
   if (string_rmatch(in_name, string_init_l(".ol", 3)) != 3) {
     printf(" Error: The input file name must end with \".ol\".\n");
     return 1;

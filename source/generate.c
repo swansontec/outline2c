@@ -99,7 +99,7 @@ int generate_for(FileW *out, Scope *s, AstFor *p)
   AstOutlineItem **item;
 
   /* Find the outline list to process: */
-  if (p->in->name.p) {
+  if (string_size(p->in->name)) {
     AstOutline *outline = scope_find_outline(s, p->in->name);
     if (!outline) {
       char *temp = string_to_c(p->in->name);
@@ -269,10 +269,10 @@ int generate_lower(FileW *out, String s)
   String word = scan_symbol(inner, inner.p);
 
   write_leading(out, s, inner);
-  while (word.p) {
+  while (string_size(word)) {
     write_lower(out, word);
     word = scan_symbol(inner, word.end);
-    if (word.p) {
+    if (string_size(word)) {
       char c = '_';
       file_w_write(out, &c, &c + 1);
     }
@@ -291,10 +291,10 @@ int generate_upper(FileW *out, String s)
   String word = scan_symbol(inner, inner.p);
 
   write_leading(out, s, inner);
-  while (word.p) {
+  while (string_size(word)) {
     write_upper(out, word);
     word = scan_symbol(inner, word.end);
-    if (word.p) {
+    if (string_size(word)) {
       char c = '_';
       file_w_write(out, &c, &c + 1);
     }
@@ -313,7 +313,7 @@ int generate_camel(FileW *out, String s)
   String word = scan_symbol(inner, inner.p);
 
   write_leading(out, s, inner);
-  while (word.p) {
+  while (string_size(word)) {
     write_cap(out, word);
     word = scan_symbol(inner, word.end);
   }
@@ -331,11 +331,11 @@ int generate_mixed(FileW *out, String s)
   String word = scan_symbol(inner, inner.p);
 
   write_leading(out, s, inner);
-  if (word.p) {
+  if (string_size(word)) {
     write_lower(out, word);
     word = scan_symbol(inner, word.end);
   }
-  while (word.p) {
+  while (string_size(word)) {
     write_cap(out, word);
     word = scan_symbol(inner, word.end);
   }
@@ -470,7 +470,7 @@ int write_cap(FileW *out, String s)
 {
   char const *p;
   for (p = s.p; p != s.end; ++p) {
-    char c = p == s.p ?
+    char c = (p == s.p) ?
       ('a' <= *p && *p <= 'z' ? *p - 'a' + 'A' : *p) :
       ('A' <= *p && *p <= 'Z' ? *p - 'A' + 'a' : *p) ;
     if (file_w_write(out, &c, &c + 1)) return 1;
