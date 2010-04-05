@@ -34,7 +34,10 @@ int generate_upper(FileW *out, String s);
 int generate_camel(FileW *out, String s);
 int generate_mixed(FileW *out, String s);
 
-String scan_symbol(String s);
+String strip_symbol(String s);
+String scan_symbol(String s, char const *p);
+int write_leading(FileW *out, String s, String inner);
+int write_trailing(FileW *out, String s, String inner);
 int write_lower(FileW *out, String s);
 int write_upper(FileW *out, String s);
 int write_cap(FileW *out, String s);

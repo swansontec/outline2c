@@ -52,10 +52,10 @@ int main(int argc, char *argv[])
 foo\\bar
 
 /* Test case transformations: */
-\ol outline test_case { SetCPUSpeed23_FOO; }
+\ol outline test_case { _SetCPUSpeed23_FOO; _; }
 \ol for i in test_case {
   lower: i!lower
-  upper: i!upper 
+  upper: i!upper
   camel: i!camel
   mixed: i!mixed
 }

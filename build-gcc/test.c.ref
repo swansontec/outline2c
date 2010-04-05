@@ -46,10 +46,15 @@ foobar
 /* Test case transformations: */
 
 
-  lower: set_cpu_speed_23_foo
-  upper: SET_CPU_SPEED_23_FOO 
-  camel: SetCpuSpeed23Foo
-  mixed: setCpuSpeed23Foo
+  lower: _set_cpu_speed_23_foo
+  upper: _SET_CPU_SPEED_23_FOO
+  camel: _SetCpuSpeed23Foo
+  mixed: _setCpuSpeed23Foo
+
+  lower: _
+  upper: _
+  camel: _
+  mixed: _
 
 
 /* Test reverse lists: */
