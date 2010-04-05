@@ -68,7 +68,8 @@ enum ast_type {
   AST_FILTER_AND,
   AST_FILTER_OR,
   AST_SYMBOL,
-  AST_LOOKUP
+  AST_LOOKUP,
+  AST_END
 };
 typedef enum ast_type AstType;
 
