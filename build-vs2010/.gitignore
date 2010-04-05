@@ -1,5 +1,6 @@
 [Dd]ebug
 [Rr]elease
+ipch
 *.opensdf
 *.sdf
 *.suo
