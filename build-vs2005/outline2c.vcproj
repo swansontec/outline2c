@@ -180,6 +180,34 @@
 	<References>
 	</References>
 	<Files>
+		<Filter
+			Name="utility"
+			>
+			<File
+				RelativePath="..\source\file.c"
+				>
+			</File>
+			<File
+				RelativePath="..\source\file.h"
+				>
+			</File>
+			<File
+				RelativePath="..\source\pool.c"
+				>
+			</File>
+			<File
+				RelativePath="..\source\pool.h"
+				>
+			</File>
+			<File
+				RelativePath="..\source\string.c"
+				>
+			</File>
+			<File
+				RelativePath="..\source\string.h"
+				>
+			</File>
+		</Filter>
 		<File
 			RelativePath="..\source\ast-builder.c"
 			>
@@ -202,14 +230,6 @@
 		</File>
 		<File
 			RelativePath="..\source\debug.h"
-			>
-		</File>
-		<File
-			RelativePath="..\source\file.c"
-			>
-		</File>
-		<File
-			RelativePath="..\source\file.h"
 			>
 		</File>
 		<File
@@ -241,31 +261,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\source\pool.c"
-			>
-		</File>
-		<File
-			RelativePath="..\source\pool.h"
-			>
-		</File>
-		<File
 			RelativePath="..\source\search.c"
 			>
 		</File>
 		<File
 			RelativePath="..\source\search.h"
-			>
-		</File>
-		<File
-			RelativePath="..\source\string.c"
-			>
-		</File>
-		<File
-			RelativePath="..\source\string.h"
-			>
-		</File>
-		<File
-			RelativePath="..\source\typedefs.h"
 			>
 		</File>
 	</Files>

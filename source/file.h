@@ -17,8 +17,10 @@
 #ifndef FILE_H_INCLUDED
 #define FILE_H_INCLUDED
 
-#include "typedefs.h"
 #include <stdio.h>
+
+typedef struct file_r FileR;
+typedef struct file_w FileW;
 
 /**
  * A handle to a read-only file. This should use memory-mapped files on
@@ -28,6 +30,7 @@ struct file_r {
   char const *p;
   char const *end;
 };
+
 void file_r_init(FileR *file);
 int file_r_open(FileR *file, char const *name);
 void file_r_close(FileR *file);
@@ -38,6 +41,7 @@ void file_r_close(FileR *file);
 struct file_w {
   FILE *file;
 };
+
 void file_w_init(FileW *file);
 int file_w_open(FileW *file, char const *name);
 int file_w_write(FileW *file, char const *p, char const *end);

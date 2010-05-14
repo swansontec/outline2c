@@ -28,6 +28,7 @@ struct cursor
   unsigned line;
   unsigned column;
 };
+
 Cursor cursor_init(char const *start);
 
 /**

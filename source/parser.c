@@ -15,10 +15,7 @@
  */
 /*
  * This is a recursive descent parser which scans through the input, building
- * up a tree of "@o2c outline" statements it finds. When it encouters an "@o2c
- * match" statement, it builds a temporary tree describing the match. Then, it
- * immediately processes the tree against the outline, writing the generated
- * code to the output file.
+ * up an AST representing the file contents.
  *
  * The context structure holds important information about the parser state. In
  * particular, it holds the next token. To advance from one token to the next,
@@ -32,9 +29,7 @@
 
 #include "parser.h"
 #include "lexer.h"
-#include "ast-builder.h"
 #include "file.h"
-#include "string.h"
 #include <stdio.h>
 
 typedef struct context Context;
@@ -229,7 +224,7 @@ done:
 }
 
 /**
- * Handles the bit right after an @o2c escape code.
+ * Handles the bit right after an \ol escape code.
  */
 int parse_escape(Context *ctx, AstBuilder *b)
 {

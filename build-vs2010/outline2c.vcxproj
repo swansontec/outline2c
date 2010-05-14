@@ -106,7 +106,6 @@
     <ClInclude Include="..\source\pool.h" />
     <ClInclude Include="..\source\search.h" />
     <ClInclude Include="..\source\string.h" />
-    <ClInclude Include="..\source\typedefs.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

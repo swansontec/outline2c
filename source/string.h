@@ -17,8 +17,9 @@
 #ifndef STRING_H_INCLUDED
 #define STRING_H_INCLUDED
 
-#include "typedefs.h"
 #include <stdlib.h>
+
+typedef struct string String;
 
 /**
  * A string without a null terminator. The structure consists of a pointer to
@@ -31,6 +32,7 @@ struct string {
   char const *p;
   char const *end;
 };
+
 #define string_size(s) ((s).end - (s).p)
 String string_init(char const *p, char const *end);
 String string_init_l(char const *p, size_t size);

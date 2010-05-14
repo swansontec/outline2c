@@ -15,7 +15,6 @@
  */
 
 #include "ast.h"
-#include "pool.h"
 #include <assert.h>
 
 int ast_is_code_node(AstNode node)
