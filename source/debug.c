@@ -15,8 +15,29 @@
  */
 
 #include "debug.h"
-#include "string.h"
 #include <stdio.h>
+
+void dump_outline(AstOutline *p);
+void dump_outline_list(AstOutlineList *p, int indent);
+void dump_outline_item(AstOutlineItem *p, int indent);
+void dump_outline_tag(AstOutlineTag *p, int indent);
+
+void dump_map(AstMap *p);
+void dump_map_line(AstMapLine *p);
+
+void dump_for(AstFor *p);
+void dump_in(AstIn *p);
+
+void dump_filter(AstFilter *p);
+void dump_filter_node(AstFilterNode node);
+void dump_filter_tag(AstFilterTag *p);
+void dump_filter_any(AstFilterAny *p);
+void dump_filter_not(AstFilterNot *p);
+void dump_filter_and(AstFilterAnd *p);
+void dump_filter_or(AstFilterOr *p);
+
+void dump_symbol(AstSymbol *p);
+void dump_lookup(AstLookup *p);
 
 static void space(int indent)
 {
@@ -35,7 +56,7 @@ void dump_code(AstCode *p, int indent)
   for (node = p->nodes; node != p->nodes_end; ++node) {
     if (node->type == AST_CODE_TEXT) {
       AstCodeText *p = node->p;
-      char *temp = string_to_c(string_init(p->code.p, p->code.end));
+      char *temp = string_to_c(p->code);
       printf("%s", temp);
       free(temp);
     } else if (node->type == AST_INCLUDE) {
@@ -175,7 +196,7 @@ void dump_for(AstFor *p)
 void dump_in(AstIn *p)
 {
   char *symbol = string_to_c(p->symbol);
-  if (p->name.p) {
+  if (string_size(p->name)) {
     char *name = string_to_c(p->name);
     printf("%s in %s", symbol, name);
     free(name);

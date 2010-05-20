@@ -184,7 +184,7 @@ String pool_string_copy(Pool *p, String string)
 {
   size_t size;
   char *start;
-  if (!string.p) return string_null();
+  if (!string_size(string)) return string_null();
 
   size  = string_size(string);
   start = pool_aligned_alloc(p, size, 1);

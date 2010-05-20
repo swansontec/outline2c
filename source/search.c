@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-/*
- * This algorithm for comparing a pattern against an outline is very bad. This
- * is a parsing problem, and requires a general parsing algorithm to solve.
- */
-
 #include "search.h"
-#include "file.h"
 #include <assert.h>
 #include <stdlib.h>
+
+int test_filter_node(AstFilterNode test, AstOutlineItem *item);
+int test_filter_tag(AstFilterTag *test, AstOutlineItem *item);
+int test_filter_not(AstFilterNot *test, AstOutlineItem *item);
+int test_filter_and(AstFilterAnd *test, AstOutlineItem *item);
+int test_filter_or(AstFilterOr *test, AstOutlineItem *item);
 
 /**
  * Determines whether an outline item satisfies a particular filter expression.

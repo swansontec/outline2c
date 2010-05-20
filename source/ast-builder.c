@@ -58,6 +58,14 @@ int ast_builder_push(AstBuilder *b, AstType type, void *p)
   return 0;
 }
 
+/**
+ * Pushes a list start marker onto the stack.
+ */
+int ast_builder_push_start(AstBuilder *b)
+{
+  return ast_builder_push(b, AST_END, b /* HACK */);
+}
+
 AstNode ast_builder_pop(AstBuilder *b)
 {
   --b->stack_top;
@@ -67,6 +75,17 @@ AstNode ast_builder_pop(AstBuilder *b)
 AstNode ast_builder_peek(AstBuilder *b)
 {
   return (b->stack[b->stack_top - 1]);
+}
+
+/**
+ * Finds the length of the list at the top of the stack.
+ */
+static size_t ast_builder_count(AstBuilder *b)
+{
+  size_t i = b->stack_top;
+  while (0 < i && b->stack[i - 1].type != AST_END)
+    --i;
+  return i == 0 ? 0 : b->stack_top - i;
 }
 
 /**
@@ -104,17 +123,20 @@ int ast_build_file(AstBuilder *b)
       ast_to_code(ast_builder_pop(b))));
 }
 
-int ast_build_code(AstBuilder *b, size_t node_n)
+int ast_build_code(AstBuilder *b)
 {
   size_t i;
+  size_t node_n;
   AstCodeNode *nodes;
 
+  node_n = ast_builder_count(b);
   nodes = pool_alloc(&b->pool, node_n*sizeof(AstCodeNode));
   if (!nodes) return 1;
 
   b->stack_top -= node_n;
   for (i = 0; i < node_n; ++i)
     nodes[i] = ast_to_code_node(b->stack[b->stack_top + i]);
+  --b->stack_top;
 
   return ast_builder_push(b, AST_CODE,
     ast_code_new(&b->pool, nodes, nodes + node_n));
@@ -122,6 +144,9 @@ int ast_build_code(AstBuilder *b, size_t node_n)
 
 int ast_build_code_text(AstBuilder *b, String code)
 {
+  if (!string_size(code))
+    return 0;
+
   return ast_builder_push(b, AST_CODE_TEXT,
     ast_code_text_new(&b->pool,
       pool_string_copy(&b->pool, code)));
@@ -142,37 +167,43 @@ int ast_build_outline(AstBuilder *b, String name)
       ast_to_outline_list(ast_builder_pop(b))));
 }
 
-int ast_build_outline_list(AstBuilder *b, size_t item_n)
+int ast_build_outline_list(AstBuilder *b)
 {
   size_t i;
+  size_t item_n;
   AstOutlineItem **items;
 
+  item_n = ast_builder_count(b);
   items = pool_alloc(&b->pool, item_n*sizeof(AstOutlineItem *));
   if (!items) return 1;
 
   b->stack_top -= item_n;
   for (i = 0; i < item_n; ++i)
     items[i] = ast_to_outline_item(b->stack[b->stack_top + i]);
+  --b->stack_top;
 
   return ast_builder_push(b, AST_OUTLINE_LIST,
     ast_outline_list_new(&b->pool, items, items + item_n));
 }
 
-int ast_build_outline_item(AstBuilder *b, String name, size_t tag_n)
+int ast_build_outline_item(AstBuilder *b, String name)
 {
   size_t i;
+  size_t tag_n;
   AstOutlineTag **tags;
   AstOutlineList *children;
 
   children = ast_builder_peek(b).type == AST_OUTLINE_LIST ?
     ast_to_outline_list(ast_builder_pop(b)) : 0;
 
+  tag_n = ast_builder_count(b);
   tags = pool_alloc(&b->pool, tag_n*sizeof(AstOutlineTag*));
   if (!tags) return 1;
 
   b->stack_top -= tag_n;
   for (i = 0; i < tag_n; ++i)
     tags[i] = ast_to_outline_tag(b->stack[b->stack_top + i]);
+  --b->stack_top;
 
   return ast_builder_push(b, AST_OUTLINE_ITEM,
     ast_outline_item_new(&b->pool,
@@ -195,17 +226,20 @@ int ast_build_outline_tag(AstBuilder *b, String symbol)
       code));
 }
 
-int ast_build_map(AstBuilder *b, String name, size_t line_n)
+int ast_build_map(AstBuilder *b, String name)
 {
   size_t i;
+  size_t line_n;
   AstMapLine **lines;
 
+  line_n = ast_builder_count(b);
   lines = pool_alloc(&b->pool, line_n*sizeof(AstMapLine*));
   if (!lines) return 1;
 
   b->stack_top -= line_n;
   for (i = 0; i < line_n; ++i)
     lines[i] = ast_to_map_line(b->stack[b->stack_top + i]);
+  --b->stack_top;
 
   return ast_builder_push(b, AST_MAP,
     ast_map_new(&b->pool,
@@ -247,7 +281,7 @@ int ast_build_in(AstBuilder *b, String symbol, String name, int reverse, int lis
   return ast_builder_push(b, AST_IN,
     ast_in_new(&b->pool,
       pool_string_copy(&b->pool, symbol),
-      name.p ? pool_string_copy(&b->pool, name) : string_null(),
+      pool_string_copy(&b->pool, name),
       reverse,
       list));
 }

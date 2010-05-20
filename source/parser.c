@@ -15,10 +15,7 @@
  */
 /*
  * This is a recursive descent parser which scans through the input, building
- * up a tree of "@o2c outline" statements it finds. When it encouters an "@o2c
- * match" statement, it builds a temporary tree describing the match. Then, it
- * immediately processes the tree against the outline, writing the generated
- * code to the output file.
+ * up an AST representing the file contents.
  *
  * The context structure holds important information about the parser state. In
  * particular, it holds the next token. To advance from one token to the next,
@@ -32,9 +29,7 @@
 
 #include "parser.h"
 #include "lexer.h"
-#include "ast-builder.h"
 #include "file.h"
-#include "string.h"
 #include <stdio.h>
 
 typedef struct context Context;
@@ -77,7 +72,7 @@ int parse_filter(Context *ctx, AstBuilder *b);
 /**
  * Verifies that a call to the AstBuilder succeeded.
  */
-#define ENSURE_BUILD(b) do { if (b) { fprintf(stderr, "Out of memory!\n"); return 1; } } while(0)
+#define ENSURE_BUILD(b) do { if (b) { fprintf(stderr, "Out of memory on line %d!\n", __LINE__); return 1; } } while(0)
 
 /**
  * Prepares a fresh context structure.
@@ -155,11 +150,11 @@ int parse_code(Context *ctx, AstBuilder *b, int scoped)
   int rv;
   int level;
   int indent = 1;
-  size_t node_n = 0;
   char const *start;
 
   advance(ctx, 1);
   start = ctx->marker.p;
+  ENSURE_BUILD(ast_builder_push_start(b));
 
 code:
   /* We are in a block of host-language code. Select a course of action: */
@@ -180,7 +175,7 @@ code:
   goto code;
 
 paste:
-  ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
+  ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p)));
 
   /* Handle token pasting: */
   advance(ctx, 1);
@@ -188,21 +183,21 @@ paste:
   goto code;
 
 escape:
-  ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
+  ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p)));
 
   /* Handle @o2c escape sequences: */
   advance(ctx, 0);
-  rv = parse_escape(ctx, b); ++node_n;
+  rv = parse_escape(ctx, b);
   ENSURE_SUCCESS(rv);
   advance(ctx, 1);
   start = ctx->marker.p;
   goto code;
 
 symbol:
-  ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
+  ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p)));
 
   /* Handle symbol replacement: */
-  ENSURE_BUILD(ast_build_symbol(b, level)); ++node_n;
+  ENSURE_BUILD(ast_build_symbol(b, level));
   advance(ctx, 1);
   start = ctx->marker.p;
   /* Is there a lookup modifier? */
@@ -217,19 +212,19 @@ symbol:
   goto code;
 
 done:
-  ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p))); ++node_n;
+  ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p)));
 
   /* Handle end-of-code: */
   if (scoped && ctx->token == LEX_END) {
     error(ctx, "Unexpected end of input in code block.");
     return 1;
   }
-  ENSURE_BUILD(ast_build_code(b, node_n));
+  ENSURE_BUILD(ast_build_code(b));
   return 0;
 }
 
 /**
- * Handles the bit right after an @o2c escape code.
+ * Handles the bit right after an \ol escape code.
  */
 int parse_escape(Context *ctx, AstBuilder *b)
 {
@@ -336,15 +331,15 @@ int parse_outline(Context *ctx, AstBuilder *b)
 int parse_outline_list(Context *ctx, AstBuilder *b)
 {
   int rv;
-  size_t child_n = 0;
 
   advance(ctx, 0);
+  ENSURE_BUILD(ast_builder_push_start(b));
   while (ctx->token != LEX_BRACE_R) {
-    rv = parse_outline_item(ctx, b); ++child_n;
+    rv = parse_outline_item(ctx, b);
     ENSURE_SUCCESS(rv);
     advance(ctx, 0);
   }
-  ENSURE_BUILD(ast_build_outline_list(b, child_n));
+  ENSURE_BUILD(ast_build_outline_list(b));
 
   return 0;
 }
@@ -356,14 +351,13 @@ int parse_outline_list(Context *ctx, AstBuilder *b)
 int parse_outline_item(Context *ctx, AstBuilder *b)
 {
   int rv;
-  size_t tag_n = 0;
   String last = string_null();
 
   /* Handle the words making up the item: */
+  ENSURE_BUILD(ast_builder_push_start(b));
   while (ctx->token == LEX_IDENTIFIER) {
-    if (last.p) {
+    if (string_size(last)) {
       ENSURE_BUILD(ast_build_outline_tag(b, last));
-      ++tag_n;
     }
     last = string_init(ctx->marker.p, ctx->cursor.p);
     advance(ctx, 0);
@@ -380,11 +374,10 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
       advance(ctx, 0);
 
       ENSURE_BUILD(ast_build_outline_tag(b, last));
-      last.p = 0;
-      ++tag_n;
+      last = string_null();
     }
   }
-  if (!last.p) {
+  if (!string_size(last)) {
     error(ctx, "An outline item must have a name.");
     return 1;
   }
@@ -393,11 +386,11 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
   if (ctx->token == LEX_BRACE_L) {
     rv = parse_outline_list(ctx, b);
     ENSURE_SUCCESS(rv);
-    ENSURE_BUILD(ast_build_outline_item(b, last, tag_n));
+    ENSURE_BUILD(ast_build_outline_item(b, last));
     return 0;
   /* Otherwise, the item must end with a semicolon: */
   } else if (ctx->token == LEX_SEMICOLON) {
-    ENSURE_BUILD(ast_build_outline_item(b, last, tag_n));
+    ENSURE_BUILD(ast_build_outline_item(b, last));
     return 0;
   /* Anything else is an error: */
   } else {
@@ -413,9 +406,8 @@ int parse_map(Context *ctx, AstBuilder *b)
 {
   int rv;
   String name;
-  size_t line_n = 0;
 
-  /* Outline name: */
+  /* Map name: */
   if (ctx->token != LEX_IDENTIFIER) {
     error(ctx, "An map stament must begin with a name.");
     return 1;
@@ -431,13 +423,14 @@ int parse_map(Context *ctx, AstBuilder *b)
 
   /* Lines: */
   advance(ctx, 0);
+  ENSURE_BUILD(ast_builder_push_start(b));
   while (ctx->token != LEX_BRACE_R) {
-    rv = parse_map_line(ctx, b); ++line_n;
+    rv = parse_map_line(ctx, b);
     ENSURE_SUCCESS(rv);
     advance(ctx, 0);
   }
 
-  ENSURE_BUILD(ast_build_map(b, name, line_n));
+  ENSURE_BUILD(ast_build_map(b, name));
   return 0;
 }
 

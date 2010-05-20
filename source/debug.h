@@ -25,26 +25,4 @@
 
 void dump_code(AstCode *p, int indent);
 
-void dump_outline(AstOutline *p);
-void dump_outline_list(AstOutlineList *p, int indent);
-void dump_outline_item(AstOutlineItem *p, int indent);
-void dump_outline_tag(AstOutlineTag *p, int indent);
-
-void dump_map(AstMap *p);
-void dump_map_line(AstMapLine *p);
-
-void dump_for(AstFor *p);
-void dump_in(AstIn *p);
-
-void dump_filter(AstFilter *p);
-void dump_filter_node(AstFilterNode node);
-void dump_filter_tag(AstFilterTag *p);
-void dump_filter_any(AstFilterAny *p);
-void dump_filter_not(AstFilterNot *p);
-void dump_filter_and(AstFilterAnd *p);
-void dump_filter_or(AstFilterOr *p);
-
-void dump_symbol(AstSymbol *p);
-void dump_lookup(AstLookup *p);
-
 #endif

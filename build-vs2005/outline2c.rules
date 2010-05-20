@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<VisualStudioToolFile
+	Name="outline2c"
+	Version="8.00"
+	>
+	<Rules>
+		<CustomBuildRule
+			Name="outline2c"
+			DisplayName="outline2c"
+			CommandLine="outline2c.exe [AllOptions] [AdditionalOptions] [inputs]"
+			Outputs="$(InputDir)$(InputName)"
+			FileExtensions="*.ol"
+			ExecutionDescription="Compiling outlines..."
+			>
+			<Properties>
+			</Properties>
+		</CustomBuildRule>
+	</Rules>
+</VisualStudioToolFile>

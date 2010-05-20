@@ -17,8 +17,7 @@
 #ifndef AST_H_INCLUDED
 #define AST_H_INCLUDED
 
-#include "typedefs.h"
-#include "string.h"
+#include "pool.h"
 
 typedef struct ast_file                 AstFile;
 typedef struct ast_code                 AstCode;
@@ -68,7 +67,8 @@ enum ast_type {
   AST_FILTER_AND,
   AST_FILTER_OR,
   AST_SYMBOL,
-  AST_LOOKUP
+  AST_LOOKUP,
+  AST_END
 };
 typedef enum ast_type AstType;
 

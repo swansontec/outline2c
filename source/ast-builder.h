@@ -18,8 +18,9 @@
 #define AST_BUILDER_H_INCLUDED
 
 #include "ast.h"
-#include "pool.h"
 #include <stdlib.h>
+
+typedef struct ast_builder AstBuilder;
 
 /**
  * State for assembling an AST item-by-item.
@@ -35,6 +36,7 @@ int ast_builder_init(AstBuilder *b);
 void ast_builder_free(AstBuilder *b);
 
 int ast_builder_push(AstBuilder *b, AstType type, void *p);
+int ast_builder_push_start(AstBuilder *b);
 AstNode ast_builder_pop(AstBuilder *b);
 AstNode ast_builder_peek(AstBuilder *b);
 
@@ -44,14 +46,14 @@ int ast_builder_find_symbol(AstBuilder *b, String symbol);
  * Functions for assembling an AST. All functions return 0 on success.
  */
 int ast_build_file(AstBuilder *b);
-int ast_build_code(AstBuilder *b, size_t node_n);
+int ast_build_code(AstBuilder *b);
 int ast_build_code_text(AstBuilder *b, String code);
 int ast_build_include(AstBuilder *b);
 int ast_build_outline(AstBuilder *b, String name);
-int ast_build_outline_list(AstBuilder *b, size_t item_n);
-int ast_build_outline_item(AstBuilder *b, String name, size_t node_n);
+int ast_build_outline_list(AstBuilder *b);
+int ast_build_outline_item(AstBuilder *b, String name);
 int ast_build_outline_tag(AstBuilder *b, String symbol);
-int ast_build_map(AstBuilder *b, String name, size_t line_n);
+int ast_build_map(AstBuilder *b, String name);
 int ast_build_map_line(AstBuilder *b);
 int ast_build_for(AstBuilder *b);
 int ast_build_in(AstBuilder *b, String symbol, String name, int reverse, int list);

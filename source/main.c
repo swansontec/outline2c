@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include "file.h"
 #include "string.h"
 #include "generate.h"
 #include <stdio.h>
@@ -56,12 +55,12 @@ int main_run(Main *m, int argc, char *argv[])
   }
 
   /* Determine output file name: */
-  in_name = string_init_l(argv[1], strlen(argv[1]));
-  if (string_rmatch(in_name, string_init_l(".o2c", 4)) != 4) {
-    printf(" Error: The input file name must end with \".o2c\".\n");
+  in_name = string_from_c(argv[1]);
+  if (string_rmatch(in_name, string_init_l(".ol", 3)) != 3) {
+    printf(" Error: The input file name must end with \".ol\".\n");
     return 1;
   }
-  m->name_out = string_to_c(string_init(in_name.p, in_name.end - 4));
+  m->name_out = string_to_c(string_init(in_name.p, in_name.end - 3));
 
   /* Open output file: */
   rv = file_w_open(&m->file_out, m->name_out);

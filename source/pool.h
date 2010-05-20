@@ -17,8 +17,10 @@
 #ifndef POOL_H_INCLUDED
 #define POOL_H_INCLUDED
 
-#include "typedefs.h"
+#include "string.h"
 #include <stddef.h>
+
+typedef struct pool Pool;
 
 /**
  * A memory pool. The memory pool provides efficient allocation, but does not

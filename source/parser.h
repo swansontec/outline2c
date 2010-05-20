@@ -17,7 +17,7 @@
 #ifndef PARSER_H_INCLUDED
 #define PARSER_H_INCLUDED
 
-#include "typedefs.h"
+#include "ast-builder.h"
 
 int parse_file(char const *filename, AstBuilder *b);
 
