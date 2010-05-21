@@ -17,6 +17,8 @@
 #include "debug.h"
 #include <stdio.h>
 
+void dump_code_node(AstCodeNode node, int indent);
+
 void dump_outline(AstOutline *p);
 void dump_outline_list(AstOutlineList *p, int indent);
 void dump_outline_item(AstOutlineItem *p, int indent);
@@ -39,11 +41,13 @@ void dump_filter_or(AstFilterOr *p);
 void dump_symbol(AstSymbol *p);
 void dump_lookup(AstLookup *p);
 
+#define INDENT 2
+
 static void space(int indent)
 {
   int i;
   for (i = 0; i < indent; ++i)
-    printf("  ");
+    putchar(' ');
 }
 
 /**
@@ -53,30 +57,34 @@ void dump_code(AstCode *p, int indent)
 {
   AstCodeNode *node;
 
-  for (node = p->nodes; node != p->nodes_end; ++node) {
-    if (node->type == AST_CODE_TEXT) {
-      AstCodeText *p = node->p;
-      char *temp = string_to_c(p->code);
-      printf("%s", temp);
-      free(temp);
-    } else if (node->type == AST_INCLUDE) {
-      AstInclude *p = node->p;
-      printf("@o2c include {{{\n");
-      dump_code(p->file->code, indent+1);
-      printf("}}}\n");
-    } else if (node->type == AST_OUTLINE) {
-      dump_outline(node->p);
-    } else if (node->type == AST_MAP) {
-      dump_map(node->p);
-    } else if (node->type == AST_FOR) {
-      dump_for(node->p);
-    } else if (node->type == AST_SYMBOL) {
-      dump_symbol(node->p);
-    } else if (node->type == AST_LOOKUP) {
-      dump_lookup(node->p);
-    } else {
-      printf("(Unknown code node %d)", node->type);
-    }
+  for (node = p->nodes; node != p->nodes_end; ++node)
+    dump_code_node(*node, indent);
+}
+
+void dump_code_node(AstCodeNode node, int indent)
+{
+  if (node.type == AST_CODE_TEXT) {
+    AstCodeText *p = node.p;
+    char *temp = string_to_c(p->code);
+    printf("%s", temp);
+    free(temp);
+  } else if (node.type == AST_INCLUDE) {
+    AstInclude *p = node.p;
+    printf("\\ol include {\n");
+    dump_code(p->file->code, indent+1);
+    printf("} /* end include */\n");
+  } else if (node.type == AST_OUTLINE) {
+    dump_outline(node.p);
+  } else if (node.type == AST_MAP) {
+    dump_map(node.p);
+  } else if (node.type == AST_FOR) {
+    dump_for(node.p);
+  } else if (node.type == AST_SYMBOL) {
+    dump_symbol(node.p);
+  } else if (node.type == AST_LOOKUP) {
+    dump_lookup(node.p);
+  } else {
+    printf("(Unknown code node %d)", node.type);
   }
 }
 
@@ -86,7 +94,7 @@ void dump_code(AstCode *p, int indent)
 void dump_outline(AstOutline *p)
 {
   char *temp = string_to_c(p->name);
-  printf("@o2c outline %s", temp);
+  printf("\\ol outline %s", temp);
   free(temp);
   dump_outline_list(p->children, 0);
 }
@@ -99,8 +107,10 @@ void dump_outline_list(AstOutlineList *p, int indent)
   AstOutlineItem **item;
 
   printf(" {\n");
-  for (item = p->items; item != p->items_end; ++item)
-    dump_outline_item(*item, indent + 1);
+  for (item = p->items; item != p->items_end; ++item) {
+    dump_outline_item(*item, indent + INDENT);
+    printf("\n");
+  }
   space(indent);
   printf("}");
 }
@@ -116,21 +126,20 @@ void dump_outline_item(AstOutlineItem *p, int indent)
   /* Tags: */
   space(indent);
   for (tag = p->tags; tag != p->tags_end; ++tag) {
-    if (tag != p->tags)
-      printf(" ");
     dump_outline_tag(*tag, indent);
+    printf(" ");
   }
 
   /* Item name: */
   temp = string_to_c(p->name);
-  printf(" %s", temp);
+  printf("%s", temp);
   free(temp);
 
   /* Children: */
   if (p->children && p->children->items != p->children->items_end)
     dump_outline_list(p->children, indent);
   else
-    printf(";\n");
+    printf(";");
 }
 
 void dump_outline_tag(AstOutlineTag *p, int indent)
@@ -154,7 +163,7 @@ void dump_map(AstMap *p)
   AstMapLine **line;
 
   temp = string_to_c(p->name);
-  printf("@o2c map %s {\n", temp);
+  printf("\\ol map %s {\n", temp);
   free(temp);
 
   for (line = p->lines; line != p->lines_end; ++line)
@@ -177,7 +186,7 @@ void dump_map_line(AstMapLine *p)
  */
 void dump_for(AstFor *p)
 {
-  printf("@o2c for ");
+  printf("\\ol for ");
   dump_in(p->in);
 
   if (p->filter) {
@@ -284,6 +293,6 @@ void dump_lookup(AstLookup *p)
 {
   char *temp = string_to_c(p->name);
   dump_symbol(p->symbol);
-  printf("\\%s", temp);
+  printf("!%s", temp);
   free(temp);
 }
