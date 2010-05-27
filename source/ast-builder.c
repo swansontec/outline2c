@@ -259,7 +259,7 @@ int ast_build_map_line(AstBuilder *b)
     ast_map_line_new(&b->pool, filter, code));
 }
 
-int ast_build_for(AstBuilder *b)
+int ast_build_for(AstBuilder *b, String outline, int reverse, int list)
 {
   AstIn *in;
   AstFilter *filter;
@@ -273,17 +273,20 @@ int ast_build_for(AstBuilder *b)
   in = ast_to_in(ast_builder_pop(b));
 
   return ast_builder_push(b, AST_FOR,
-    ast_for_new(&b->pool, in, filter, code));
+    ast_for_new(&b->pool,
+      in,
+      pool_string_copy(&b->pool, outline),
+      filter,
+      reverse,
+      list,
+      code));
 }
 
-int ast_build_in(AstBuilder *b, String symbol, String name, int reverse, int list)
+int ast_build_in(AstBuilder *b, String symbol)
 {
   return ast_builder_push(b, AST_IN,
     ast_in_new(&b->pool,
-      pool_string_copy(&b->pool, symbol),
-      pool_string_copy(&b->pool, name),
-      reverse,
-      list));
+      pool_string_copy(&b->pool, symbol)));
 }
 
 int ast_build_filter(AstBuilder *b)

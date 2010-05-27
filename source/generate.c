@@ -116,12 +116,13 @@ int generate_for(FileW *out, Scope *s, AstFor *p)
 {
   AstOutlineList *items;
   AstOutlineItem **item;
+  int need_comma = 0;
 
   /* Find the outline list to process: */
-  if (string_size(p->in->name)) {
-    AstOutline *outline = scope_find_outline(s, p->in->name);
+  if (string_size(p->outline)) {
+    AstOutline *outline = scope_find_outline(s, p->outline);
     if (!outline) {
-      char *temp = string_to_c(p->in->name);
+      char *temp = string_to_c(p->outline);
       fprintf(stderr, "Could not find outline %s.\n", temp);
       free(temp);
       return 1;
@@ -138,24 +139,30 @@ int generate_for(FileW *out, Scope *s, AstFor *p)
     return 0;
 
   /* Process the list: */
-  if (p->in->reverse) {
+  if (p->reverse) {
     for (item = items->items_end - 1; item != items->items - 1; --item) {
       if (!p->filter || test_filter(p->filter, *item)) {
         Scope scope = scope_init(p->code, s, *item);
+        if (p->list && need_comma) {
+          char c = ',';
+          file_w_write(out, &c, &c + 1);
+        }
         if (generate_code(out, &scope, p->code))
           return 1;
+        need_comma = 1;
       }
     }
   } else {
     for (item = items->items; item != items->items_end; ++item) {
       if (!p->filter || test_filter(p->filter, *item)) {
         Scope scope = scope_init(p->code, s, *item);
-        if (generate_code(out, &scope, p->code))
-          return 1;
-        if (p->in->list && item != items->items_end - 1) {
+        if (p->list && need_comma) {
           char c = ',';
           file_w_write(out, &c, &c + 1);
         }
+        if (generate_code(out, &scope, p->code))
+          return 1;
+        need_comma = 1;
       }
     }
   }

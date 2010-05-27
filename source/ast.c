@@ -237,33 +237,33 @@ AstMapLine *ast_map_line_new(Pool *p, AstFilter *filter, AstCode *code)
   return self;
 }
 
-AstFor *ast_for_new(Pool *p, AstIn *in, AstFilter *filter, AstCode *code)
+AstFor *ast_for_new(Pool *p, AstIn *in, String outline, AstFilter *filter, int reverse, int list, AstCode *code)
 {
   AstFor *self;
   if (!in) return 0;
+  /* outline may be NULL */
   /* filter may be NULL */
   if (!code) return 0;
 
   self = pool_alloc(p, sizeof(AstFor));
   if (!self) return 0;
   self->in = in;
+  self->outline = outline;
   self->filter = filter;
+  self->reverse = reverse;
+  self->list = list;
   self->code = code;
   return self;
 }
 
-AstIn *ast_in_new(Pool *p, String symbol, String name, int reverse, int list)
+AstIn *ast_in_new(Pool *p, String symbol)
 {
   AstIn *self;
   if (!string_size(symbol)) return 0;
-  /* name may be NULL */
 
   self = pool_alloc(p, sizeof(AstIn));
   if (!self) return 0;
   self->symbol = symbol;
-  self->name = name;
-  self->reverse = reverse;
-  self->list = list;
   return self;
 }
 

@@ -57,10 +57,9 @@ foobar
   mixed: _
 
 
-/* Test reverse lists: */
+/* Test "for" modifiers: */
 
- d  c  b  a 
-
-/* Test list separation: */
-
+ a  b  c 
  a , b , c , d 
+ d  c  b  a 
+ c , b , a 

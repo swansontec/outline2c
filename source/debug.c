@@ -189,10 +189,21 @@ void dump_for(AstFor *p)
   printf("\\ol for ");
   dump_in(p->in);
 
+  if (string_size(p->outline)) {
+    char *outline = string_to_c(p->outline);
+    printf(" in %s", outline);
+    free(outline);
+  } else {
+    printf(" in .");
+  }
   if (p->filter) {
     printf(" with ");
     dump_filter(p->filter);
   }
+  if (p->reverse)
+    printf(" reverse");
+  if (p->list)
+    printf(" list");
 
   printf(" {");
   dump_code(p->code, 0);
@@ -205,18 +216,8 @@ void dump_for(AstFor *p)
 void dump_in(AstIn *p)
 {
   char *symbol = string_to_c(p->symbol);
-  if (string_size(p->name)) {
-    char *name = string_to_c(p->name);
-    printf("%s in %s", symbol, name);
-    free(name);
-  } else {
-    printf("%s in .", symbol);
-  }
+  printf("%s", symbol);
   free(symbol);
-  if (p->reverse)
-    printf(" reverse");
-  if (p->list)
-    printf(" list");
 }
 
 /**

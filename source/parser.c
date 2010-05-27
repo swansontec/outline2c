@@ -464,50 +464,13 @@ int parse_map_line(Context *ctx, AstBuilder *b)
 int parse_for(Context *ctx, AstBuilder *b)
 {
   int rv;
-
-  rv = parse_in(ctx, b);
-  ENSURE_SUCCESS(rv);
-
-  /* with keyword: */
-  if (ctx->token == LEX_IDENTIFIER && string_equal(
-    string_init(ctx->marker.p, ctx->cursor.p),
-    string_init_l("with", 4))
-  ) {
-    advance(ctx, 0);
-    rv = parse_filter(ctx, b);
-    ENSURE_SUCCESS(rv);
-  }
-
-  /* Opening brace: */
-  if (ctx->token != LEX_BRACE_L) {
-    error(ctx, "A \"for\" staement must end with a code block.");
-    return 1;
-  }
-
-  /* Parse the code: */
-  rv = parse_code(ctx, b, 1);
-  ENSURE_SUCCESS(rv);
-
-  ENSURE_BUILD(ast_build_for(b));
-  return 0;
-}
-
-/**
- * Parses the "x in y" portion of a for statement.
- */
-int parse_in(Context *ctx, AstBuilder *b)
-{
-  String symbol;
-  String name;
+  String outline;
+  String token;
   int reverse = 0;
   int list = 0;
 
-  /* Replacement symbol: */
-  if (ctx->token != LEX_IDENTIFIER) {
-    error(ctx, "An for stament must begin with a name.");
-    return 1;
-  }
-  symbol = string_init(ctx->marker.p, ctx->cursor.p);
+  rv = parse_in(ctx, b);
+  ENSURE_SUCCESS(rv);
   advance(ctx, 0);
 
   /* in keyword: */
@@ -522,31 +485,71 @@ int parse_in(Context *ctx, AstBuilder *b)
 
   /* Outline name: */
   if (ctx->token == LEX_DOT) {
-    name = string_null();
+    outline = string_null();
   } else if (ctx->token == LEX_IDENTIFIER) {
-    name = string_init(ctx->marker.p, ctx->cursor.p);
+    outline = string_init(ctx->marker.p, ctx->cursor.p);
   } else {
     error(ctx, "Expecting an outline name here.");
     return 1;
   }
   advance(ctx, 0);
 
-  /* "reverse" or "list" keywords: */
-  if (ctx->token == LEX_IDENTIFIER) {
-    if (string_equal(
-      string_init(ctx->marker.p, ctx->cursor.p), string_init_l("reverse", 7))
-    ) {
-      reverse = 1;
-      advance(ctx, 0);
-    } else if (string_equal(
-      string_init(ctx->marker.p, ctx->cursor.p), string_init_l("list", 4))
-    ) {
-      list = 1;
-      advance(ctx, 0);
-    }
+  /* Behavior modification keywords: */
+modifier:
+  if (ctx->token != LEX_IDENTIFIER)
+    goto modifier_end;
+
+  /* "with" modifier: */
+  token = string_init(ctx->marker.p, ctx->cursor.p);
+  if (string_equal(token, string_init_l("with", 4))) {
+    advance(ctx, 0);
+    rv = parse_filter(ctx, b);
+    ENSURE_SUCCESS(rv);
+    goto modifier;
+
+  /* "reverse" modifier: */
+  } else if (string_equal(token, string_init_l("reverse", 7))) {
+    reverse = 1;
+    advance(ctx, 0);
+    goto modifier;
+
+  /* "list" modifier: */
+  } else if (string_equal(token, string_init_l("list", 4))) {
+    list = 1;
+    advance(ctx, 0);
+    goto modifier;
+  }
+modifier_end:
+
+  /* Opening brace: */
+  if (ctx->token != LEX_BRACE_L) {
+    error(ctx, "A \"for\" staement must end with a code block.");
+    return 1;
   }
 
-  ENSURE_BUILD(ast_build_in(b, symbol, name, reverse, list));
+  /* Parse the code: */
+  rv = parse_code(ctx, b, 1);
+  ENSURE_SUCCESS(rv);
+
+  ENSURE_BUILD(ast_build_for(b, outline, reverse, list));
+  return 0;
+}
+
+/**
+ * Parses the "x in y" portion of a for statement.
+ */
+int parse_in(Context *ctx, AstBuilder *b)
+{
+  String symbol;
+
+  /* Replacement symbol: */
+  if (ctx->token != LEX_IDENTIFIER) {
+    error(ctx, "An for stament must begin with a name.");
+    return 1;
+  }
+  symbol = string_init(ctx->marker.p, ctx->cursor.p);
+
+  ENSURE_BUILD(ast_build_in(b, symbol));
   return 0;
 }
 
@@ -630,7 +633,7 @@ want_operator:
     advance(ctx, 0);
     goto want_operator;
 
-  } else if (ctx->token == LEX_IDENTIFIER || ctx->token == LEX_BANG || ctx->token == LEX_PAREN_L) {
+  } else if (ctx->token == LEX_BANG || ctx->token == LEX_PAREN_L) {
     error(ctx, "There seems to be a missing operator here.");
     return 1;
 

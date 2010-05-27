@@ -211,7 +211,10 @@ struct ast_map_line
  */
 struct ast_for {
   AstIn *in;
+  String outline;
   AstFilter *filter;
+  int reverse;
+  int list;
   AstCode *code;
 };
 
@@ -220,9 +223,6 @@ struct ast_for {
  */
 struct ast_in {
   String symbol;
-  String name;
-  int reverse;
-  int list;
 };
 
 /**
@@ -294,8 +294,8 @@ AstOutlineItem     *ast_outline_item_new        (Pool *p, AstOutlineTag **tags, 
 AstOutlineTag      *ast_outline_tag_new         (Pool *p, String name, AstCode *value);
 AstMap             *ast_map_new                 (Pool *p, String name, AstMapLine **lines, AstMapLine **lines_end);
 AstMapLine         *ast_map_line_new            (Pool *p, AstFilter *filter, AstCode *code);
-AstFor             *ast_for_new                 (Pool *p, AstIn *in, AstFilter *filter, AstCode *code);
-AstIn              *ast_in_new                  (Pool *p, String symbol, String name, int reverse, int list);
+AstFor             *ast_for_new                 (Pool *p, AstIn *in, String outline, AstFilter *filter, int reverse, int list, AstCode *code);
+AstIn              *ast_in_new                  (Pool *p, String symbol);
 AstFilter          *ast_filter_new              (Pool *p, AstFilterNode test);
 AstFilterTag       *ast_filter_tag_new          (Pool *p, String tag);
 AstFilterAny       *ast_filter_any_new          (Pool *p);

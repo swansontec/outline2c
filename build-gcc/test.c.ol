@@ -60,10 +60,9 @@ foo\\bar
   mixed: i!mixed
 }
 
-/* Test reverse lists: */
-\ol outline test_rev { a; b; c; d; }
-\ol for i in test_rev reverse { i }
-
-/* Test list separation: */
-\ol outline test_list { a; b; c; d; }
-\ol for i in test_rev list { i }
+/* Test "for" modifiers: */
+\ol outline test_for { a; b; c; x d; }
+\ol for i in test_for with !x { i }
+\ol for i in test_for list { i }
+\ol for i in test_for reverse { i }
+\ol for i in test_for reverse with !x list { i }
