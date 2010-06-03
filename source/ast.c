@@ -199,15 +199,15 @@ AstOutlineTag *ast_outline_tag_new(Pool *p, String name, AstCode *value)
   return self;
 }
 
-AstMap *ast_map_new(Pool *p, String name, AstMapLine **lines, AstMapLine **lines_end)
+AstMap *ast_map_new(Pool *p, AstSymbolNew *symbol, AstMapLine **lines, AstMapLine **lines_end)
 {
   AstMap *self;
-  if (!string_size(name)) return 0;
+  if (!symbol) return 0;
   if (!lines) return 0;
 
   self = pool_alloc(p, sizeof(AstMap));
   if (!self) return 0;
-  self->name = name;
+  self->symbol = symbol;
   self->lines = lines;
   self->lines_end = lines_end;
   return self;

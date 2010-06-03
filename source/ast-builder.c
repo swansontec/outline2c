@@ -217,11 +217,12 @@ int ast_build_outline_tag(AstBuilder *b, String symbol)
       code));
 }
 
-int ast_build_map(AstBuilder *b, String name)
+int ast_build_map(AstBuilder *b)
 {
   size_t i;
   size_t line_n;
   AstMapLine **lines;
+  AstSymbolNew *symbol;
 
   line_n = ast_builder_count(b);
   lines = pool_alloc(&b->pool, line_n*sizeof(AstMapLine*));
@@ -232,9 +233,11 @@ int ast_build_map(AstBuilder *b, String name)
     lines[i] = ast_to_map_line(b->stack[b->stack_top + i]);
   --b->stack_top;
 
+  symbol = ast_to_symbol_new(ast_builder_pop(b));
+
   return ast_builder_push(b, AST_MAP,
     ast_map_new(&b->pool,
-      pool_string_copy(&b->pool, name),
+      symbol,
       lines, lines + line_n));
 }
 

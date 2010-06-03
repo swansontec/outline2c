@@ -401,14 +401,13 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
 int parse_map(Context *ctx, AstBuilder *b)
 {
   int rv;
-  String name;
 
   /* Map name: */
   if (ctx->token != LEX_IDENTIFIER) {
     error(ctx, "An map stament must begin with a name.");
     return 1;
   }
-  name = string_init(ctx->marker.p, ctx->cursor.p);
+  ENSURE_BUILD(ast_build_symbol_new(b, string_init(ctx->marker.p, ctx->cursor.p)));
   advance(ctx, 0);
 
   /* Opening brace: */
@@ -426,7 +425,7 @@ int parse_map(Context *ctx, AstBuilder *b)
     advance(ctx, 0);
   }
 
-  ENSURE_BUILD(ast_build_map(b, name));
+  ENSURE_BUILD(ast_build_map(b));
   return 0;
 }
 

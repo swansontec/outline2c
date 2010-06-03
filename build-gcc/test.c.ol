@@ -10,25 +10,25 @@
   string username;
   string save_dir;
 }
+\ol type = map x {
+  number {int x;}
+  string {char *x;}
+}
 
 /* Generate a structure to hold the settings: */
 typedef struct {
-  \ol type = map x {
-    number { int }
-    string { char * }
-  }
-  \ol for setting in settings { setting!type setting; }
+  \ol for setting in settings { setting!type }
 } Settings;
 
 /* Generate a function to save the settings: */
 void save_settings(Settings *s, FILE *f)
 {
   \ol format = map x {
-    number {"%s=%d\n"}
-    string {"%s=%s\n"}
+    number {fprintf(f, "%s=%d\n", x!quote, s->x);}
+    string {fprintf(f, "%s=%s\n", x!quote, s->x);}
   }
   \ol for setting in settings {
-    fprintf(f, setting!format, setting!quote, s->setting); }
+  setting!format}
 }
 
 int main(int argc, char *argv[])

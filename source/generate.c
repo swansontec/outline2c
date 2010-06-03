@@ -211,6 +211,8 @@ int generate_call(FileW *out, AstCall *p)
   }
   item = p->data->symbol->value;
   map = p->f->symbol->value;
+  map->symbol->type = p->data->symbol->type;
+  map->symbol->value = p->data->symbol->value;
 
   /* Match against the map: */
   for (line = map->lines; line != map->lines_end; ++line) {

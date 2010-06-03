@@ -154,12 +154,11 @@ void dump_outline_tag(AstOutlineTag *p, int indent)
  */
 void dump_map(AstMap *p)
 {
-  char *temp;
   AstMapLine **line;
 
-  temp = string_to_c(p->name);
-  printf("\\ol map %s {\n", temp);
-  free(temp);
+  printf("\\ol map ");
+  dump_symbol_new(p->symbol);
+  printf(" {\n");
 
   for (line = p->lines; line != p->lines_end; ++line)
     dump_map_line(*line);

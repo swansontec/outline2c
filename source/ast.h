@@ -191,7 +191,7 @@ struct ast_outline_tag {
  */
 struct ast_map
 {
-  String name;
+  AstSymbolNew *symbol;
   AstMapLine **lines;
   AstMapLine **lines_end;
 };
@@ -308,7 +308,7 @@ AstInclude         *ast_include_new             (Pool *p, AstFile *file);
 AstOutline         *ast_outline_new             (Pool *p, AstOutlineItem **items, AstOutlineItem **items_end);
 AstOutlineItem     *ast_outline_item_new        (Pool *p, AstOutlineTag **tags, AstOutlineTag **tags_end, String name, AstOutline *children);
 AstOutlineTag      *ast_outline_tag_new         (Pool *p, String name, AstCode *value);
-AstMap             *ast_map_new                 (Pool *p, String name, AstMapLine **lines, AstMapLine **lines_end);
+AstMap             *ast_map_new                 (Pool *p, AstSymbolNew *symbol, AstMapLine **lines, AstMapLine **lines_end);
 AstMapLine         *ast_map_line_new            (Pool *p, AstFilter *filter, AstCode *code);
 AstFor             *ast_for_new                 (Pool *p, AstSymbolNew *symbol, AstSymbolRef *outline, AstFilter *filter, int reverse, int list, AstCode *code);
 AstFilter          *ast_filter_new              (Pool *p, AstFilterNode test);
