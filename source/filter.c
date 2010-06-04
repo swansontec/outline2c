@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-#include "search.h"
+#include "filter.h"
 #include <assert.h>
-#include <stdlib.h>
 
 int test_filter_node(AstFilterNode test, AstOutlineItem *item);
 int test_filter_tag(AstFilterTag *test, AstOutlineItem *item);

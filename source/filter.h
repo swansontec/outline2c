@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef SEARCH_H_INCLUDED
-#define SEARCH_H_INCLUDED
+#ifndef FILTER_H_INCLUDED
+#define FILTER_H_INCLUDED
 
 #include "ast.h"
 
