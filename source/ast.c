@@ -25,7 +25,9 @@ int ast_is_code_node(AstNode node)
     node.type == AST_OUTLINE ||
     node.type == AST_MAP ||
     node.type == AST_FOR ||
+    node.type == AST_SET ||
     node.type == AST_SYMBOL_REF ||
+    node.type == AST_CALL ||
     node.type == AST_LOOKUP;
 }
 
@@ -69,9 +71,9 @@ AstCode *ast_to_code(AstNode node)
   return node.p;
 }
 
-AstOutlineList *ast_to_outline_list(AstNode node)
+AstOutline *ast_to_outline(AstNode node)
 {
-  assert(node.type == AST_OUTLINE_LIST);
+  assert(node.type == AST_OUTLINE);
   return node.p;
 }
 
@@ -156,32 +158,19 @@ AstInclude *ast_include_new(Pool *p, AstFile *file)
   return self;
 }
 
-AstOutline *ast_outline_new(Pool *p, String name, AstOutlineList *children)
+AstOutline *ast_outline_new(Pool *p, AstOutlineItem **items, AstOutlineItem **items_end)
 {
   AstOutline *self;
-  if (!string_size(name)) return 0;
-  if (!children) return 0;
-
-  self = pool_alloc(p, sizeof(AstOutline));
-  if (!self) return 0;
-  self->name = name;
-  self->children = children;
-  return self;
-}
-
-AstOutlineList *ast_outline_list_new(Pool *p, AstOutlineItem **items, AstOutlineItem **items_end)
-{
-  AstOutlineList *self;
   if (!items) return 0;
 
-  self = pool_alloc(p, sizeof(AstOutlineList));
+  self = pool_alloc(p, sizeof(AstOutline));
   if (!self) return 0;
   self->items = items;
   self->items_end = items_end;
   return self;
 }
 
-AstOutlineItem *ast_outline_item_new(Pool *p, AstOutlineTag **tags, AstOutlineTag **tags_end, String name, AstOutlineList *children)
+AstOutlineItem *ast_outline_item_new(Pool *p, AstOutlineTag **tags, AstOutlineTag **tags_end, String name, AstOutline *children)
 {
   AstOutlineItem *self;
   if (!tags) return 0;
@@ -237,11 +226,11 @@ AstMapLine *ast_map_line_new(Pool *p, AstFilter *filter, AstCode *code)
   return self;
 }
 
-AstFor *ast_for_new(Pool *p, AstSymbolNew *symbol, String outline, AstFilter *filter, int reverse, int list, AstCode *code)
+AstFor *ast_for_new(Pool *p, AstSymbolNew *symbol, AstSymbolRef *outline, AstFilter *filter, int reverse, int list, AstCode *code)
 {
   AstFor *self;
   if (!symbol) return 0;
-  /* outline may be NULL */
+  if (!outline) return 0;
   /* filter may be NULL */
   if (!code) return 0;
 
@@ -324,6 +313,19 @@ AstFilterOr *ast_filter_or_new(Pool *p, AstFilterNode test_a, AstFilterNode test
   return self;
 }
 
+AstSet *ast_set_new(Pool *p, AstSymbolNew *symbol, AstCodeNode value)
+{
+  AstSet *self;
+  if (!symbol) return 0;
+  if (!value.p) return 0;
+
+  self = pool_alloc(p, sizeof(AstSet));
+  if (!self) return 0;
+  self->symbol = symbol;
+  self->value = value;
+  return self;
+}
+
 AstSymbolNew *ast_symbol_new_new(Pool *p, String symbol)
 {
   AstSymbolNew *self;
@@ -345,6 +347,19 @@ AstSymbolRef *ast_symbol_ref_new(Pool *p, AstSymbolNew *symbol)
   self = pool_alloc(p, sizeof(AstSymbolRef));
   if (!self) return 0;
   self->symbol = symbol;
+  return self;
+}
+
+AstCall *ast_call_new(Pool *p, AstSymbolRef *f, AstSymbolRef *data)
+{
+  AstCall *self;
+  if (!f) return 0;
+  if (!data) return 0;
+
+  self = pool_alloc(p, sizeof(AstCall));
+  if (!self) return 0;
+  self->f = f;
+  self->data = data;
   return self;
 }
 

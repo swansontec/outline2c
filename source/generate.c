@@ -21,13 +21,14 @@
 #include <stdio.h>
 #include <assert.h>
 
-int generate_code(FileW *out, Scope *s, AstCode *p);
-int generate_for(FileW *out, Scope *s, AstFor *p);
+int generate_code(FileW *out, AstCode *p);
+int generate_for(FileW *out, AstFor *p);
 int generate_symbol_ref(FileW *out, AstSymbolRef *p);
-int generate_lookup(FileW *out, Scope *s, AstLookup *p);
-int generate_lookup_tag(FileW *out, Scope *s, AstLookup *p);
+int generate_call(FileW *out, AstCall *p);
+int generate_lookup(FileW *out, AstLookup *p);
+int generate_lookup_tag(FileW *out, AstLookup *p);
 int generate_lookup_builtin(FileW *out, AstLookup *p);
-int generate_lookup_map(FileW *out, Scope *s, AstLookup *p);
+int generate_lookup_map(FileW *out, AstLookup *p);
 
 int generate_lower(FileW *out, String s);
 int generate_upper(FileW *out, String s);
@@ -45,7 +46,7 @@ int write_cap(FileW *out, String s);
 AstOutlineItem *symbol_as_item(AstSymbolRef *p)
 {
   if (p->symbol->type != AST_OUTLINE_ITEM) {
-    printf("Only an outline item reference is allowed here.\n");
+    printf("Type error - this is not an outline item.\n");
     exit(1);
   }
   return p->symbol->value;
@@ -61,7 +62,6 @@ int generate(FileW *out, char const *filename)
   int debug = 0;
   AstBuilder b;
   AstFile *file;
-  Scope scope;
 
   rv = ast_builder_init(&b);
   if (rv) {
@@ -78,8 +78,7 @@ int generate(FileW *out, char const *filename)
     dump_code(file->code, 0);
   }
 
-  scope = scope_init(file->code, 0, 0);
-  if (generate_code(out, &scope, file->code))
+  if (generate_code(out, file->code))
     return 1;
 
   ast_builder_free(&b);
@@ -89,7 +88,7 @@ int generate(FileW *out, char const *filename)
 /**
  * Processes source code, writing the result to the output file.
  */
-int generate_code(FileW *out, Scope *s, AstCode *p)
+int generate_code(FileW *out, AstCode *p)
 {
   int rv;
   AstCodeNode *node;
@@ -103,13 +102,20 @@ int generate_code(FileW *out, Scope *s, AstCode *p)
     } else if (node->type == AST_OUTLINE) {
     } else if (node->type == AST_MAP) {
     } else if (node->type == AST_FOR) {
-      rv = generate_for(out, s, node->p);
+      rv = generate_for(out, node->p);
       if (rv) return rv;
+    } else if (node->type == AST_SET) {
+      AstSet *set = node->p;
+      set->symbol->type = set->value.type;
+      set->symbol->value = set->value.p;
     } else if (node->type == AST_SYMBOL_REF) {
       rv = generate_symbol_ref(out, node->p);
       if (rv) return rv;
+    } else if (node->type == AST_CALL) {
+      rv = generate_call(out, node->p);
+      if (rv) return rv;
     } else if (node->type == AST_LOOKUP) {
-      rv = generate_lookup(out, s, node->p);
+      rv = generate_lookup(out, node->p);
       if (rv) return rv;
     } else {
       assert(0);
@@ -121,28 +127,21 @@ int generate_code(FileW *out, Scope *s, AstCode *p)
 /**
  * Performs code-generation for a for statement node
  */
-int generate_for(FileW *out, Scope *s, AstFor *p)
+int generate_for(FileW *out, AstFor *p)
 {
-  AstOutlineList *items;
+  AstOutline *items;
   AstOutlineItem **item;
   int need_comma = 0;
 
   /* Find the outline list to process: */
-  if (string_size(p->outline)) {
-    AstOutline *outline = scope_find_outline(s, p->outline);
-    if (!outline) {
-      char *temp = string_to_c(p->outline);
-      fprintf(stderr, "Could not find outline %s.\n", temp);
-      free(temp);
-      return 1;
-    }
-    items = outline->children;
+  if (p->outline->symbol->type == AST_OUTLINE) {
+    items = p->outline->symbol->value;
+  } else if (p->outline->symbol->type == AST_OUTLINE_ITEM) {
+    AstOutlineItem *item = p->outline->symbol->value;
+    items = item->children;
   } else {
-    if (!s->item) {
-      fprintf(stderr, "There is no outer for loop.\n");
-      return 1;
-    }
-    items = s->item->children;
+    fprintf(stderr, "Type error - this is not an outline.\n");
+    return 1;
   }
   if (!items)
     return 0;
@@ -151,14 +150,13 @@ int generate_for(FileW *out, Scope *s, AstFor *p)
   if (p->reverse) {
     for (item = items->items_end - 1; item != items->items - 1; --item) {
       if (!p->filter || test_filter(p->filter, *item)) {
-        Scope scope = scope_init(p->code, s, *item);
         p->symbol->type = AST_OUTLINE_ITEM;
         p->symbol->value = *item;
         if (p->list && need_comma) {
           char c = ',';
           file_w_write(out, &c, &c + 1);
         }
-        if (generate_code(out, &scope, p->code))
+        if (generate_code(out, p->code))
           return 1;
         need_comma = 1;
       }
@@ -166,14 +164,13 @@ int generate_for(FileW *out, Scope *s, AstFor *p)
   } else {
     for (item = items->items; item != items->items_end; ++item) {
       if (!p->filter || test_filter(p->filter, *item)) {
-        Scope scope = scope_init(p->code, s, *item);
         p->symbol->type = AST_OUTLINE_ITEM;
         p->symbol->value = *item;
         if (p->list && need_comma) {
           char c = ',';
           file_w_write(out, &c, &c + 1);
         }
-        if (generate_code(out, &scope, p->code))
+        if (generate_code(out, p->code))
           return 1;
         need_comma = 1;
       }
@@ -194,25 +191,58 @@ int generate_symbol_ref(FileW *out, AstSymbolRef *p)
 }
 
 /**
+ * Performs code-generation for a map call
+ */
+int generate_call(FileW *out, AstCall *p)
+{
+  AstOutlineItem *item;
+  AstMap *map;
+  AstMapLine **line;
+  char *temp;
+
+  /* Symbol lookup: */
+  if (p->data->symbol->type != AST_OUTLINE_ITEM) {
+    printf("Type error - this is not an outline item.\n");
+    return 1;
+  }
+  if (p->f->symbol->type != AST_MAP) {
+    printf("Type error - this is not a map.\n");
+    return 1;
+  }
+  item = p->data->symbol->value;
+  map = p->f->symbol->value;
+
+  /* Match against the map: */
+  for (line = map->lines; line != map->lines_end; ++line) {
+    if (test_filter((*line)->filter, item)) {
+      if (generate_code(out, (*line)->code))
+        return 1;
+      return 0;
+    }
+  }
+
+  /* Nothing matched: */
+  temp = string_to_c(p->f->symbol->symbol);
+  fprintf(stderr, "Could not match against map \"%s\".\n", temp);
+  free(temp);
+  return 1;
+}
+
+/**
  * Performs code-generation for a lookup node.
  */
-int generate_lookup(FileW *out, Scope *s, AstLookup *p)
+int generate_lookup(FileW *out, AstLookup *p)
 {
   int rv;
 
   /* If a tag satisfies the lookup, generate that: */
-  rv = generate_lookup_tag(out, s, p);
+  rv = generate_lookup_tag(out, p);
   if (rv == 1) return 0;
   if (rv == -1) return 1;
 
   /* If that didn't work, try the built-in transforms: */
   if (generate_lookup_builtin(out, p))
     return 0;
-
-  /* If that didn't work, go on to search for maps: */
-  rv = generate_lookup_map(out, s, p);
-  if (rv == 1) return 0;
-  if (rv == -1) return 1;
 
   {
     char *temp = string_to_c(p->name);
@@ -227,14 +257,14 @@ int generate_lookup(FileW *out, Scope *s, AstLookup *p)
  * exists and has a value, the function emits the value and returns 1.
  * Otherwise, the function returns 0. Returns -1 for errors.
  */
-int generate_lookup_tag(FileW *out, Scope *s, AstLookup *p)
+int generate_lookup_tag(FileW *out, AstLookup *p)
 {
   AstOutlineItem *item = symbol_as_item(p->symbol);
   AstOutlineTag **tag;
 
   for (tag = item->tags; tag != item->tags_end; ++tag) {
     if ((*tag)->value && string_equal((*tag)->name, p->name)) {
-      if (generate_code(out, s, (*tag)->value))
+      if (generate_code(out, (*tag)->value))
         return -1;
       return 1;
     }
@@ -266,37 +296,6 @@ int generate_lookup_builtin(FileW *out, AstLookup *p)
   }
 
   return 0;
-}
-
-/**
- * Searches the current scope for map statements that match the lookup's name.
- * If one does, generate that and return 1. Otherwise, return 0. Returns -1
- * for errors.
- */
-int generate_lookup_map(FileW *out, Scope *s, AstLookup *p)
-{
-  AstOutlineItem *item = symbol_as_item(p->symbol);
-  AstMap *map;
-  AstMapLine **line;
-
-  map = scope_find_map(s, p->name);
-  if (!map)
-    return 0;
-
-  for (line = map->lines; line != map->lines_end; ++line) {
-    if (test_filter((*line)->filter, item)) {
-      if (generate_code(out, s, (*line)->code))
-        return -1;
-      return 1;
-    }
-  }
-
-  {
-    char *temp = string_to_c(p->name);
-    fprintf(stderr, "Could not match against map \"%s\".\n", temp);
-    free(temp);
-  }
-  return -1;
 }
 
 /**

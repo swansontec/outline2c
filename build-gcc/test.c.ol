@@ -3,7 +3,7 @@
 \ol include "test.ol";
 
 /* List the settings in a single location: */
-\ol outline settings {
+\ol settings = outline {
   number width;
   number height;
   number threads;
@@ -13,7 +13,7 @@
 
 /* Generate a structure to hold the settings: */
 typedef struct {
-  \ol map type {
+  \ol type = map x {
     number { int }
     string { char * }
   }
@@ -23,7 +23,7 @@ typedef struct {
 /* Generate a function to save the settings: */
 void save_settings(Settings *s, FILE *f)
 {
-  \ol map format {
+  \ol format = map x {
     number {"%s=%d\n"}
     string {"%s=%s\n"}
   }
@@ -37,22 +37,22 @@ int main(int argc, char *argv[])
 }
 
 /* Test nested outlines: */
-\ol outline test_nesting {
+\ol test_nesting = outline {
   item0 { sub0; sub1; }
   item1 { sub2; sub3; }
   item2;
 }
 \ol for i in test_nesting {
-  i: \ol for j in . { j; }
+  i: \ol for j in i { j; }
 }
 
 /* Test pasting: */
-\ol outline test_paste { thing; }
+\ol test_paste = outline { thing; }
 \ol for i in test_paste { some\\i\\_test }
 foo\\bar
 
 /* Test case transformations: */
-\ol outline test_case { _SetCPUSpeed23_FOO; _; }
+\ol test_case = outline { _SetCPUSpeed23_FOO; _; }
 \ol for i in test_case {
   lower: i!lower
   upper: i!upper
@@ -61,7 +61,7 @@ foo\\bar
 }
 
 /* Test "for" modifiers: */
-\ol outline test_for { a; b; c; x d; }
+\ol test_for = outline { a; b; c; x d; }
 \ol for i in test_for with !x { i }
 \ol for i in test_for list { i }
 \ol for i in test_for reverse { i }

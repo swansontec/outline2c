@@ -102,6 +102,11 @@ AstSymbolNew *ast_builder_find_symbol(AstBuilder *b, String symbol)
       AstSymbolNew *p = b->stack[top].p;
       if (string_equal(p->symbol, symbol))
         return p;
+    } else if (b->stack[top].type == AST_SET) {
+      AstSet *set = b->stack[top].p;
+      AstSymbolNew *p = set->symbol;
+      if (string_equal(p->symbol, symbol))
+        return p;
     }
   }
   return 0;
@@ -153,15 +158,7 @@ int ast_build_include(AstBuilder *b)
       ast_to_file(ast_builder_pop(b))));
 }
 
-int ast_build_outline(AstBuilder *b, String name)
-{
-  return ast_builder_push(b, AST_OUTLINE,
-    ast_outline_new(&b->pool,
-      pool_string_copy(&b->pool, name),
-      ast_to_outline_list(ast_builder_pop(b))));
-}
-
-int ast_build_outline_list(AstBuilder *b)
+int ast_build_outline(AstBuilder *b)
 {
   size_t i;
   size_t item_n;
@@ -176,8 +173,8 @@ int ast_build_outline_list(AstBuilder *b)
     items[i] = ast_to_outline_item(b->stack[b->stack_top + i]);
   --b->stack_top;
 
-  return ast_builder_push(b, AST_OUTLINE_LIST,
-    ast_outline_list_new(&b->pool, items, items + item_n));
+  return ast_builder_push(b, AST_OUTLINE,
+    ast_outline_new(&b->pool, items, items + item_n));
 }
 
 int ast_build_outline_item(AstBuilder *b, String name)
@@ -185,10 +182,10 @@ int ast_build_outline_item(AstBuilder *b, String name)
   size_t i;
   size_t tag_n;
   AstOutlineTag **tags;
-  AstOutlineList *children;
+  AstOutline *children;
 
-  children = ast_builder_peek(b).type == AST_OUTLINE_LIST ?
-    ast_to_outline_list(ast_builder_pop(b)) : 0;
+  children = ast_builder_peek(b).type == AST_OUTLINE ?
+    ast_to_outline(ast_builder_pop(b)) : 0;
 
   tag_n = ast_builder_count(b);
   tags = pool_alloc(&b->pool, tag_n*sizeof(AstOutlineTag*));
@@ -253,9 +250,10 @@ int ast_build_map_line(AstBuilder *b)
     ast_map_line_new(&b->pool, filter, code));
 }
 
-int ast_build_for(AstBuilder *b, String outline, int reverse, int list)
+int ast_build_for(AstBuilder *b, int reverse, int list)
 {
   AstSymbolNew *symbol;
+  AstSymbolRef *outline;
   AstFilter *filter;
   AstCode *code;
 
@@ -264,12 +262,14 @@ int ast_build_for(AstBuilder *b, String outline, int reverse, int list)
   filter = ast_builder_peek(b).type == AST_FILTER ?
     ast_to_filter(ast_builder_pop(b)) : 0;
 
+  outline = ast_to_symbol_ref(ast_builder_pop(b));
+
   symbol = ast_to_symbol_new(ast_builder_pop(b));
 
   return ast_builder_push(b, AST_FOR,
     ast_for_new(&b->pool,
       symbol,
-      pool_string_copy(&b->pool, outline),
+      outline,
       filter,
       reverse,
       list,
@@ -319,6 +319,17 @@ int ast_build_filter_or(AstBuilder *b)
       ast_to_filter_node(ast_builder_pop(b))));
 }
 
+int ast_build_set(AstBuilder *b)
+{
+  AstCodeNode value = ast_to_code_node(ast_builder_pop(b));
+  AstSymbolNew *symbol = ast_to_symbol_new(ast_builder_pop(b));
+
+  return ast_builder_push(b, AST_SET,
+    ast_set_new(&b->pool,
+      symbol,
+      value));
+}
+
 int ast_build_symbol_new(AstBuilder *b, String symbol)
 {
   return ast_builder_push(b, AST_SYMBOL_NEW,
@@ -331,6 +342,18 @@ int ast_build_symbol_ref(AstBuilder *b, AstSymbolNew *symbol)
   return ast_builder_push(b, AST_SYMBOL_REF,
     ast_symbol_ref_new(&b->pool,
       symbol));
+}
+
+int ast_build_call(AstBuilder *b)
+{
+  /* The order here is backwards for the time being: */
+  AstSymbolRef *f = ast_to_symbol_ref(ast_builder_pop(b));
+  AstSymbolRef *data = ast_to_symbol_ref(ast_builder_pop(b));
+
+  return ast_builder_push(b, AST_CALL,
+    ast_call_new(&b->pool,
+      f,
+      data));
 }
 
 int ast_build_lookup(AstBuilder *b, String name)

@@ -49,21 +49,22 @@ int ast_build_file(AstBuilder *b);
 int ast_build_code(AstBuilder *b);
 int ast_build_code_text(AstBuilder *b, String code);
 int ast_build_include(AstBuilder *b);
-int ast_build_outline(AstBuilder *b, String name);
-int ast_build_outline_list(AstBuilder *b);
+int ast_build_outline(AstBuilder *b);
 int ast_build_outline_item(AstBuilder *b, String name);
 int ast_build_outline_tag(AstBuilder *b, String symbol);
 int ast_build_map(AstBuilder *b, String name);
 int ast_build_map_line(AstBuilder *b);
-int ast_build_for(AstBuilder *b, String outline, int reverse, int list);
+int ast_build_for(AstBuilder *b, int reverse, int list);
 int ast_build_filter(AstBuilder *b);
 int ast_build_filter_tag(AstBuilder *b, String tag);
 int ast_build_filter_any(AstBuilder *b);
 int ast_build_filter_not(AstBuilder *b);
 int ast_build_filter_and(AstBuilder *b);
 int ast_build_filter_or(AstBuilder *b);
+int ast_build_set(AstBuilder *b);
 int ast_build_symbol_new(AstBuilder *b, String symbol);
 int ast_build_symbol_ref(AstBuilder *b, AstSymbolNew *symbol);
+int ast_build_call(AstBuilder *b);
 int ast_build_lookup(AstBuilder *b, String name);
 
 #endif

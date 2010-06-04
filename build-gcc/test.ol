@@ -2,7 +2,7 @@
  * Verifies the include functionality.
  */
 
-@o2c outline included {
+\ol included = outline {
   setting number haystacks;
   setting number needles;
 }
