@@ -40,7 +40,7 @@ int ast_builder_push_start(AstBuilder *b);
 AstNode ast_builder_pop(AstBuilder *b);
 AstNode ast_builder_peek(AstBuilder *b);
 
-int ast_builder_find_symbol(AstBuilder *b, String symbol);
+AstSymbolNew *ast_builder_find_symbol(AstBuilder *b, String symbol);
 
 /*
  * Functions for assembling an AST. All functions return 0 on success.
@@ -56,14 +56,14 @@ int ast_build_outline_tag(AstBuilder *b, String symbol);
 int ast_build_map(AstBuilder *b, String name);
 int ast_build_map_line(AstBuilder *b);
 int ast_build_for(AstBuilder *b, String outline, int reverse, int list);
-int ast_build_in(AstBuilder *b, String symbol);
 int ast_build_filter(AstBuilder *b);
 int ast_build_filter_tag(AstBuilder *b, String tag);
 int ast_build_filter_any(AstBuilder *b);
 int ast_build_filter_not(AstBuilder *b);
 int ast_build_filter_and(AstBuilder *b);
 int ast_build_filter_or(AstBuilder *b);
-int ast_build_symbol(AstBuilder *b, int level);
+int ast_build_symbol_new(AstBuilder *b, String symbol);
+int ast_build_symbol_ref(AstBuilder *b, AstSymbolNew *symbol);
 int ast_build_lookup(AstBuilder *b, String name);
 
 #endif

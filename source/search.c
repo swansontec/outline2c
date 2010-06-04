@@ -145,14 +145,3 @@ AstMap *scope_find_map(Scope *s, String name)
   }
   return 0;
 }
-
-/**
- * Obtains the OutlineItem at a certain level in the scope hierarchy.
- */
-AstOutlineItem *scope_get_item(Scope *s,int level)
-{
-  int i;
-  for (i = 0; i < level; ++i)
-    s = s->outer;
-  return s->item;
-}

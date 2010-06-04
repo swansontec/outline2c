@@ -23,10 +23,10 @@
 
 int generate_code(FileW *out, Scope *s, AstCode *p);
 int generate_for(FileW *out, Scope *s, AstFor *p);
-int generate_symbol(FileW *out, Scope *s, AstSymbol *p);
+int generate_symbol_ref(FileW *out, AstSymbolRef *p);
 int generate_lookup(FileW *out, Scope *s, AstLookup *p);
 int generate_lookup_tag(FileW *out, Scope *s, AstLookup *p);
-int generate_lookup_builtin(FileW *out, Scope *s, AstLookup *p);
+int generate_lookup_builtin(FileW *out, AstLookup *p);
 int generate_lookup_map(FileW *out, Scope *s, AstLookup *p);
 
 int generate_lower(FileW *out, String s);
@@ -41,6 +41,15 @@ int write_trailing(FileW *out, String s, String inner);
 int write_lower(FileW *out, String s);
 int write_upper(FileW *out, String s);
 int write_cap(FileW *out, String s);
+
+AstOutlineItem *symbol_as_item(AstSymbolRef *p)
+{
+  if (p->symbol->type != AST_OUTLINE_ITEM) {
+    printf("Only an outline item reference is allowed here.\n");
+    exit(1);
+  }
+  return p->symbol->value;
+}
 
 /**
  * Opens the file given in filename, parses it, processes it, and writes the
@@ -96,8 +105,8 @@ int generate_code(FileW *out, Scope *s, AstCode *p)
     } else if (node->type == AST_FOR) {
       rv = generate_for(out, s, node->p);
       if (rv) return rv;
-    } else if (node->type == AST_SYMBOL) {
-      rv = generate_symbol(out, s, node->p);
+    } else if (node->type == AST_SYMBOL_REF) {
+      rv = generate_symbol_ref(out, node->p);
       if (rv) return rv;
     } else if (node->type == AST_LOOKUP) {
       rv = generate_lookup(out, s, node->p);
@@ -143,6 +152,8 @@ int generate_for(FileW *out, Scope *s, AstFor *p)
     for (item = items->items_end - 1; item != items->items - 1; --item) {
       if (!p->filter || test_filter(p->filter, *item)) {
         Scope scope = scope_init(p->code, s, *item);
+        p->symbol->type = AST_OUTLINE_ITEM;
+        p->symbol->value = *item;
         if (p->list && need_comma) {
           char c = ',';
           file_w_write(out, &c, &c + 1);
@@ -156,6 +167,8 @@ int generate_for(FileW *out, Scope *s, AstFor *p)
     for (item = items->items; item != items->items_end; ++item) {
       if (!p->filter || test_filter(p->filter, *item)) {
         Scope scope = scope_init(p->code, s, *item);
+        p->symbol->type = AST_OUTLINE_ITEM;
+        p->symbol->value = *item;
         if (p->list && need_comma) {
           char c = ',';
           file_w_write(out, &c, &c + 1);
@@ -173,9 +186,9 @@ int generate_for(FileW *out, Scope *s, AstFor *p)
 /**
  * Performs code-generation for a symbol node
  */
-int generate_symbol(FileW *out, Scope *s, AstSymbol *p)
+int generate_symbol_ref(FileW *out, AstSymbolRef *p)
 {
-  AstOutlineItem *item = scope_get_item(s, p->level);
+  AstOutlineItem *item = symbol_as_item(p);
   file_w_write(out, item->name.p, item->name.end);
   return 0;
 }
@@ -193,7 +206,7 @@ int generate_lookup(FileW *out, Scope *s, AstLookup *p)
   if (rv == -1) return 1;
 
   /* If that didn't work, try the built-in transforms: */
-  if (generate_lookup_builtin(out, s, p))
+  if (generate_lookup_builtin(out, p))
     return 0;
 
   /* If that didn't work, go on to search for maps: */
@@ -216,7 +229,7 @@ int generate_lookup(FileW *out, Scope *s, AstLookup *p)
  */
 int generate_lookup_tag(FileW *out, Scope *s, AstLookup *p)
 {
-  AstOutlineItem *item = scope_get_item(s, p->symbol->level);
+  AstOutlineItem *item = symbol_as_item(p->symbol);
   AstOutlineTag **tag;
 
   for (tag = item->tags; tag != item->tags_end; ++tag) {
@@ -234,22 +247,22 @@ int generate_lookup_tag(FileW *out, Scope *s, AstLookup *p)
  * If the lookup name matches one of the built-in transformations, generate
  * that and return 1. Otherwise, return 0.
  */
-int generate_lookup_builtin(FileW *out, Scope *s, AstLookup *p)
+int generate_lookup_builtin(FileW *out, AstLookup *p)
 {
   if (string_equal(p->name, string_init_l("quote", 5))) {
     char q = '"';
     file_w_write(out, &q, &q + 1);
-    generate_symbol(out, s, p->symbol);
+    generate_symbol_ref(out, p->symbol);
     file_w_write(out, &q, &q + 1);
     return 1;
   } else if (string_equal(p->name, string_init_l("lower", 5))) {
-    return !generate_lower(out, scope_get_item(s, p->symbol->level)->name);
+    return !generate_lower(out, symbol_as_item(p->symbol)->name);
   } else if (string_equal(p->name, string_init_l("upper", 5))) {
-    return !generate_upper(out, scope_get_item(s, p->symbol->level)->name);
+    return !generate_upper(out, symbol_as_item(p->symbol)->name);
   } else if (string_equal(p->name, string_init_l("camel", 5))) {
-    return !generate_camel(out, scope_get_item(s, p->symbol->level)->name);
+    return !generate_camel(out, symbol_as_item(p->symbol)->name);
   } else if (string_equal(p->name, string_init_l("mixed", 5))) {
-    return !generate_mixed(out, scope_get_item(s, p->symbol->level)->name);
+    return !generate_mixed(out, symbol_as_item(p->symbol)->name);
   }
 
   return 0;
@@ -262,7 +275,7 @@ int generate_lookup_builtin(FileW *out, Scope *s, AstLookup *p)
  */
 int generate_lookup_map(FileW *out, Scope *s, AstLookup *p)
 {
-  AstOutlineItem *item = scope_get_item(s, p->symbol->level);
+  AstOutlineItem *item = symbol_as_item(p->symbol);
   AstMap *map;
   AstMapLine **line;
 

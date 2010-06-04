@@ -41,6 +41,5 @@ struct scope {
 Scope scope_init(AstCode *code, Scope *outer, AstOutlineItem *item);
 AstOutline *scope_find_outline(Scope *s, String name);
 AstMap *scope_find_map(Scope *s, String name);
-AstOutlineItem *scope_get_item(Scope *s, int level);
 
 #endif

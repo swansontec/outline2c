@@ -89,28 +89,22 @@ static size_t ast_builder_count(AstBuilder *b)
 }
 
 /**
- * Searches the stack for "x in y" nodes. If the symbol defined in the node
- * matches the passed-in string, the function returns the depth at which the
- * node occurred. The topmost "x in y" node would be 0, the "x in y" node below
- * it (possibly with other stuff between) would be 1, etc.. Returns -1 if there
- * is no match.
+ * Searches the stack for symbol definitions, and returns the first one that
+ * matches the passed-in symbol name.
  */
-int ast_builder_find_symbol(AstBuilder *b, String symbol)
+AstSymbolNew *ast_builder_find_symbol(AstBuilder *b, String symbol)
 {
   size_t top = b->stack_top;
-  int level = 0;
 
   while (top) {
     --top;
-    if (b->stack[top].type == AST_IN) {
-      AstIn *in = b->stack[top].p;
-      if (string_equal(in->symbol, symbol))
-        return level;
-      else
-        ++level;
+    if (b->stack[top].type == AST_SYMBOL_NEW) {
+      AstSymbolNew *p = b->stack[top].p;
+      if (string_equal(p->symbol, symbol))
+        return p;
     }
   }
-  return -1;
+  return 0;
 }
 
 /*
@@ -261,7 +255,7 @@ int ast_build_map_line(AstBuilder *b)
 
 int ast_build_for(AstBuilder *b, String outline, int reverse, int list)
 {
-  AstIn *in;
+  AstSymbolNew *symbol;
   AstFilter *filter;
   AstCode *code;
 
@@ -270,23 +264,16 @@ int ast_build_for(AstBuilder *b, String outline, int reverse, int list)
   filter = ast_builder_peek(b).type == AST_FILTER ?
     ast_to_filter(ast_builder_pop(b)) : 0;
 
-  in = ast_to_in(ast_builder_pop(b));
+  symbol = ast_to_symbol_new(ast_builder_pop(b));
 
   return ast_builder_push(b, AST_FOR,
     ast_for_new(&b->pool,
-      in,
+      symbol,
       pool_string_copy(&b->pool, outline),
       filter,
       reverse,
       list,
       code));
-}
-
-int ast_build_in(AstBuilder *b, String symbol)
-{
-  return ast_builder_push(b, AST_IN,
-    ast_in_new(&b->pool,
-      pool_string_copy(&b->pool, symbol)));
 }
 
 int ast_build_filter(AstBuilder *b)
@@ -332,17 +319,24 @@ int ast_build_filter_or(AstBuilder *b)
       ast_to_filter_node(ast_builder_pop(b))));
 }
 
-int ast_build_symbol(AstBuilder *b, int level)
+int ast_build_symbol_new(AstBuilder *b, String symbol)
 {
-  return ast_builder_push(b, AST_SYMBOL,
-    ast_symbol_new(&b->pool,
-      level));
+  return ast_builder_push(b, AST_SYMBOL_NEW,
+    ast_symbol_new_new(&b->pool,
+      pool_string_copy(&b->pool, symbol)));
+}
+
+int ast_build_symbol_ref(AstBuilder *b, AstSymbolNew *symbol)
+{
+  return ast_builder_push(b, AST_SYMBOL_REF,
+    ast_symbol_ref_new(&b->pool,
+      symbol));
 }
 
 int ast_build_lookup(AstBuilder *b, String name)
 {
   return ast_builder_push(b, AST_LOOKUP,
     ast_lookup_new(&b->pool,
-      ast_to_symbol(ast_builder_pop(b)),
+      ast_to_symbol_ref(ast_builder_pop(b)),
       pool_string_copy(&b->pool, name)));
 }

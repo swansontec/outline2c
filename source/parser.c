@@ -59,9 +59,10 @@ int parse_map(Context *ctx, AstBuilder *b);
 int parse_map_line(Context *ctx, AstBuilder *b);
 
 int parse_for(Context *ctx, AstBuilder *b);
-int parse_in(Context *ctx, AstBuilder *b);
 
 int parse_filter(Context *ctx, AstBuilder *b);
+
+int parse_symbol_new(Context *ctx, AstBuilder *b);
 
 /**
  * All parser functions return 0 for success and non-zero for failure. This
@@ -148,7 +149,7 @@ int parse_file(char const *filename, AstBuilder *b)
 int parse_code(Context *ctx, AstBuilder *b, int scoped)
 {
   int rv;
-  int level;
+  AstSymbolNew *symbol;
   int indent = 1;
   char const *start;
 
@@ -162,8 +163,8 @@ code:
   if (ctx->token == LEX_PASTE) goto paste;
   if (ctx->token == LEX_ESCAPE_O2C) goto escape;
   if (scoped && ctx->token == LEX_IDENTIFIER) {
-    level = ast_builder_find_symbol(b, string_init(ctx->marker.p, ctx->cursor.p));
-    if (0 <= level)
+    symbol = ast_builder_find_symbol(b, string_init(ctx->marker.p, ctx->cursor.p));
+    if (symbol)
       goto symbol;
   } else if (scoped && ctx->token == LEX_BRACE_R) {
     if (!--indent)
@@ -197,7 +198,7 @@ symbol:
   ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p)));
 
   /* Handle symbol replacement: */
-  ENSURE_BUILD(ast_build_symbol(b, level));
+  ENSURE_BUILD(ast_build_symbol_ref(b, symbol));
   advance(ctx, 1);
   start = ctx->marker.p;
   /* Is there a lookup modifier? */
@@ -469,7 +470,7 @@ int parse_for(Context *ctx, AstBuilder *b)
   int reverse = 0;
   int list = 0;
 
-  rv = parse_in(ctx, b);
+  rv = parse_symbol_new(ctx, b);
   ENSURE_SUCCESS(rv);
   advance(ctx, 0);
 
@@ -532,24 +533,6 @@ modifier_end:
   ENSURE_SUCCESS(rv);
 
   ENSURE_BUILD(ast_build_for(b, outline, reverse, list));
-  return 0;
-}
-
-/**
- * Parses the "x in y" portion of a for statement.
- */
-int parse_in(Context *ctx, AstBuilder *b)
-{
-  String symbol;
-
-  /* Replacement symbol: */
-  if (ctx->token != LEX_IDENTIFIER) {
-    error(ctx, "An for stament must begin with a name.");
-    return 1;
-  }
-  symbol = string_init(ctx->marker.p, ctx->cursor.p);
-
-  ENSURE_BUILD(ast_build_in(b, symbol));
   return 0;
 }
 
@@ -655,5 +638,22 @@ done:
   }
   ENSURE_BUILD(ast_build_filter(b));
 
+  return 0;
+}
+
+/**
+ * Parses the introduction of a new symbol name.
+ */
+int parse_symbol_new(Context *ctx, AstBuilder *b)
+{
+  String symbol;
+
+  if (ctx->token != LEX_IDENTIFIER) {
+    error(ctx, "Expecting a new symbol name here.");
+    return 1;
+  }
+  symbol = string_init(ctx->marker.p, ctx->cursor.p);
+
+  ENSURE_BUILD(ast_build_symbol_new(b, symbol));
   return 0;
 }
