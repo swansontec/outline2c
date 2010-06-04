@@ -9,9 +9,9 @@ By default, the outline2c compiler treats its input as pain C code, and simply w
 Basic usage
 -----------
 
-The "outline" keyword defines an outline. All outlines have a name, and can contain any number of items. Here is an example:
+The "outline" keyword creates an outline. All outlines have a name, and can contain any number of items. Here is an example:
 
-    \ol outline breakfast {
+    \ol breakfast = outline {
       eggs;
       bacon;
       toast;
@@ -59,7 +59,7 @@ This example produces:
 Concatenation and transformation can be combined. For example:
 
     \ol for food in breakfast {
-    #define WANT_\\\\name!upper}
+    #define WANT_\\\\food!upper}
 
 Generates:
 
@@ -91,7 +91,7 @@ Tags
 
 Items within an outline can have "tags." Tags, if present, always come before the item's name:
 
-    \ol outline club {
+    \ol club = outline {
       active tim;
       joe;
       active president bob;
@@ -103,11 +103,11 @@ Tags are mainly used to filter items by type. One way to do this is by restricti
 
     \ol for member in club with active { member; }
 
-This example only writes the names that match the filter:
+The "with" option can be combined in any order with the "list" and "reverse" options. The example above only processes items in the "club" outline that have an "active" tag:
 
     tim;  bob;
 
-In this case, since the filter specifies the "active" tag, the item named "joe" does not match the filter. Filters support several operators:
+The "with" option support several operators:
 
 * tag - matches any item that has the given tag
 * !tag - matches any item that does not have the given tag
@@ -122,16 +122,16 @@ Maps
 
 Maps provide another method of filtering items based on tags. The "map" keyword creates a new map:
 
-    \ol map greeting {
-      president {"Hello, Sir %s!\\n"}
-      active    {"Hello, %s.\\n"}
-      !active   {"Welcome back, %s.\\n"}
+    \ol greeting = map member {
+      president {printf("Hello, Sir %s!\\n", member!quote);}
+      active    {printf("Hello, %s.\\n", member!quote);}
+      !active   {printf("Welcome back, %s.\\n", member!quote);}
     }
 
-This example declares a new map called "greeting". Passing an outline item through the map will select one of the three messages, depending on which of the three filters the item matches. Maps are applied to items using the "!" operator, just like name transformations:
+This example declares a new map called "greeting". Passing an outline item through the map will select one of the three messages, depending on which of the three filters the item matches. The "member" variable is set to the outline item being matched. Maps are applied to items using the "!" operator, just like name transformations:
 
     \ol for member in club {
-    printf(member!greeting, member!quote);}
+    member!greeting}
 
 This example produces the code:
 
@@ -146,8 +146,8 @@ Tag values
 
 A tag can have a block of attached C-code, like this:
 
-    \ol outline universe {
-       answer={42} mice;
+    \ol universe = outline {
+      answer={42} mice;
     }
 
 Here, the C-code "42" is attached to the "answer" tag. To use a tag's value in generated code, simply use the "!" operator with the name of the tag:
@@ -158,14 +158,14 @@ This example generates:
 
     42
 
-Since name transforms, maps, and tag values all use the same ! operator, there is some room for ambiguity. Outline2c resolves this by giving first priority to tag values, 2nd priority to built-in transforms, and lowest priority to maps.
+Since name transforms, maps, and tag values all use the same ! operator, there is some room for ambiguity. Outline2c resolves this by giving highest priority to maps, second priority to tag values, lowest priority to the built-in transforms.
 
 Nested outlines
 ---------------
 
 Each item within an outline can contain another outline inside it. For example:
 
-    \ol states {
+    \ol states = outline {
       california {
         san_diego;
         sacramento;
@@ -177,9 +177,9 @@ Each item within an outline can contain another outline inside it. For example:
 
 In this example, the items named "california" and "washington" each contain nested outlines.
 
-To generate code for nested outlines, use the special "." keword with the "for" statement:
+To generate code for nested outlines, simply place one "for" statement inside another, using the current item as the outline name:
 
-    \ol for state in places { \ol for city in . {
+    \ol for state in states { \ol for city in state {
     printf("%s is in %s.\\n", city!quote, state!quote);}}
 
 This example produces:

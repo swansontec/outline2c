@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-#include "search.h"
+#include "filter.h"
 #include <assert.h>
-#include <stdlib.h>
 
 int test_filter_node(AstFilterNode test, AstOutlineItem *item);
 int test_filter_tag(AstFilterTag *test, AstOutlineItem *item);
@@ -73,86 +72,4 @@ int test_filter_or(AstFilterOr *test, AstOutlineItem *item)
   return
     test_filter_node(test->test_a, item) ||
     test_filter_node(test->test_b, item);
-}
-
-Scope scope_init(AstCode *code, Scope *outer, AstOutlineItem *item)
-{
-  Scope self;
-  self.code = code;
-  self.outer = outer;
-  self.item = item;
-  return self;
-}
-
-static AstOutline *code_find_outline(AstCode *code, String name)
-{
-  AstCodeNode *node;
-  AstOutline *outline;
-
-  for (node = code->nodes; node != code->nodes_end; ++node) {
-    if (node->type == AST_OUTLINE) {
-      outline = node->p;
-      if (string_equal(outline->name, name))
-        return outline;
-    } else if (node->type == AST_INCLUDE) {
-      AstInclude *include = node->p;
-      outline = code_find_outline(include->file->code, name);
-      if (outline)
-        return outline;
-    }
-  }
-  return 0;
-}
-
-AstOutline *scope_find_outline(Scope *s, String name)
-{
-  AstOutline *outline;
-  while (s) {
-    outline = code_find_outline(s->code, name);
-    if (outline) return outline;
-    s = s->outer;
-  }
-  return 0;
-}
-
-static AstMap *code_find_map(AstCode *code, String name)
-{
-  AstCodeNode *node;
-  AstMap *map;
-
-  for (node = code->nodes; node != code->nodes_end; ++node) {
-    if (node->type == AST_MAP) {
-      map = node->p;
-      if (string_equal(map->name, name))
-        return map;
-    } else if (node->type == AST_INCLUDE) {
-      AstInclude *include = node->p;
-      map = code_find_map(include->file->code, name);
-      if (map)
-        return map;
-    }
-  }
-  return 0;
-}
-
-AstMap *scope_find_map(Scope *s, String name)
-{
-  AstMap *map;
-  while (s) {
-    map = code_find_map(s->code, name);
-    if (map) return map;
-    s = s->outer;
-  }
-  return 0;
-}
-
-/**
- * Obtains the OutlineItem at a certain level in the scope hierarchy.
- */
-AstOutlineItem *scope_get_item(Scope *s,int level)
-{
-  int i;
-  for (i = 0; i < level; ++i)
-    s = s->outer;
-  return s->item;
 }

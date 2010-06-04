@@ -24,20 +24,21 @@ typedef struct ast_code                 AstCode;
 typedef struct ast_code_text            AstCodeText;
 typedef struct ast_include              AstInclude;
 typedef struct ast_outline              AstOutline;
-typedef struct ast_outline_list         AstOutlineList;
 typedef struct ast_outline_item         AstOutlineItem;
 typedef struct ast_outline_tag          AstOutlineTag;
 typedef struct ast_map                  AstMap;
 typedef struct ast_map_line             AstMapLine;
 typedef struct ast_for                  AstFor;
-typedef struct ast_in                   AstIn;
 typedef struct ast_filter               AstFilter;
 typedef struct ast_filter_tag           AstFilterTag;
 typedef struct ast_filter_any           AstFilterAny;
 typedef struct ast_filter_not           AstFilterNot;
 typedef struct ast_filter_and           AstFilterAnd;
 typedef struct ast_filter_or            AstFilterOr;
-typedef struct ast_symbol               AstSymbol;
+typedef struct ast_set                  AstSet;
+typedef struct ast_symbol_new           AstSymbolNew;
+typedef struct ast_symbol_ref           AstSymbolRef;
+typedef struct ast_call                 AstCall;
 typedef struct ast_lookup               AstLookup;
 
 typedef struct ast_node                 AstNode;
@@ -53,20 +54,21 @@ enum ast_type {
   AST_CODE_TEXT,
   AST_INCLUDE,
   AST_OUTLINE,
-  AST_OUTLINE_LIST,
   AST_OUTLINE_ITEM,
   AST_OUTLINE_TAG,
   AST_MAP,
   AST_MAP_LINE,
   AST_FOR,
-  AST_IN,
   AST_FILTER,
   AST_FILTER_TAG,
   AST_FILTER_ANY,
   AST_FILTER_NOT,
   AST_FILTER_AND,
   AST_FILTER_OR,
-  AST_SYMBOL,
+  AST_SET,
+  AST_SYMBOL_NEW,
+  AST_SYMBOL_REF,
+  AST_CALL,
   AST_LOOKUP,
   AST_END
 };
@@ -87,7 +89,9 @@ struct ast_node {
  *  AstOutline
  *  AstMap
  *  AstFor
- *  AstSymbol
+ *  AstSet
+ *  AstSymbolRef
+ *  AstCall
  *  AstLookup
  */
 struct ast_code_node {
@@ -118,13 +122,13 @@ AstFilterNode       ast_to_filter_node(AstNode node);
 
 AstFile            *ast_to_file(AstNode node);
 AstCode            *ast_to_code(AstNode node);
-AstOutlineList     *ast_to_outline_list(AstNode node);
+AstOutline         *ast_to_outline(AstNode node);
 AstOutlineItem     *ast_to_outline_item(AstNode node);
 AstOutlineTag      *ast_to_outline_tag(AstNode node);
 AstMapLine         *ast_to_map_line(AstNode node);
-AstIn              *ast_to_in(AstNode node);
 AstFilter          *ast_to_filter(AstNode node);
-AstSymbol          *ast_to_symbol(AstNode node);
+AstSymbolNew       *ast_to_symbol_new(AstNode node);
+AstSymbolRef       *ast_to_symbol_ref(AstNode node);
 
 /**
  * A source file. This is the top-level element of the AST.
@@ -157,17 +161,9 @@ struct ast_include {
 };
 
 /**
- * The outline keyword
+ * An outline.
  */
 struct ast_outline {
-  String name;
-  AstOutlineList *children;
-};
-
-/**
- * A list of items in an outline.
- */
-struct ast_outline_list {
   AstOutlineItem **items;
   AstOutlineItem **items_end;
 };
@@ -179,7 +175,7 @@ struct ast_outline_item {
   AstOutlineTag **tags;
   AstOutlineTag **tags_end;
   String name;
-  AstOutlineList *children;
+  AstOutline *children;
 };
 
 /**
@@ -195,7 +191,7 @@ struct ast_outline_tag {
  */
 struct ast_map
 {
-  String name;
+  AstSymbolNew *symbol;
   AstMapLine **lines;
   AstMapLine **lines_end;
 };
@@ -210,19 +206,12 @@ struct ast_map_line
  * A for statement.
  */
 struct ast_for {
-  AstIn *in;
-  String outline;
+  AstSymbolNew *symbol;
+  AstSymbolRef *outline;
   AstFilter *filter;
   int reverse;
   int list;
   AstCode *code;
-};
-
-/**
- * An "x in y" portion of a for statement.
- */
-struct ast_in {
-  String symbol;
 };
 
 /**
@@ -270,17 +259,45 @@ struct ast_filter_or {
 };
 
 /**
+ * An assignment statement.
+ */
+struct ast_set {
+  AstSymbolNew *symbol;
+  AstCodeNode value;
+};
+
+/**
+ * The first introduction of a new symbol name.
+ */
+struct ast_symbol_new {
+  String symbol;
+
+  /* These are not a proper part of the AST, but are used to hold the
+   * symbol's value: */
+  void *value;
+  AstType type;
+};
+
+/**
  * A symbol to be replaced within a block of code.
  */
-struct ast_symbol {
-  int level;
+struct ast_symbol_ref {
+  AstSymbolNew *symbol;
+};
+
+/**
+ * A call to a map
+ */
+struct ast_call {
+  AstSymbolRef *f;
+  AstSymbolRef *data;
 };
 
 /**
  * A modifier on a symbol.
  */
 struct ast_lookup {
-  AstSymbol *symbol;
+  AstSymbolRef *symbol;
   String name;
 };
 
@@ -288,21 +305,22 @@ AstFile            *ast_file_new                (Pool *p, AstCode *code);
 AstCode            *ast_code_new                (Pool *p, AstCodeNode *nodes, AstCodeNode *nodes_end);
 AstCodeText        *ast_code_text_new           (Pool *p, String code);
 AstInclude         *ast_include_new             (Pool *p, AstFile *file);
-AstOutline         *ast_outline_new             (Pool *p, String name, AstOutlineList *children);
-AstOutlineList     *ast_outline_list_new        (Pool *p, AstOutlineItem **items, AstOutlineItem **items_end);
-AstOutlineItem     *ast_outline_item_new        (Pool *p, AstOutlineTag **tags, AstOutlineTag **tags_end, String name, AstOutlineList *children);
+AstOutline         *ast_outline_new             (Pool *p, AstOutlineItem **items, AstOutlineItem **items_end);
+AstOutlineItem     *ast_outline_item_new        (Pool *p, AstOutlineTag **tags, AstOutlineTag **tags_end, String name, AstOutline *children);
 AstOutlineTag      *ast_outline_tag_new         (Pool *p, String name, AstCode *value);
-AstMap             *ast_map_new                 (Pool *p, String name, AstMapLine **lines, AstMapLine **lines_end);
+AstMap             *ast_map_new                 (Pool *p, AstSymbolNew *symbol, AstMapLine **lines, AstMapLine **lines_end);
 AstMapLine         *ast_map_line_new            (Pool *p, AstFilter *filter, AstCode *code);
-AstFor             *ast_for_new                 (Pool *p, AstIn *in, String outline, AstFilter *filter, int reverse, int list, AstCode *code);
-AstIn              *ast_in_new                  (Pool *p, String symbol);
+AstFor             *ast_for_new                 (Pool *p, AstSymbolNew *symbol, AstSymbolRef *outline, AstFilter *filter, int reverse, int list, AstCode *code);
 AstFilter          *ast_filter_new              (Pool *p, AstFilterNode test);
 AstFilterTag       *ast_filter_tag_new          (Pool *p, String tag);
 AstFilterAny       *ast_filter_any_new          (Pool *p);
 AstFilterNot       *ast_filter_not_new          (Pool *p, AstFilterNode test);
 AstFilterAnd       *ast_filter_and_new          (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
 AstFilterOr        *ast_filter_or_new           (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
-AstSymbol          *ast_symbol_new              (Pool *p, int level);
-AstLookup          *ast_lookup_new              (Pool *p, AstSymbol *symbol, String name);
+AstSet             *ast_set_new                 (Pool *p, AstSymbolNew *symbol, AstCodeNode value);
+AstSymbolNew       *ast_symbol_new_new          (Pool *p, String symbol);
+AstSymbolRef       *ast_symbol_ref_new          (Pool *p, AstSymbolNew *symbol);
+AstCall            *ast_call_new                (Pool *p, AstSymbolRef *f, AstSymbolRef *data);
+AstLookup          *ast_lookup_new              (Pool *p, AstSymbolRef *symbol, String name);
 
 #endif
