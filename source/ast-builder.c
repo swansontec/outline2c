@@ -88,6 +88,23 @@ static size_t ast_builder_count(AstBuilder *b)
   return i == 0 ? 0 : b->stack_top - i;
 }
 
+static AstSymbolNew *ast_include_find_symbol(AstInclude *p, String symbol)
+{
+  AstCodeNode *i;
+  for (i = p->file->code->nodes; i != p->file->code->nodes_end; ++i) {
+    if (i->type == AST_SET) {
+      AstSet *p = i->p;
+      if (string_equal(p->symbol->symbol, symbol))
+        return p->symbol;
+    } else if (i->type == AST_INCLUDE) {
+      AstSymbolNew *p = ast_include_find_symbol(i->p, symbol);
+      if (p)
+        return p;
+    }
+  }
+  return 0;
+}
+
 /**
  * Searches the stack for symbol definitions, and returns the first one that
  * matches the passed-in symbol name.
@@ -103,9 +120,12 @@ AstSymbolNew *ast_builder_find_symbol(AstBuilder *b, String symbol)
       if (string_equal(p->symbol, symbol))
         return p;
     } else if (b->stack[top].type == AST_SET) {
-      AstSet *set = b->stack[top].p;
-      AstSymbolNew *p = set->symbol;
-      if (string_equal(p->symbol, symbol))
+      AstSet *p = b->stack[top].p;
+      if (string_equal(p->symbol->symbol, symbol))
+        return p->symbol;
+    } else if (b->stack[top].type == AST_INCLUDE) {
+      AstSymbolNew *p = ast_include_find_symbol(b->stack[top].p, symbol);
+      if (p)
         return p;
     }
   }

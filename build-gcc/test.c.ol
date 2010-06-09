@@ -1,40 +1,17 @@
-#include <stdio.h>
-
+/* Test include files: */
 \ol include "test.ol";
+\ol for i in included { i }
 
-/* List the settings in a single location: */
-\ol settings = outline {
-  number width;
-  number height;
-  number threads;
-  string username;
-  string save_dir;
+/* Test maps: */
+\ol test_map = map x {
+  a { x!quote: type_a }
+  b { x!quote: type_b }
+  * { x!quote: other }
 }
-\ol type = map x {
-  number {int x;}
-  string {char *x;}
+\ol test_map_ol = outline {
+  a one; b two; c three;
 }
-
-/* Generate a structure to hold the settings: */
-typedef struct {
-  \ol for setting in settings { setting!type }
-} Settings;
-
-/* Generate a function to save the settings: */
-void save_settings(Settings *s, FILE *f)
-{
-  \ol format = map x {
-    number {fprintf(f, "%s=%d\n", x!quote, s->x);}
-    string {fprintf(f, "%s=%s\n", x!quote, s->x);}
-  }
-  \ol for setting in settings {
-  setting!format}
-}
-
-int main(int argc, char *argv[])
-{
-  return 0;
-}
+\ol for i in test_map_ol { i!test_map }
 
 /* Test nested outlines: */
 \ol test_nesting = outline {

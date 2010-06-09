@@ -16,13 +16,15 @@
 
 #include "generate.h"
 #include "parser.h"
-#include "search.h"
+#include "filter.h"
 #include "debug.h"
 #include <stdio.h>
 #include <assert.h>
 
 int generate_code(FileW *out, AstCode *p);
+int generate_include(AstInclude *p);
 int generate_for(FileW *out, AstFor *p);
+int generate_set(AstSet *p);
 int generate_symbol_ref(FileW *out, AstSymbolRef *p);
 int generate_call(FileW *out, AstCall *p);
 int generate_lookup(FileW *out, AstLookup *p);
@@ -99,15 +101,16 @@ int generate_code(FileW *out, AstCode *p)
       rv = file_w_write(out, p->code.p, p->code.end);
       if (rv) return rv;
     } else if (node->type == AST_INCLUDE) {
+      rv = generate_include(node->p);
+      if (rv) return rv;
     } else if (node->type == AST_OUTLINE) {
     } else if (node->type == AST_MAP) {
     } else if (node->type == AST_FOR) {
       rv = generate_for(out, node->p);
       if (rv) return rv;
     } else if (node->type == AST_SET) {
-      AstSet *set = node->p;
-      set->symbol->type = set->value.type;
-      set->symbol->value = set->value.p;
+      rv = generate_set(node->p);
+      if (rv) return rv;
     } else if (node->type == AST_SYMBOL_REF) {
       rv = generate_symbol_ref(out, node->p);
       if (rv) return rv;
@@ -119,6 +122,26 @@ int generate_code(FileW *out, AstCode *p)
       if (rv) return rv;
     } else {
       assert(0);
+    }
+  }
+  return 0;
+}
+
+/**
+ * Evaluates the symbol definitions within an included file.
+ */
+int generate_include(AstInclude *p)
+{
+  int rv;
+  AstCodeNode *node;
+
+  for (node = p->file->code->nodes; node != p->file->code->nodes_end; ++node) {
+    if (node->type == AST_SET) {
+      rv = generate_set(node->p);
+      if (rv) return rv;
+    } else if (node->type == AST_INCLUDE) {
+      rv = generate_include(node->p);
+      if (rv) return rv;
     }
   }
   return 0;
@@ -177,6 +200,16 @@ int generate_for(FileW *out, AstFor *p)
     }
   }
 
+  return 0;
+}
+
+/**
+ * Evaluates a symbol definition
+ */
+int generate_set(AstSet *p)
+{
+  p->symbol->type = p->value.type;
+  p->symbol->value = p->value.p;
   return 0;
 }
 

@@ -1,32 +1,11 @@
-#include <stdio.h>
+/* Test include files: */
+
+ haystacks  needles 
+
+/* Test maps: */
 
 
-
-/* List the settings in a single location: */
-
-
-
-/* Generate a structure to hold the settings: */
-typedef struct {
-   int width;  int height;  int threads;  char *username;  char *save_dir; 
-} Settings;
-
-/* Generate a function to save the settings: */
-void save_settings(Settings *s, FILE *f)
-{
-  
-  
-  fprintf(f, "%s=%d\n", "width", s->width);
-  fprintf(f, "%s=%d\n", "height", s->height);
-  fprintf(f, "%s=%d\n", "threads", s->threads);
-  fprintf(f, "%s=%s\n", "username", s->username);
-  fprintf(f, "%s=%s\n", "save_dir", s->save_dir);
-}
-
-int main(int argc, char *argv[])
-{
-  return 0;
-}
+  "one": type_a    "two": type_b    "three": other  
 
 /* Test nested outlines: */
 
