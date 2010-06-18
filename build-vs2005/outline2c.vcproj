@@ -233,6 +233,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\source\filter.c"
+			>
+		</File>
+		<File
+			RelativePath="..\source\filter.h"
+			>
+		</File>
+		<File
 			RelativePath="..\source\generate.c"
 			>
 		</File>
@@ -258,14 +266,6 @@
 		</File>
 		<File
 			RelativePath="..\source\parser.h"
-			>
-		</File>
-		<File
-			RelativePath="..\source\search.c"
-			>
-		</File>
-		<File
-			RelativePath="..\source\search.h"
 			>
 		</File>
 	</Files>

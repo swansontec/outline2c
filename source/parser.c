@@ -52,16 +52,16 @@ int parse_escape(Context *ctx, AstBuilder *b);
 int parse_include(Context *ctx, AstBuilder *b);
 
 int parse_outline(Context *ctx, AstBuilder *b);
-int parse_outline_list(Context *ctx, AstBuilder *b);
 int parse_outline_item(Context *ctx, AstBuilder *b);
 
 int parse_map(Context *ctx, AstBuilder *b);
 int parse_map_line(Context *ctx, AstBuilder *b);
 
 int parse_for(Context *ctx, AstBuilder *b);
-int parse_in(Context *ctx, AstBuilder *b);
 
 int parse_filter(Context *ctx, AstBuilder *b);
+
+int parse_symbol_new(Context *ctx, AstBuilder *b);
 
 /**
  * All parser functions return 0 for success and non-zero for failure. This
@@ -148,7 +148,7 @@ int parse_file(char const *filename, AstBuilder *b)
 int parse_code(Context *ctx, AstBuilder *b, int scoped)
 {
   int rv;
-  int level;
+  AstSymbolNew *symbol;
   int indent = 1;
   char const *start;
 
@@ -162,8 +162,8 @@ code:
   if (ctx->token == LEX_PASTE) goto paste;
   if (ctx->token == LEX_ESCAPE_O2C) goto escape;
   if (scoped && ctx->token == LEX_IDENTIFIER) {
-    level = ast_builder_find_symbol(b, string_init(ctx->marker.p, ctx->cursor.p));
-    if (0 <= level)
+    symbol = ast_builder_find_symbol(b, string_init(ctx->marker.p, ctx->cursor.p));
+    if (symbol)
       goto symbol;
   } else if (scoped && ctx->token == LEX_BRACE_R) {
     if (!--indent)
@@ -197,14 +197,20 @@ symbol:
   ENSURE_BUILD(ast_build_code_text(b, string_init(start, ctx->marker.p)));
 
   /* Handle symbol replacement: */
-  ENSURE_BUILD(ast_build_symbol(b, level));
+  ENSURE_BUILD(ast_build_symbol_ref(b, symbol));
   advance(ctx, 1);
   start = ctx->marker.p;
   /* Is there a lookup modifier? */
   if (ctx->token == LEX_BANG) {
     advance(ctx, 1);
     if (ctx->token == LEX_IDENTIFIER) {
-      ENSURE_BUILD(ast_build_lookup(b, string_init(ctx->marker.p, ctx->cursor.p)));
+      symbol = ast_builder_find_symbol(b, string_init(ctx->marker.p, ctx->cursor.p));
+      if (symbol) {
+        ENSURE_BUILD(ast_build_symbol_ref(b, symbol));
+        ENSURE_BUILD(ast_build_call(b));
+      } else {
+        ENSURE_BUILD(ast_build_lookup(b, string_init(ctx->marker.p, ctx->cursor.p)));
+      }
       advance(ctx, 1);
       start = ctx->marker.p;
     }
@@ -259,8 +265,21 @@ int parse_escape(Context *ctx, AstBuilder *b)
       advance(ctx, 0);
       return parse_for(ctx, b);
     } else {
-      error(ctx, "No idea what this keyword is.");
-      return 1;
+      /* Assignment? */
+      advance(ctx, 0);
+      if (ctx->token != LEX_EQUALS) {
+        error(ctx, "No idea what this keyword is.");
+        return 1;
+      }
+
+      ENSURE_BUILD(ast_build_symbol_new(b, temp));
+
+      advance(ctx, 0);
+      rv = parse_escape(ctx, b);
+      ENSURE_SUCCESS(rv);
+
+      ENSURE_BUILD(ast_build_set(b));
+      return 0;
     }
   } else {
     error(ctx, "No idea what token this is.");
@@ -297,40 +316,17 @@ int parse_include(Context *ctx, AstBuilder *b)
 }
 
 /**
- * Handles the top-level outline keyword.
+ * Handles a list of outline items.
  */
 int parse_outline(Context *ctx, AstBuilder *b)
 {
   int rv;
-  String name;
-
-  /* Outline name: */
-  if (ctx->token != LEX_IDENTIFIER) {
-    error(ctx, "An outline stament must begin with a name.");
-    return 1;
-  }
-  name = string_init(ctx->marker.p, ctx->cursor.p);
-  advance(ctx, 0);
 
   /* Opening brace: */
   if (ctx->token != LEX_BRACE_L) {
-    error(ctx, "An opening { must come after the name of an outline.");
+    error(ctx, "An outline must start with an opening {.");
     return 1;
   }
-
-  /* Outline: */
-  rv = parse_outline_list(ctx, b);
-  ENSURE_SUCCESS(rv);
-  ENSURE_BUILD(ast_build_outline(b, name));
-  return 0;
-}
-
-/**
- * Handles a list of outline items.
- */
-int parse_outline_list(Context *ctx, AstBuilder *b)
-{
-  int rv;
 
   advance(ctx, 0);
   ENSURE_BUILD(ast_builder_push_start(b));
@@ -339,7 +335,7 @@ int parse_outline_list(Context *ctx, AstBuilder *b)
     ENSURE_SUCCESS(rv);
     advance(ctx, 0);
   }
-  ENSURE_BUILD(ast_build_outline_list(b));
+  ENSURE_BUILD(ast_build_outline(b));
 
   return 0;
 }
@@ -384,7 +380,7 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
 
   /* Handle any sub-items: */
   if (ctx->token == LEX_BRACE_L) {
-    rv = parse_outline_list(ctx, b);
+    rv = parse_outline(ctx, b);
     ENSURE_SUCCESS(rv);
     ENSURE_BUILD(ast_build_outline_item(b, last));
     return 0;
@@ -405,14 +401,13 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
 int parse_map(Context *ctx, AstBuilder *b)
 {
   int rv;
-  String name;
 
   /* Map name: */
   if (ctx->token != LEX_IDENTIFIER) {
     error(ctx, "An map stament must begin with a name.");
     return 1;
   }
-  name = string_init(ctx->marker.p, ctx->cursor.p);
+  ENSURE_BUILD(ast_build_symbol_new(b, string_init(ctx->marker.p, ctx->cursor.p)));
   advance(ctx, 0);
 
   /* Opening brace: */
@@ -430,7 +425,7 @@ int parse_map(Context *ctx, AstBuilder *b)
     advance(ctx, 0);
   }
 
-  ENSURE_BUILD(ast_build_map(b, name));
+  ENSURE_BUILD(ast_build_map(b));
   return 0;
 }
 
@@ -464,50 +459,13 @@ int parse_map_line(Context *ctx, AstBuilder *b)
 int parse_for(Context *ctx, AstBuilder *b)
 {
   int rv;
-
-  rv = parse_in(ctx, b);
-  ENSURE_SUCCESS(rv);
-
-  /* with keyword: */
-  if (ctx->token == LEX_IDENTIFIER && string_equal(
-    string_init(ctx->marker.p, ctx->cursor.p),
-    string_init_l("with", 4))
-  ) {
-    advance(ctx, 0);
-    rv = parse_filter(ctx, b);
-    ENSURE_SUCCESS(rv);
-  }
-
-  /* Opening brace: */
-  if (ctx->token != LEX_BRACE_L) {
-    error(ctx, "A \"for\" staement must end with a code block.");
-    return 1;
-  }
-
-  /* Parse the code: */
-  rv = parse_code(ctx, b, 1);
-  ENSURE_SUCCESS(rv);
-
-  ENSURE_BUILD(ast_build_for(b));
-  return 0;
-}
-
-/**
- * Parses the "x in y" portion of a for statement.
- */
-int parse_in(Context *ctx, AstBuilder *b)
-{
-  String symbol;
-  String name;
+  AstSymbolNew *symbol;
+  String token;
   int reverse = 0;
   int list = 0;
 
-  /* Replacement symbol: */
-  if (ctx->token != LEX_IDENTIFIER) {
-    error(ctx, "An for stament must begin with a name.");
-    return 1;
-  }
-  symbol = string_init(ctx->marker.p, ctx->cursor.p);
+  rv = parse_symbol_new(ctx, b);
+  ENSURE_SUCCESS(rv);
   advance(ctx, 0);
 
   /* in keyword: */
@@ -521,32 +479,56 @@ int parse_in(Context *ctx, AstBuilder *b)
   advance(ctx, 0);
 
   /* Outline name: */
-  if (ctx->token == LEX_DOT) {
-    name = string_null();
-  } else if (ctx->token == LEX_IDENTIFIER) {
-    name = string_init(ctx->marker.p, ctx->cursor.p);
-  } else {
-    error(ctx, "Expecting an outline name here.");
+  if (ctx->token != LEX_IDENTIFIER) {
+    error(ctx, "An outline name must come after the \"in\" keyword.");
     return 1;
   }
+  symbol = ast_builder_find_symbol(b, string_init(ctx->marker.p, ctx->cursor.p));
+  if (!symbol) {
+    error(ctx, "Could not find an outline with this name.");
+    return 1;
+  }
+  ENSURE_BUILD(ast_build_symbol_ref(b, symbol));
   advance(ctx, 0);
 
-  /* "reverse" or "list" keywords: */
-  if (ctx->token == LEX_IDENTIFIER) {
-    if (string_equal(
-      string_init(ctx->marker.p, ctx->cursor.p), string_init_l("reverse", 7))
-    ) {
-      reverse = 1;
-      advance(ctx, 0);
-    } else if (string_equal(
-      string_init(ctx->marker.p, ctx->cursor.p), string_init_l("list", 4))
-    ) {
-      list = 1;
-      advance(ctx, 0);
-    }
+  /* Behavior modification keywords: */
+modifier:
+  if (ctx->token != LEX_IDENTIFIER)
+    goto modifier_end;
+
+  /* "with" modifier: */
+  token = string_init(ctx->marker.p, ctx->cursor.p);
+  if (string_equal(token, string_init_l("with", 4))) {
+    advance(ctx, 0);
+    rv = parse_filter(ctx, b);
+    ENSURE_SUCCESS(rv);
+    goto modifier;
+
+  /* "reverse" modifier: */
+  } else if (string_equal(token, string_init_l("reverse", 7))) {
+    reverse = 1;
+    advance(ctx, 0);
+    goto modifier;
+
+  /* "list" modifier: */
+  } else if (string_equal(token, string_init_l("list", 4))) {
+    list = 1;
+    advance(ctx, 0);
+    goto modifier;
+  }
+modifier_end:
+
+  /* Opening brace: */
+  if (ctx->token != LEX_BRACE_L) {
+    error(ctx, "A \"for\" staement must end with a code block.");
+    return 1;
   }
 
-  ENSURE_BUILD(ast_build_in(b, symbol, name, reverse, list));
+  /* Parse the code: */
+  rv = parse_code(ctx, b, 1);
+  ENSURE_SUCCESS(rv);
+
+  ENSURE_BUILD(ast_build_for(b, reverse, list));
   return 0;
 }
 
@@ -630,7 +612,7 @@ want_operator:
     advance(ctx, 0);
     goto want_operator;
 
-  } else if (ctx->token == LEX_IDENTIFIER || ctx->token == LEX_BANG || ctx->token == LEX_PAREN_L) {
+  } else if (ctx->token == LEX_BANG || ctx->token == LEX_PAREN_L) {
     error(ctx, "There seems to be a missing operator here.");
     return 1;
 
@@ -652,5 +634,22 @@ done:
   }
   ENSURE_BUILD(ast_build_filter(b));
 
+  return 0;
+}
+
+/**
+ * Parses the introduction of a new symbol name.
+ */
+int parse_symbol_new(Context *ctx, AstBuilder *b)
+{
+  String symbol;
+
+  if (ctx->token != LEX_IDENTIFIER) {
+    error(ctx, "Expecting a new symbol name here.");
+    return 1;
+  }
+  symbol = string_init(ctx->marker.p, ctx->cursor.p);
+
+  ENSURE_BUILD(ast_build_symbol_new(b, symbol));
   return 0;
 }

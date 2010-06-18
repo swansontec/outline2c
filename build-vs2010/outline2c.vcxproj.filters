@@ -4,11 +4,11 @@
     <ClCompile Include="..\source\ast-builder.c" />
     <ClCompile Include="..\source\ast.c" />
     <ClCompile Include="..\source\debug.c" />
+    <ClCompile Include="..\source\filter.c" />
     <ClCompile Include="..\source\generate.c" />
     <ClCompile Include="..\source\lexer.c" />
     <ClCompile Include="..\source\main.c" />
     <ClCompile Include="..\source\parser.c" />
-    <ClCompile Include="..\source\search.c" />
     <ClCompile Include="..\source\file.c">
       <Filter>utility</Filter>
     </ClCompile>
@@ -23,10 +23,10 @@
     <ClInclude Include="..\source\ast-builder.h" />
     <ClInclude Include="..\source\ast.h" />
     <ClInclude Include="..\source\debug.h" />
+    <ClInclude Include="..\source\filter.h" />
     <ClInclude Include="..\source\generate.h" />
     <ClInclude Include="..\source\lexer.h" />
     <ClInclude Include="..\source\parser.h" />
-    <ClInclude Include="..\source\search.h" />
     <ClInclude Include="..\source\file.h">
       <Filter>utility</Filter>
     </ClInclude>

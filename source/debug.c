@@ -17,8 +17,9 @@
 #include "debug.h"
 #include <stdio.h>
 
-void dump_outline(AstOutline *p);
-void dump_outline_list(AstOutlineList *p, int indent);
+void dump_code_node(AstCodeNode node, int indent);
+
+void dump_outline(AstOutline *p, int indent);
 void dump_outline_item(AstOutlineItem *p, int indent);
 void dump_outline_tag(AstOutlineTag *p, int indent);
 
@@ -26,7 +27,6 @@ void dump_map(AstMap *p);
 void dump_map_line(AstMapLine *p);
 
 void dump_for(AstFor *p);
-void dump_in(AstIn *p);
 
 void dump_filter(AstFilter *p);
 void dump_filter_node(AstFilterNode node);
@@ -36,14 +36,19 @@ void dump_filter_not(AstFilterNot *p);
 void dump_filter_and(AstFilterAnd *p);
 void dump_filter_or(AstFilterOr *p);
 
-void dump_symbol(AstSymbol *p);
+void dump_set(AstSet *p);
+void dump_symbol_new(AstSymbolNew *p);
+void dump_symbol_ref(AstSymbolRef *p);
+void dump_call(AstCall *p);
 void dump_lookup(AstLookup *p);
+
+#define INDENT 2
 
 static void space(int indent)
 {
   int i;
   for (i = 0; i < indent; ++i)
-    printf("  ");
+    putchar(' ');
 }
 
 /**
@@ -53,54 +58,54 @@ void dump_code(AstCode *p, int indent)
 {
   AstCodeNode *node;
 
-  for (node = p->nodes; node != p->nodes_end; ++node) {
-    if (node->type == AST_CODE_TEXT) {
-      AstCodeText *p = node->p;
-      char *temp = string_to_c(p->code);
-      printf("%s", temp);
-      free(temp);
-    } else if (node->type == AST_INCLUDE) {
-      AstInclude *p = node->p;
-      printf("@o2c include {{{\n");
-      dump_code(p->file->code, indent+1);
-      printf("}}}\n");
-    } else if (node->type == AST_OUTLINE) {
-      dump_outline(node->p);
-    } else if (node->type == AST_MAP) {
-      dump_map(node->p);
-    } else if (node->type == AST_FOR) {
-      dump_for(node->p);
-    } else if (node->type == AST_SYMBOL) {
-      dump_symbol(node->p);
-    } else if (node->type == AST_LOOKUP) {
-      dump_lookup(node->p);
-    } else {
-      printf("(Unknown code node %d)", node->type);
-    }
+  for (node = p->nodes; node != p->nodes_end; ++node)
+    dump_code_node(*node, indent);
+}
+
+void dump_code_node(AstCodeNode node, int indent)
+{
+  if (node.type == AST_CODE_TEXT) {
+    AstCodeText *p = node.p;
+    char *temp = string_to_c(p->code);
+    printf("%s", temp);
+    free(temp);
+  } else if (node.type == AST_INCLUDE) {
+    AstInclude *p = node.p;
+    printf("\\ol include {\n");
+    dump_code(p->file->code, indent+1);
+    printf("} /* end include */\n");
+  } else if (node.type == AST_OUTLINE) {
+    printf("outline ");
+    dump_outline(node.p, indent);
+  } else if (node.type == AST_MAP) {
+    dump_map(node.p);
+  } else if (node.type == AST_FOR) {
+    dump_for(node.p);
+  } else if (node.type == AST_SET) {
+    dump_set(node.p);
+  } else if (node.type == AST_SYMBOL_REF) {
+    dump_symbol_ref(node.p);
+  } else if (node.type == AST_CALL) {
+    dump_call(node.p);
+  } else if (node.type == AST_LOOKUP) {
+    dump_lookup(node.p);
+  } else {
+    printf("(Unknown code node %d)", node.type);
   }
 }
 
 /**
  * Prints a top-level outline statement.
  */
-void dump_outline(AstOutline *p)
-{
-  char *temp = string_to_c(p->name);
-  printf("@o2c outline %s", temp);
-  free(temp);
-  dump_outline_list(p->children, 0);
-}
-
-/**
- * Prints a list of outline items
- */
-void dump_outline_list(AstOutlineList *p, int indent)
+void dump_outline(AstOutline *p, int indent)
 {
   AstOutlineItem **item;
 
   printf(" {\n");
-  for (item = p->items; item != p->items_end; ++item)
-    dump_outline_item(*item, indent + 1);
+  for (item = p->items; item != p->items_end; ++item) {
+    dump_outline_item(*item, indent + INDENT);
+    printf("\n");
+  }
   space(indent);
   printf("}");
 }
@@ -116,21 +121,20 @@ void dump_outline_item(AstOutlineItem *p, int indent)
   /* Tags: */
   space(indent);
   for (tag = p->tags; tag != p->tags_end; ++tag) {
-    if (tag != p->tags)
-      printf(" ");
     dump_outline_tag(*tag, indent);
+    printf(" ");
   }
 
   /* Item name: */
   temp = string_to_c(p->name);
-  printf(" %s", temp);
+  printf("%s", temp);
   free(temp);
 
   /* Children: */
   if (p->children && p->children->items != p->children->items_end)
-    dump_outline_list(p->children, indent);
+    dump_outline(p->children, indent);
   else
-    printf(";\n");
+    printf(";");
 }
 
 void dump_outline_tag(AstOutlineTag *p, int indent)
@@ -150,12 +154,11 @@ void dump_outline_tag(AstOutlineTag *p, int indent)
  */
 void dump_map(AstMap *p)
 {
-  char *temp;
   AstMapLine **line;
 
-  temp = string_to_c(p->name);
-  printf("@o2c map %s {\n", temp);
-  free(temp);
+  printf("\\ol map ");
+  dump_symbol_new(p->symbol);
+  printf(" {\n");
 
   for (line = p->lines; line != p->lines_end; ++line)
     dump_map_line(*line);
@@ -177,37 +180,23 @@ void dump_map_line(AstMapLine *p)
  */
 void dump_for(AstFor *p)
 {
-  printf("@o2c for ");
-  dump_in(p->in);
+  printf("\\ol for ");
+  dump_symbol_new(p->symbol);
+  printf(" in ");
+  dump_symbol_ref(p->outline);
 
   if (p->filter) {
     printf(" with ");
     dump_filter(p->filter);
   }
-
-  printf(" {");
-  dump_code(p->code, 0);
-  printf("}");
-}
-
-/**
- * Prints an "x in y" portion of a for statement.
- */
-void dump_in(AstIn *p)
-{
-  char *symbol = string_to_c(p->symbol);
-  if (string_size(p->name)) {
-    char *name = string_to_c(p->name);
-    printf("%s in %s", symbol, name);
-    free(name);
-  } else {
-    printf("%s in .", symbol);
-  }
-  free(symbol);
   if (p->reverse)
     printf(" reverse");
   if (p->list)
     printf(" list");
+
+  printf(" {");
+  dump_code(p->code, 0);
+  printf("}");
 }
 
 /**
@@ -269,12 +258,42 @@ void dump_filter_or(AstFilterOr *p)
   printf(")");
 }
 
+void dump_set(AstSet *p)
+{
+  dump_symbol_new(p->symbol);
+  printf(" = ");
+  dump_code_node(p->value, 0);
+}
+
+/**
+ * Prints an new symbol name definition.
+ */
+void dump_symbol_new(AstSymbolNew *p)
+{
+  char *symbol = string_to_c(p->symbol);
+  printf("%s", symbol);
+  free(symbol);
+}
+
 /**
  * Prints a symbol in a debug-friendly manner.
  */
-void dump_symbol(AstSymbol *p)
+void dump_symbol_ref(AstSymbolRef *p)
 {
-  printf("<%d>", p->level);
+  char *symbol = string_to_c(p->symbol->symbol);
+  printf("<%s>", symbol);
+  free(symbol);
+}
+
+/**
+ * Prints a map call
+ */
+void dump_call(AstCall *p)
+{
+  dump_symbol_ref(p->f);
+  printf("(");
+  dump_symbol_ref(p->data);
+  printf(")");
 }
 
 /**
@@ -283,7 +302,7 @@ void dump_symbol(AstSymbol *p)
 void dump_lookup(AstLookup *p)
 {
   char *temp = string_to_c(p->name);
-  dump_symbol(p->symbol);
-  printf("\\%s", temp);
+  dump_symbol_ref(p->symbol);
+  printf("!%s", temp);
   free(temp);
 }

@@ -87,12 +87,12 @@
     <ClCompile Include="..\source\ast.c" />
     <ClCompile Include="..\source\debug.c" />
     <ClCompile Include="..\source\file.c" />
+    <ClCompile Include="..\source\filter.c" />
     <ClCompile Include="..\source\generate.c" />
     <ClCompile Include="..\source\lexer.c" />
     <ClCompile Include="..\source\main.c" />
     <ClCompile Include="..\source\parser.c" />
     <ClCompile Include="..\source\pool.c" />
-    <ClCompile Include="..\source\search.c" />
     <ClCompile Include="..\source\string.c" />
   </ItemGroup>
   <ItemGroup>
@@ -100,11 +100,11 @@
     <ClInclude Include="..\source\ast.h" />
     <ClInclude Include="..\source\debug.h" />
     <ClInclude Include="..\source\file.h" />
+    <ClInclude Include="..\source\filter.h" />
     <ClInclude Include="..\source\generate.h" />
     <ClInclude Include="..\source\lexer.h" />
     <ClInclude Include="..\source\parser.h" />
     <ClInclude Include="..\source\pool.h" />
-    <ClInclude Include="..\source\search.h" />
     <ClInclude Include="..\source\string.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
