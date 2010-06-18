@@ -112,18 +112,20 @@ static void advance(Context *ctx, int want_space)
 /**
  * Processes a source file, adding its contents to the AST.
  */
-int parse_file(char const *filename, AstBuilder *b)
+int parse_file(String filename, AstBuilder *b)
 {
   int rv;
   FileR file;
   Context ctx;
+  char *s;
 
-  rv = file_r_open(&file, filename);
+  s = string_to_c(filename);
+  rv = file_r_open(&file, s);
   if (rv) {
-    fprintf(stderr, "error: Could not open file %s\n", filename);
+    fprintf(stderr, "error: Could not open file %s\n", s);
     return 1;
   }
-  ctx = context_init(string_init(file.p, file.end), filename);
+  ctx = context_init(string_init(file.p, file.end), s);
 
   /* Parse the input file: */
   rv = parse_code(&ctx, b, 0);
@@ -131,6 +133,7 @@ int parse_file(char const *filename, AstBuilder *b)
   ENSURE_BUILD(ast_build_file(b));
 
   file_r_close(&file);
+  free(s);
   return 0;
 }
 
@@ -293,19 +296,16 @@ int parse_escape(Context *ctx, AstBuilder *b)
 int parse_include(Context *ctx, AstBuilder *b)
 {
   int rv;
-  char *filename;
 
   if (ctx->token != LEX_STRING) {
     error(ctx, "An include statment expects a quoted filename.");
     return 1;
   }
-  filename = string_to_c(string_init(ctx->marker.p + 1, ctx->cursor.p - 1));
 
   /* Process the file's contents: */
-  rv = parse_file(filename, b);
+  rv = parse_file(string_init(ctx->marker.p + 1, ctx->cursor.p - 1), b);
   ENSURE_SUCCESS(rv);
   ENSURE_BUILD(ast_build_include(b));
-  free(filename);
 
   advance(ctx, 0);
   if (ctx->token != LEX_SEMICOLON) {

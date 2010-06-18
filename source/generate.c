@@ -58,10 +58,9 @@ AstOutlineItem *symbol_as_item(AstSymbolRef *p)
  * Opens the file given in filename, parses it, processes it, and writes the
  * results to the output file.
  */
-int generate(FileW *out, char const *filename)
+int generate(FileW *out, String filename, int debug)
 {
   int rv;
-  int debug = 0;
   AstBuilder b;
   AstFile *file;
 

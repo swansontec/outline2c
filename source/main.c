@@ -19,58 +19,58 @@
 #include <stdio.h>
 #include <string.h>
 
-struct main {
-  char const *name_out;
-  FileW file_out;
+typedef struct options Options;
+
+/*
+ * Holds outline2c command-line options.
+ */
+struct options
+{
+  int debug;
+  String name_in;
+  String name_out;
 };
-typedef struct main Main;
-void main_init(Main *m);
-int main_run(Main *m, int argc, char *argv[]);
-void main_close(Main *m);
 
-void main_init(Main *m)
+void options_init(Options *self)
 {
-  m->name_out = 0;
-  file_w_init(&m->file_out);
-}
-
-void main_close(Main *m)
-{
-  if (m->name_out) free((char *)m->name_out);
-  file_w_close(&m->file_out);
+  self->debug = 0;
+  self->name_in = string_null();
+  self->name_out = string_null();
 }
 
 /**
- * Program body. Processes command-line options and launches the parser.
+ * Processes the command-line options, filling in the members of the Options
+ * structure corresponding to the switches.
  */
-int main_run(Main *m, int argc, char *argv[])
+int options_parse(Options *self, int argc, char *argv[])
 {
-  int rv;
-  String in_name;
+  int arg = 1;
 
-  /* Count options: */
-  if (argc != 2) {
-    printf(" Usage: %s <filename>\n", argv[0]);
-    return 1;
+  while (arg < argc) {
+    String s = string_from_c(argv[arg]);
+
+    /* Debug: */
+    if (!strcmp(argv[arg], "-d") || !strcmp(argv[arg], "--debug")) {
+      self->debug = 1;
+
+    /* Output filename: */
+    } else if (!strcmp(argv[arg], "-o")) {
+      ++arg;
+      if (argc <= arg) return 0;
+      self->name_out = string_from_c(argv[arg]);
+
+    /* Output filename, smushed: */
+    } else if (2 == string_match(s, string_init_l("-o", 2))) {
+      self->name_out = string_init(s.p + 2, s.end);
+
+    /* Input filename: */
+    } else {
+      if (string_size(self->name_in)) return 0;
+      self->name_in = s;
+    }
+    ++arg;
   }
-
-  /* Determine output file name: */
-  in_name = string_from_c(argv[1]);
-  if (string_rmatch(in_name, string_init_l(".ol", 3)) != 3) {
-    printf(" Error: The input file name must end with \".ol\".\n");
-    return 1;
-  }
-  m->name_out = string_to_c(string_init(in_name.p, in_name.end - 3));
-
-  /* Open output file: */
-  rv = file_w_open(&m->file_out, m->name_out);
-  if (rv) {
-    printf(" Could not open file \"%s\"\n", m->name_out);
-    return 1;
-  }
-
-  /* Munchify files: */
-  return generate(&m->file_out, argv[1]);
+  return 1;
 }
 
 /**
@@ -79,9 +79,39 @@ int main_run(Main *m, int argc, char *argv[])
 int main(int argc, char *argv[])
 {
   int rv;
-  Main program;
-  main_init(&program);
-  rv = main_run(&program, argc, argv);
-  main_close(&program);
+  Options opt;
+  char *s;
+  FileW file_out;
+
+  options_init(&opt);
+  rv = options_parse(&opt, argc, argv);
+  if (!rv) {
+    fprintf(stderr, "Usage: %s [-d] [-o output-file] <input-file>\n", argv[0]);
+    return 1;
+  }
+
+  /* Determine output file name: */
+  if (string_size(opt.name_out)) {
+    s = string_to_c(opt.name_out);
+  } else {
+    if (string_rmatch(opt.name_in, string_init_l(".ol", 3)) != 3) {
+      fprintf(stderr, "Error: If no output file is specified, the input file name must end with \".ol\".\n");
+      return 1;
+    }
+    s = string_to_c(string_init(opt.name_in.p, opt.name_in.end - 3));
+  }
+
+  /* Open output file: */
+  rv = file_w_open(&file_out, s);
+  if (rv) {
+    fprintf(stderr, "Could not open file \"%s\"\n", s);
+    free(s);
+    return 1;
+  }
+  free(s);
+
+  /* Munchify files: */
+  rv = generate(&file_out, opt.name_in, opt.debug);
+  file_w_close(&file_out);
   return rv;
 }
