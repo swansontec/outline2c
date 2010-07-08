@@ -17,11 +17,11 @@
 CC = gcc
 CFLAGS = -g -std=c89 -pedantic
 
-objects = ast.o ast-builder.o debug.o file.o filter.o generate.o lexer.o main.o parser.o pool.o string.o
+objects = ast.o ast-builder.o debug.o file.o filter.o generate.o lexer.o main.o parser.o pool.o scope.o string.o
 
 # Inter-header dependencies:
 ast_h      = ../source/ast.h $(pool_h)
-ast_builder_h = ../source/ast-builder.h $(ast_h)
+ast_builder_h = ../source/ast-builder.h $(ast_h) $(scope_h)
 debug_h    = ../source/debug.h $(ast_h)
 file_h     = ../source/file.h
 filter_h   = ../source/filter.h $(ast_h)
@@ -29,6 +29,7 @@ generate_h = ../source/generate.h $(file_h) $(string_h)
 lexer_h    = ../source/lexer.h
 parser_h   = ../source/parser.h $(ast_builder_h)
 pool_h     = ../source/pool.h $(string_h)
+scope_h    = ../source/scope.h $(ast_h)
 string_h   = ../source/string.h
 
 all: outline2c
@@ -39,7 +40,7 @@ ast.o: ../source/ast.c $(ast_h)
 ast-builder.o: ../source/ast-builder.c $(ast_builder_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/ast-builder.c
 
-debug.o: ../source/debug.c $(debug_h)
+debug.o: ../source/debug.c $(debug_h) $(scope_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/debug.c
 
 file.o: ../source/file.c $(file_h)
@@ -62,6 +63,9 @@ parser.o: ../source/parser.c $(parser_h) $(lexer_h) $(file_h)
 
 pool.o: ../source/pool.c $(pool_h) $(string_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/pool.c
+
+scope.o: ../source/scope.c $(scope_h)
+	$(CC) $(CFLAGS) -o $@ -c ../source/scope.c
 
 string.o: ../source/string.c $(string_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/string.c

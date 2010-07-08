@@ -19,11 +19,14 @@
 
 int ast_builder_init(AstBuilder *b)
 {
-  pool_init(&b->pool, 0x10000); /* 64K block size */
+  if (pool_init(&b->pool, 0x10000)) /* 64K block size */
+    return 1;
   b->stack_size = 32;
   b->stack = malloc(b->stack_size*sizeof(AstNode));
   if (!b->stack) return 1;
   b->stack_top = 0;
+  b->scope = scope_new(&b->pool, 0);
+  if (!b->scope) return 1;
   return 0;
 }
 
@@ -88,48 +91,36 @@ static size_t ast_builder_count(AstBuilder *b)
   return i == 0 ? 0 : b->stack_top - i;
 }
 
-static AstSymbolNew *ast_include_find_symbol(AstInclude *p, String symbol)
+/**
+ * Constructs a new scope. The current scope becomes the outer scope.
+ * @return the new scope, or 0 for failure.
+ */
+Scope *ast_builder_scope_new(AstBuilder *b)
 {
-  AstCodeNode *i;
-  for (i = p->file->code->nodes; i != p->file->code->nodes_end; ++i) {
-    if (i->type == AST_SET) {
-      AstSet *p = i->p;
-      if (string_equal(p->symbol->symbol, symbol))
-        return p->symbol;
-    } else if (i->type == AST_INCLUDE) {
-      AstSymbolNew *p = ast_include_find_symbol(i->p, symbol);
-      if (p)
-        return p;
-    }
-  }
-  return 0;
+  Scope *s = scope_new(&b->pool, b->scope);
+  if (!s) return 0;
+  b->scope = s;
+  return s;
 }
 
 /**
- * Searches the stack for symbol definitions, and returns the first one that
- * matches the passed-in symbol name.
+ * Adds a symbol to the current scope.
+ * @return the new symbol, or 0 for failure.
  */
-AstSymbolNew *ast_builder_find_symbol(AstBuilder *b, String symbol)
+Symbol *ast_builder_scope_add(AstBuilder *b, String symbol)
 {
-  size_t top = b->stack_top;
+  return scope_add(b->scope, &b->pool, pool_string_copy(&b->pool,symbol));
+}
 
-  while (top) {
-    --top;
-    if (b->stack[top].type == AST_SYMBOL_NEW) {
-      AstSymbolNew *p = b->stack[top].p;
-      if (string_equal(p->symbol, symbol))
-        return p;
-    } else if (b->stack[top].type == AST_SET) {
-      AstSet *p = b->stack[top].p;
-      if (string_equal(p->symbol->symbol, symbol))
-        return p->symbol;
-    } else if (b->stack[top].type == AST_INCLUDE) {
-      AstSymbolNew *p = ast_include_find_symbol(b->stack[top].p, symbol);
-      if (p)
-        return p;
-    }
-  }
-  return 0;
+void ast_builder_scope_pop(AstBuilder *b)
+{
+  assert(b->scope->outer);
+  b->scope = b->scope->outer;
+}
+
+Symbol *ast_builder_scope_find(AstBuilder *b, String symbol)
+{
+  return scope_find(b->scope, symbol);
 }
 
 /*
@@ -237,12 +228,11 @@ int ast_build_outline_tag(AstBuilder *b, String symbol)
       code));
 }
 
-int ast_build_map(AstBuilder *b)
+int ast_build_map(AstBuilder *b, Symbol *item)
 {
   size_t i;
   size_t line_n;
   AstMapLine **lines;
-  AstSymbolNew *symbol;
 
   line_n = ast_builder_count(b);
   lines = pool_alloc(&b->pool, line_n*sizeof(AstMapLine*));
@@ -253,11 +243,9 @@ int ast_build_map(AstBuilder *b)
     lines[i] = ast_to_map_line(b->stack[b->stack_top + i]);
   --b->stack_top;
 
-  symbol = ast_to_symbol_new(ast_builder_pop(b));
-
   return ast_builder_push(b, AST_MAP,
     ast_map_new(&b->pool,
-      symbol,
+      item,
       lines, lines + line_n));
 }
 
@@ -273,10 +261,8 @@ int ast_build_map_line(AstBuilder *b)
     ast_map_line_new(&b->pool, filter, code));
 }
 
-int ast_build_for(AstBuilder *b, int reverse, int list)
+int ast_build_for(AstBuilder *b, Symbol *item, Symbol *outline, int reverse, int list)
 {
-  AstSymbolNew *symbol;
-  AstSymbolRef *outline;
   AstFilter *filter;
   AstCode *code;
 
@@ -285,13 +271,9 @@ int ast_build_for(AstBuilder *b, int reverse, int list)
   filter = ast_builder_peek(b).type == AST_FILTER ?
     ast_to_filter(ast_builder_pop(b)) : 0;
 
-  outline = ast_to_symbol_ref(ast_builder_pop(b));
-
-  symbol = ast_to_symbol_new(ast_builder_pop(b));
-
   return ast_builder_push(b, AST_FOR,
     ast_for_new(&b->pool,
-      symbol,
+      item,
       outline,
       filter,
       reverse,
@@ -342,10 +324,9 @@ int ast_build_filter_or(AstBuilder *b)
       ast_to_filter_node(ast_builder_pop(b))));
 }
 
-int ast_build_set(AstBuilder *b)
+int ast_build_set(AstBuilder *b, Symbol *symbol)
 {
   AstCodeNode value = ast_to_code_node(ast_builder_pop(b));
-  AstSymbolNew *symbol = ast_to_symbol_new(ast_builder_pop(b));
 
   return ast_builder_push(b, AST_SET,
     ast_set_new(&b->pool,
@@ -353,36 +334,25 @@ int ast_build_set(AstBuilder *b)
       value));
 }
 
-int ast_build_symbol_new(AstBuilder *b, String symbol)
-{
-  return ast_builder_push(b, AST_SYMBOL_NEW,
-    ast_symbol_new_new(&b->pool,
-      pool_string_copy(&b->pool, symbol)));
-}
-
-int ast_build_symbol_ref(AstBuilder *b, AstSymbolNew *symbol)
+int ast_build_symbol_ref(AstBuilder *b, Symbol *symbol)
 {
   return ast_builder_push(b, AST_SYMBOL_REF,
     ast_symbol_ref_new(&b->pool,
       symbol));
 }
 
-int ast_build_call(AstBuilder *b)
+int ast_build_call(AstBuilder *b, Symbol *f, Symbol *data)
 {
-  /* The order here is backwards for the time being: */
-  AstSymbolRef *f = ast_to_symbol_ref(ast_builder_pop(b));
-  AstSymbolRef *data = ast_to_symbol_ref(ast_builder_pop(b));
-
   return ast_builder_push(b, AST_CALL,
     ast_call_new(&b->pool,
       f,
       data));
 }
 
-int ast_build_lookup(AstBuilder *b, String name)
+int ast_build_lookup(AstBuilder *b, Symbol *symbol, String name)
 {
   return ast_builder_push(b, AST_LOOKUP,
     ast_lookup_new(&b->pool,
-      ast_to_symbol_ref(ast_builder_pop(b)),
+      symbol,
       pool_string_copy(&b->pool, name)));
 }

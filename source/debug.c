@@ -15,6 +15,7 @@
  */
 
 #include "debug.h"
+#include "scope.h"
 #include <stdio.h>
 
 void dump_code_node(AstCodeNode node, int indent);
@@ -37,10 +38,11 @@ void dump_filter_and(AstFilterAnd *p);
 void dump_filter_or(AstFilterOr *p);
 
 void dump_set(AstSet *p);
-void dump_symbol_new(AstSymbolNew *p);
 void dump_symbol_ref(AstSymbolRef *p);
 void dump_call(AstCall *p);
 void dump_lookup(AstLookup *p);
+
+void dump_symbol(Symbol *p);
 
 #define INDENT 2
 
@@ -157,7 +159,7 @@ void dump_map(AstMap *p)
   AstMapLine **line;
 
   printf("\\ol map ");
-  dump_symbol_new(p->symbol);
+  dump_symbol(p->item);
   printf(" {\n");
 
   for (line = p->lines; line != p->lines_end; ++line)
@@ -181,9 +183,9 @@ void dump_map_line(AstMapLine *p)
 void dump_for(AstFor *p)
 {
   printf("\\ol for ");
-  dump_symbol_new(p->symbol);
+  dump_symbol(p->item);
   printf(" in ");
-  dump_symbol_ref(p->outline);
+  dump_symbol(p->outline);
 
   if (p->filter) {
     printf(" with ");
@@ -260,19 +262,9 @@ void dump_filter_or(AstFilterOr *p)
 
 void dump_set(AstSet *p)
 {
-  dump_symbol_new(p->symbol);
+  dump_symbol(p->symbol);
   printf(" = ");
   dump_code_node(p->value, 0);
-}
-
-/**
- * Prints an new symbol name definition.
- */
-void dump_symbol_new(AstSymbolNew *p)
-{
-  char *symbol = string_to_c(p->symbol);
-  printf("%s", symbol);
-  free(symbol);
 }
 
 /**
@@ -280,9 +272,7 @@ void dump_symbol_new(AstSymbolNew *p)
  */
 void dump_symbol_ref(AstSymbolRef *p)
 {
-  char *symbol = string_to_c(p->symbol->symbol);
-  printf("<%s>", symbol);
-  free(symbol);
+  dump_symbol(p->symbol);
 }
 
 /**
@@ -290,9 +280,9 @@ void dump_symbol_ref(AstSymbolRef *p)
  */
 void dump_call(AstCall *p)
 {
-  dump_symbol_ref(p->f);
+  dump_symbol(p->f);
   printf("(");
-  dump_symbol_ref(p->data);
+  dump_symbol(p->data);
   printf(")");
 }
 
@@ -302,7 +292,14 @@ void dump_call(AstCall *p)
 void dump_lookup(AstLookup *p)
 {
   char *temp = string_to_c(p->name);
-  dump_symbol_ref(p->symbol);
+  dump_symbol(p->symbol);
   printf("!%s", temp);
   free(temp);
+}
+
+void dump_symbol(Symbol *p)
+{
+  char *symbol = string_to_c(p->symbol);
+  printf("%s", symbol);
+  free(symbol);
 }
