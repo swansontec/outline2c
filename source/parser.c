@@ -201,12 +201,21 @@ symbol:
   /* Handle symbol replacement: */
   advance(ctx, 1);
   start = ctx->marker.p;
+  if (symbol->type != AST_OUTLINE_ITEM) {
+    error(ctx, "Wrong type - only outline items may be embedded in C code.\n");
+    return 1;
+  }
+
   /* Is there a lookup modifier? */
   if (ctx->token == LEX_BANG) {
     advance(ctx, 1);
     if (ctx->token == LEX_IDENTIFIER) {
       Symbol *lookup = ast_builder_scope_find(b, string_init(ctx->marker.p, ctx->cursor.p));
       if (lookup) {
+        if (lookup->type != AST_MAP) {
+          error(ctx, "Wrong type - expecting a map here.\n");
+          return 1;
+        }
         ENSURE_BUILD(ast_build_call(b, lookup, symbol));
       } else {
         ENSURE_BUILD(ast_build_lookup(b, symbol, string_init(ctx->marker.p, ctx->cursor.p)));
@@ -278,12 +287,13 @@ int parse_escape(Context *ctx, AstBuilder *b)
         return 1;
       }
 
-      symbol = ast_builder_scope_add(b, temp);
-      ENSURE_BUILD0(symbol);
-
       advance(ctx, 0);
       rv = parse_escape(ctx, b);
       ENSURE_SUCCESS(rv);
+
+      symbol = ast_builder_scope_add(b, temp);
+      ENSURE_BUILD0(symbol);
+      symbol->type = ast_builder_peek(b).type;
 
       ENSURE_BUILD(ast_build_set(b, symbol));
       return 0;
@@ -416,6 +426,7 @@ int parse_map(Context *ctx, AstBuilder *b)
   }
   item = ast_builder_scope_add(b, string_init(ctx->marker.p, ctx->cursor.p));
   ENSURE_BUILD0(item);
+  item->type = AST_OUTLINE_ITEM;
   advance(ctx, 0);
 
   /* Opening brace: */
@@ -483,6 +494,7 @@ int parse_for(Context *ctx, AstBuilder *b)
   }
   item = ast_builder_scope_add(b, string_init(ctx->marker.p, ctx->cursor.p));
   ENSURE_BUILD0(item);
+  item->type = AST_OUTLINE_ITEM;
   advance(ctx, 0);
 
   /* in keyword: */
@@ -505,6 +517,11 @@ int parse_for(Context *ctx, AstBuilder *b)
     error(ctx, "Could not find an outline with this name.");
     return 1;
   }
+  if (outline->type != AST_OUTLINE && outline->type != AST_OUTLINE_ITEM) {
+    error(ctx, "Wrong type - the for statement expects an outline.\n");
+    return 1;
+  }
+
   advance(ctx, 0);
 
   /* Behavior modification keywords: */

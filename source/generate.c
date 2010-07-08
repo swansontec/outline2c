@@ -47,10 +47,7 @@ int write_cap(FileW *out, String s);
 
 AstOutlineItem *symbol_as_item(Symbol *p)
 {
-  if (p->type != AST_OUTLINE_ITEM) {
-    printf("Type error - this is not an outline item.\n");
-    exit(1);
-  }
+  assert(p->type == AST_OUTLINE_ITEM);
   return p->value;
 }
 
@@ -162,8 +159,7 @@ int generate_for(FileW *out, AstFor *p)
     AstOutlineItem *item = p->outline->value;
     items = item->children;
   } else {
-    fprintf(stderr, "Type error - this is not an outline.\n");
-    return 1;
+    assert(0);
   }
   if (!items)
     return 0;
@@ -172,7 +168,6 @@ int generate_for(FileW *out, AstFor *p)
   if (p->reverse) {
     for (item = items->items_end - 1; item != items->items - 1; --item) {
       if (!p->filter || test_filter(p->filter, *item)) {
-        p->item->type = AST_OUTLINE_ITEM;
         p->item->value = *item;
         if (p->list && need_comma) {
           char c = ',';
@@ -186,7 +181,6 @@ int generate_for(FileW *out, AstFor *p)
   } else {
     for (item = items->items; item != items->items_end; ++item) {
       if (!p->filter || test_filter(p->filter, *item)) {
-        p->item->type = AST_OUTLINE_ITEM;
         p->item->value = *item;
         if (p->list && need_comma) {
           char c = ',';
@@ -207,7 +201,6 @@ int generate_for(FileW *out, AstFor *p)
  */
 int generate_set(AstSet *p)
 {
-  p->symbol->type = p->value.type;
   p->symbol->value = p->value.p;
   return 0;
 }
@@ -233,17 +226,10 @@ int generate_call(FileW *out, AstCall *p)
   char *temp;
 
   /* Symbol lookup: */
-  if (p->data->type != AST_OUTLINE_ITEM) {
-    printf("Type error - this is not an outline item.\n");
-    return 1;
-  }
-  if (p->f->type != AST_MAP) {
-    printf("Type error - this is not a map.\n");
-    return 1;
-  }
+  assert(p->data->type == AST_OUTLINE_ITEM);
+  assert(p->f->type == AST_MAP);
   item = p->data->value;
   map = p->f->value;
-  map->item->type = p->data->type;
   map->item->value = p->data->value;
 
   /* Match against the map: */
