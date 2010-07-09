@@ -124,15 +124,8 @@ variable:
   if (token == LEX_BANG) {
     start = in->cursor; token = lex(&in->cursor, in->data.end);
     if (token == LEX_IDENTIFIER) {
-      if (scope_get(scope, &out, string_init(start, in->cursor))) {
-        if (out.type != AST_MAP)
-          return source_error(in, "Wrong type - expecting a map here.\n");
-        CHECK(or.code(or.data, AST_MAP_CALL,
-          ast_map_call_new(pool, variable, ast_to_map(out))));
-      } else {
-        CHECK(or.code(or.data, AST_LOOKUP,
-          ast_lookup_new(pool, variable, string_init(start, in->cursor))));
-      }
+      CHECK(or.code(or.data, AST_LOOKUP,
+        ast_lookup_new(pool, variable, string_init(start, in->cursor))));
       start_c = in->cursor;
       start = in->cursor; token = lex(&in->cursor, in->data.end);
     } else {
@@ -351,18 +344,16 @@ int parse_map(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 {
   char const *start;
   Token token;
+  Dynamic out;
   ListBuilder lines = list_builder_init(pool);
-  Scope inner = scope_init(scope);
   AstMap *self = pool_alloc(pool, sizeof(AstMap));
   CHECK_MEM(self);
 
-  /* Map name: */
-  token = lex_next(&start, &in->cursor, in->data.end);
-  if (token != LEX_IDENTIFIER)
-    return source_error(in, "An map stament must begin with a name.");
-  CHECK(self->item = ast_variable_new(pool, string_init(start, in->cursor)));
-  CHECK(scope_add(&inner, pool, self->item->name, AST_VARIABLE, self->item));
-  assert(self->item);
+  /* Item to look up: */
+  CHECK(lwl_parse_value(pool, in, scope, dynamic_out(&out)));
+  if (out.type != AST_VARIABLE)
+    return source_error(in, "Wrong type - expecting an outline item as a map parameter.");
+  self->item = out.p;
 
   /* Opening brace: */
   token = lex_next(&start, &in->cursor, in->data.end);
@@ -373,7 +364,7 @@ int parse_map(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   token = lex_next(&start, &in->cursor, in->data.end);
   while (token != LEX_BRACE_R) {
     in->cursor = start;
-    CHECK(parse_map_line(pool, in, &inner, list_builder_out(&lines)));
+    CHECK(parse_map_line(pool, in, scope, list_builder_out(&lines)));
     token = lex_next(&start, &in->cursor, in->data.end);
   }
   self->lines = lines.first;

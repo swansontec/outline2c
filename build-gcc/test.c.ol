@@ -3,15 +3,14 @@
 \ol for i in included { i }
 
 /* Test maps: */
-\ol test_map = map x {
-  a { x!quote: type_a }
-  b { x!quote: type_b }
-  * { x!quote: other }
-}
 \ol test_map_ol = outline {
   a one; b two; c three;
 }
-\ol for i in test_map_ol { i!test_map }
+\ol for i in test_map_ol {\ol map i {
+  a { i!quote: type_a }
+  b { i!quote: type_b }
+  * { i!quote: other }
+}}
 
 /* Test nested outlines: */
 \ol test_nesting = outline {

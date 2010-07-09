@@ -40,7 +40,6 @@ void dump_filter_or(AstFilterOr *p);
 void dump_macro_call(AstMacroCall *p);
 
 void dump_variable(AstVariable *p);
-void dump_map_call(AstMapCall *p);
 void dump_lookup(AstLookup *p);
 
 void dump_text(String text);
@@ -75,8 +74,6 @@ void dump_code_node(AstCodeNode node, int indent)
     dump_macro_call(node.p);
   } else if (node.type == AST_VARIABLE) {
     dump_variable(node.p);
-  } else if (node.type == AST_MAP_CALL) {
-    dump_map_call(node.p);
   } else if (node.type == AST_LOOKUP) {
     dump_lookup(node.p);
   } else {
@@ -287,16 +284,6 @@ void dump_macro_call(AstMacroCall *p)
 void dump_variable(AstVariable *p)
 {
   dump_text(p->name);
-}
-
-/**
- * Prints a map call
- */
-void dump_map_call(AstMapCall *p)
-{
-  dump_text(p->item->name);
-  printf("!");
-  dump_map(p->map);
 }
 
 /**

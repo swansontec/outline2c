@@ -35,7 +35,6 @@ typedef struct ast_filter_or            AstFilterOr;
 typedef struct ast_macro                AstMacro;
 typedef struct ast_macro_call           AstMacroCall;
 typedef struct ast_variable             AstVariable;
-typedef struct ast_map_call             AstMapCall;
 typedef struct ast_lookup               AstLookup;
 
 typedef struct ast_code_node            AstCodeNode;
@@ -45,10 +44,10 @@ typedef struct ast_filter_node          AstFilterNode;
 /**
  * Points to one of:
  *  AstCodeText
+ *  AstMap
  *  AstFor
  *  AstMacroCall
  *  AstVariable
- *  AstMapCall
  *  AstLookup
  */
 struct ast_code_node {
@@ -224,14 +223,6 @@ struct ast_variable {
 };
 
 /**
- * A call to a map
- */
-struct ast_map_call {
-  AstVariable *item;
-  AstMap *map;
-};
-
-/**
  * A modifier on a symbol.
  */
 struct ast_lookup {
@@ -242,7 +233,6 @@ struct ast_lookup {
 AstCodeText        *ast_code_text_new           (Pool *p, String code);
 AstOutlineTag      *ast_outline_tag_new         (Pool *p, String name, ListNode *value);
 AstVariable        *ast_variable_new            (Pool *p, String name);
-AstMapCall         *ast_map_call_new            (Pool *p, AstVariable *item, AstMap *map);
 AstLookup          *ast_lookup_new              (Pool *p, AstVariable *item, String name);
 
 #endif
