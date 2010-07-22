@@ -93,6 +93,7 @@
     <ClCompile Include="..\source\main.c" />
     <ClCompile Include="..\source\parser.c" />
     <ClCompile Include="..\source\pool.c" />
+    <ClCompile Include="..\source\scope.c" />
     <ClCompile Include="..\source\string.c" />
   </ItemGroup>
   <ItemGroup>
@@ -105,6 +106,7 @@
     <ClInclude Include="..\source\lexer.h" />
     <ClInclude Include="..\source\parser.h" />
     <ClInclude Include="..\source\pool.h" />
+    <ClInclude Include="..\source\scope.h" />
     <ClInclude Include="..\source\string.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -18,7 +18,8 @@
 #define GENERATE_H_INCLUDED
 
 #include "file.h"
+#include "string.h"
 
-int generate(FileW *out, char const *filename);
+int generate(FileW *out, String filename, int debug);
 
 #endif

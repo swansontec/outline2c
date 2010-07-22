@@ -101,12 +101,6 @@ AstFilter *ast_to_filter(AstNode node)
   return node.p;
 }
 
-AstSymbolNew *ast_to_symbol_new(AstNode node)
-{
-  assert(node.type == AST_SYMBOL_NEW);
-  return node.p;
-}
-
 AstSymbolRef *ast_to_symbol_ref(AstNode node)
 {
   assert(node.type == AST_SYMBOL_REF);
@@ -199,15 +193,15 @@ AstOutlineTag *ast_outline_tag_new(Pool *p, String name, AstCode *value)
   return self;
 }
 
-AstMap *ast_map_new(Pool *p, AstSymbolNew *symbol, AstMapLine **lines, AstMapLine **lines_end)
+AstMap *ast_map_new(Pool *p, Symbol *item, AstMapLine **lines, AstMapLine **lines_end)
 {
   AstMap *self;
-  if (!symbol) return 0;
+  if (!item) return 0;
   if (!lines) return 0;
 
   self = pool_alloc(p, sizeof(AstMap));
   if (!self) return 0;
-  self->symbol = symbol;
+  self->item = item;
   self->lines = lines;
   self->lines_end = lines_end;
   return self;
@@ -226,17 +220,17 @@ AstMapLine *ast_map_line_new(Pool *p, AstFilter *filter, AstCode *code)
   return self;
 }
 
-AstFor *ast_for_new(Pool *p, AstSymbolNew *symbol, AstSymbolRef *outline, AstFilter *filter, int reverse, int list, AstCode *code)
+AstFor *ast_for_new(Pool *p, Symbol *item, Symbol *outline, AstFilter *filter, int reverse, int list, AstCode *code)
 {
   AstFor *self;
-  if (!symbol) return 0;
+  if (!item) return 0;
   if (!outline) return 0;
   /* filter may be NULL */
   if (!code) return 0;
 
   self = pool_alloc(p, sizeof(AstFor));
   if (!self) return 0;
-  self->symbol = symbol;
+  self->item = item;
   self->outline = outline;
   self->filter = filter;
   self->reverse = reverse;
@@ -313,7 +307,7 @@ AstFilterOr *ast_filter_or_new(Pool *p, AstFilterNode test_a, AstFilterNode test
   return self;
 }
 
-AstSet *ast_set_new(Pool *p, AstSymbolNew *symbol, AstCodeNode value)
+AstSet *ast_set_new(Pool *p, Symbol *symbol, AstCodeNode value)
 {
   AstSet *self;
   if (!symbol) return 0;
@@ -326,20 +320,7 @@ AstSet *ast_set_new(Pool *p, AstSymbolNew *symbol, AstCodeNode value)
   return self;
 }
 
-AstSymbolNew *ast_symbol_new_new(Pool *p, String symbol)
-{
-  AstSymbolNew *self;
-  if (!string_size(symbol)) return 0;
-
-  self = pool_alloc(p, sizeof(AstSymbolNew));
-  if (!self) return 0;
-  self->symbol = symbol;
-  self->value = 0;
-  self->type = AST_END;
-  return self;
-}
-
-AstSymbolRef *ast_symbol_ref_new(Pool *p, AstSymbolNew *symbol)
+AstSymbolRef *ast_symbol_ref_new(Pool *p, Symbol *symbol)
 {
   AstSymbolRef *self;
   if (!symbol) return 0;
@@ -350,7 +331,7 @@ AstSymbolRef *ast_symbol_ref_new(Pool *p, AstSymbolNew *symbol)
   return self;
 }
 
-AstCall *ast_call_new(Pool *p, AstSymbolRef *f, AstSymbolRef *data)
+AstCall *ast_call_new(Pool *p, Symbol *f, Symbol *data)
 {
   AstCall *self;
   if (!f) return 0;
@@ -363,7 +344,7 @@ AstCall *ast_call_new(Pool *p, AstSymbolRef *f, AstSymbolRef *data)
   return self;
 }
 
-AstLookup *ast_lookup_new(Pool *p, AstSymbolRef *symbol, String name)
+AstLookup *ast_lookup_new(Pool *p, Symbol *symbol, String name)
 {
   AstLookup *self;
   if (!symbol) return 0;

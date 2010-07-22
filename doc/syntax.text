@@ -30,7 +30,7 @@ This example loops over the items in the outline named "breakfast". On each iter
 Renaming items
 --------------
 
-It often makes sense to modify the name of an outline item before writing it to the output. For example, the generated code might be defining a C variable for each item in an outline. The name of the variable should be based on the item name, but might have a prefix or have a different capitalization. Outline2c provides some tools for dealing with these situations.
+It often makes sense to modify the name of an outline item before writing it to the output. For example, the generated code might be defining a C variable for each item in an outline. The variable's name should be based on the item name, but might need a prefix or a different capitalization. Outline2c provides some tools for dealing with these situations.
 
 The `\\\\` operator concatenates text onto the beginning or end of an item name:
 
@@ -70,7 +70,7 @@ Generates:
 Advanced options
 ----------------
 
-Outline2c provides a few options which modify the behavior of the `for` statment. The `list` option inserts a comma between each block of code. This can prove necessary when generating function parameter lists, enum definitions, or other similar items:
+Outline2c provides a few options which modify the behavior of the `for` statment. The `list` option inserts a comma between each block of code. This is useful when generating function parameter lists, enum definitions, and so forth:
 
     int place_order(\ol for food in breakfast list { int food });
 
@@ -103,11 +103,11 @@ Tags are mainly used to filter items by type. One way to do this is by restricti
 
     \ol for member in club with active { member; }
 
-The `with` option can be combined in any order with the `list` and `reverse` options. The example above only processes items in the "club" outline that have an "active" tag:
+The example above only processes items in the "club" outline that have an "active" tag:
 
     tim;  bob;
 
-The `with` option support several operators:
+The `with` option can be freely combined with the `list` and `reverse` options. Tag filters support several operators:
 
 * `tag` - matches any item that has `tag`
 * `!tag` - matches any item that does not have `tag`

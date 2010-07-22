@@ -19,6 +19,6 @@
 
 #include "ast-builder.h"
 
-int parse_file(char const *filename, AstBuilder *b);
+int parse_file(String filename, AstBuilder *b);
 
 #endif

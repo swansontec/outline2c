@@ -45,23 +45,19 @@ int write_lower(FileW *out, String s);
 int write_upper(FileW *out, String s);
 int write_cap(FileW *out, String s);
 
-AstOutlineItem *symbol_as_item(AstSymbolRef *p)
+AstOutlineItem *symbol_as_item(Symbol *p)
 {
-  if (p->symbol->type != AST_OUTLINE_ITEM) {
-    printf("Type error - this is not an outline item.\n");
-    exit(1);
-  }
-  return p->symbol->value;
+  assert(p->type == AST_OUTLINE_ITEM);
+  return p->value;
 }
 
 /**
  * Opens the file given in filename, parses it, processes it, and writes the
  * results to the output file.
  */
-int generate(FileW *out, char const *filename)
+int generate(FileW *out, String filename, int debug)
 {
   int rv;
-  int debug = 0;
   AstBuilder b;
   AstFile *file;
 
@@ -157,14 +153,13 @@ int generate_for(FileW *out, AstFor *p)
   int need_comma = 0;
 
   /* Find the outline list to process: */
-  if (p->outline->symbol->type == AST_OUTLINE) {
-    items = p->outline->symbol->value;
-  } else if (p->outline->symbol->type == AST_OUTLINE_ITEM) {
-    AstOutlineItem *item = p->outline->symbol->value;
+  if (p->outline->type == AST_OUTLINE) {
+    items = p->outline->value;
+  } else if (p->outline->type == AST_OUTLINE_ITEM) {
+    AstOutlineItem *item = p->outline->value;
     items = item->children;
   } else {
-    fprintf(stderr, "Type error - this is not an outline.\n");
-    return 1;
+    assert(0);
   }
   if (!items)
     return 0;
@@ -173,8 +168,7 @@ int generate_for(FileW *out, AstFor *p)
   if (p->reverse) {
     for (item = items->items_end - 1; item != items->items - 1; --item) {
       if (!p->filter || test_filter(p->filter, *item)) {
-        p->symbol->type = AST_OUTLINE_ITEM;
-        p->symbol->value = *item;
+        p->item->value = *item;
         if (p->list && need_comma) {
           char c = ',';
           file_w_write(out, &c, &c + 1);
@@ -187,8 +181,7 @@ int generate_for(FileW *out, AstFor *p)
   } else {
     for (item = items->items; item != items->items_end; ++item) {
       if (!p->filter || test_filter(p->filter, *item)) {
-        p->symbol->type = AST_OUTLINE_ITEM;
-        p->symbol->value = *item;
+        p->item->value = *item;
         if (p->list && need_comma) {
           char c = ',';
           file_w_write(out, &c, &c + 1);
@@ -208,7 +201,6 @@ int generate_for(FileW *out, AstFor *p)
  */
 int generate_set(AstSet *p)
 {
-  p->symbol->type = p->value.type;
   p->symbol->value = p->value.p;
   return 0;
 }
@@ -218,7 +210,7 @@ int generate_set(AstSet *p)
  */
 int generate_symbol_ref(FileW *out, AstSymbolRef *p)
 {
-  AstOutlineItem *item = symbol_as_item(p);
+  AstOutlineItem *item = symbol_as_item(p->symbol);
   file_w_write(out, item->name.p, item->name.end);
   return 0;
 }
@@ -234,18 +226,11 @@ int generate_call(FileW *out, AstCall *p)
   char *temp;
 
   /* Symbol lookup: */
-  if (p->data->symbol->type != AST_OUTLINE_ITEM) {
-    printf("Type error - this is not an outline item.\n");
-    return 1;
-  }
-  if (p->f->symbol->type != AST_MAP) {
-    printf("Type error - this is not a map.\n");
-    return 1;
-  }
-  item = p->data->symbol->value;
-  map = p->f->symbol->value;
-  map->symbol->type = p->data->symbol->type;
-  map->symbol->value = p->data->symbol->value;
+  assert(p->data->type == AST_OUTLINE_ITEM);
+  assert(p->f->type == AST_MAP);
+  item = p->data->value;
+  map = p->f->value;
+  map->item->value = p->data->value;
 
   /* Match against the map: */
   for (line = map->lines; line != map->lines_end; ++line) {
@@ -257,7 +242,7 @@ int generate_call(FileW *out, AstCall *p)
   }
 
   /* Nothing matched: */
-  temp = string_to_c(p->f->symbol->symbol);
+  temp = string_to_c(p->f->symbol);
   fprintf(stderr, "Could not match against map \"%s\".\n", temp);
   free(temp);
   return 1;
@@ -314,10 +299,12 @@ int generate_lookup_tag(FileW *out, AstLookup *p)
  */
 int generate_lookup_builtin(FileW *out, AstLookup *p)
 {
+  AstOutlineItem *item;
   if (string_equal(p->name, string_init_l("quote", 5))) {
     char q = '"';
     file_w_write(out, &q, &q + 1);
-    generate_symbol_ref(out, p->symbol);
+    item = symbol_as_item(p->symbol);
+    file_w_write(out, item->name.p, item->name.end);
     file_w_write(out, &q, &q + 1);
     return 1;
   } else if (string_equal(p->name, string_init_l("lower", 5))) {
