@@ -44,8 +44,14 @@ int write_lower(FILE *out, String s);
 int write_upper(FILE *out, String s);
 int write_cap(FILE *out, String s);
 
-/* Writes bytes to a file, and returns 0 on success. */
-#define file_write(file, p, end) (fwrite(p, 1, end - p, file) != end - p)
+/* Writes bytes to a file, and returns 0 for failure. */
+#define file_write(file, p, end) (fwrite(p, 1, end - p, file) == end - p)
+
+/**
+ * All generate functions return 1 for success and 0 for failure. This
+ * macro checks a return code and bails out if it indicates an error.
+ */
+#define CHECK(r) do { if (!r) return 0; } while(0)
 
 AstOutlineItem *symbol_as_item(Symbol *p)
 {
@@ -56,21 +62,19 @@ AstOutlineItem *symbol_as_item(Symbol *p)
 /**
  * Opens the file given in filename, parses it, processes it, and writes the
  * results to the output file.
+ * @return 0 for failure
  */
 int generate(FILE *out, String filename, int debug)
 {
-  int rv;
   AstBuilder b;
   AstFile *file;
 
-  rv = ast_builder_init(&b);
-  if (rv) {
+  if (!ast_builder_init(&b)) {
     fprintf(stderr, "Out of memory!\n");
-    return 1;
+    return 0;
   }
 
-  rv = parse_file(filename, &b);
-  if (rv) return rv;
+  CHECK(parse_file(filename, &b));
   file = ast_to_file(ast_builder_pop(&b));
 
   if (debug) {
@@ -78,11 +82,10 @@ int generate(FILE *out, String filename, int debug)
     dump_code(file->code, 0);
   }
 
-  if (generate_code(out, file->code))
-    return 1;
+  CHECK(generate_code(out, file->code));
 
   ast_builder_free(&b);
-  return 0;
+  return 1;
 }
 
 /**
@@ -90,39 +93,31 @@ int generate(FILE *out, String filename, int debug)
  */
 int generate_code(FILE *out, AstCode *p)
 {
-  int rv;
   AstCodeNode *node;
 
   for (node = p->nodes; node != p->nodes_end; ++node) {
     if (node->type == AST_CODE_TEXT) {
       AstCodeText *p = node->p;
-      rv = file_write(out, p->code.p, p->code.end);
-      if (rv) return rv;
+      CHECK(file_write(out, p->code.p, p->code.end));
     } else if (node->type == AST_INCLUDE) {
-      rv = generate_include(node->p);
-      if (rv) return rv;
+      CHECK(generate_include(node->p));
     } else if (node->type == AST_OUTLINE) {
     } else if (node->type == AST_MAP) {
     } else if (node->type == AST_FOR) {
-      rv = generate_for(out, node->p);
-      if (rv) return rv;
+      CHECK(generate_for(out, node->p));
     } else if (node->type == AST_SET) {
-      rv = generate_set(node->p);
-      if (rv) return rv;
+      CHECK(generate_set(node->p));
     } else if (node->type == AST_SYMBOL_REF) {
-      rv = generate_symbol_ref(out, node->p);
-      if (rv) return rv;
+      CHECK(generate_symbol_ref(out, node->p));
     } else if (node->type == AST_CALL) {
-      rv = generate_call(out, node->p);
-      if (rv) return rv;
+      CHECK(generate_call(out, node->p));
     } else if (node->type == AST_LOOKUP) {
-      rv = generate_lookup(out, node->p);
-      if (rv) return rv;
+      CHECK(generate_lookup(out, node->p));
     } else {
       assert(0);
     }
   }
-  return 0;
+  return 1;
 }
 
 /**
@@ -130,19 +125,16 @@ int generate_code(FILE *out, AstCode *p)
  */
 int generate_include(AstInclude *p)
 {
-  int rv;
   AstCodeNode *node;
 
   for (node = p->file->code->nodes; node != p->file->code->nodes_end; ++node) {
     if (node->type == AST_SET) {
-      rv = generate_set(node->p);
-      if (rv) return rv;
+      CHECK(generate_set(node->p));
     } else if (node->type == AST_INCLUDE) {
-      rv = generate_include(node->p);
-      if (rv) return rv;
+      CHECK(generate_include(node->p));
     }
   }
-  return 0;
+  return 1;
 }
 
 /**
@@ -164,7 +156,7 @@ int generate_for(FILE *out, AstFor *p)
     assert(0);
   }
   if (!items)
-    return 0;
+    return 1;
 
   /* Process the list: */
   if (p->reverse) {
@@ -175,8 +167,7 @@ int generate_for(FILE *out, AstFor *p)
           char c = ',';
           file_write(out, &c, &c + 1);
         }
-        if (generate_code(out, p->code))
-          return 1;
+        CHECK(generate_code(out, p->code));
         need_comma = 1;
       }
     }
@@ -188,14 +179,13 @@ int generate_for(FILE *out, AstFor *p)
           char c = ',';
           file_write(out, &c, &c + 1);
         }
-        if (generate_code(out, p->code))
-          return 1;
+        CHECK(generate_code(out, p->code));
         need_comma = 1;
       }
     }
   }
 
-  return 0;
+  return 1;
 }
 
 /**
@@ -204,7 +194,7 @@ int generate_for(FILE *out, AstFor *p)
 int generate_set(AstSet *p)
 {
   p->symbol->value = p->value.p;
-  return 0;
+  return 1;
 }
 
 /**
@@ -214,7 +204,7 @@ int generate_symbol_ref(FILE *out, AstSymbolRef *p)
 {
   AstOutlineItem *item = symbol_as_item(p->symbol);
   file_write(out, item->name.p, item->name.end);
-  return 0;
+  return 1;
 }
 
 /**
@@ -237,9 +227,8 @@ int generate_call(FILE *out, AstCall *p)
   /* Match against the map: */
   for (line = map->lines; line != map->lines_end; ++line) {
     if (test_filter((*line)->filter, item)) {
-      if (generate_code(out, (*line)->code))
-        return 1;
-      return 0;
+      CHECK(generate_code(out, (*line)->code));
+      return 1;
     }
   }
 
@@ -247,7 +236,7 @@ int generate_call(FILE *out, AstCall *p)
   temp = string_to_c(p->f->symbol);
   fprintf(stderr, "Could not match against map \"%s\".\n", temp);
   free(temp);
-  return 1;
+  return 0;
 }
 
 /**
@@ -259,25 +248,25 @@ int generate_lookup(FILE *out, AstLookup *p)
 
   /* If a tag satisfies the lookup, generate that: */
   rv = generate_lookup_tag(out, p);
-  if (rv == 1) return 0;
-  if (rv == -1) return 1;
+  if (rv == 1) return 1;
+  if (rv == 0) return 0;
 
   /* If that didn't work, try the built-in transforms: */
   if (generate_lookup_builtin(out, p))
-    return 0;
+    return 1;
 
   {
     char *temp = string_to_c(p->name);
     fprintf(stderr, "Could not find a transform named %s.\n", temp);
     free(temp);
   }
-  return 1;
+  return 0;
 }
 
 /**
  * Searches for a tag with the specified name in an outline item. If the tag
  * exists and has a value, the function emits the value and returns 1.
- * Otherwise, the function returns 0. Returns -1 for errors.
+ * Otherwise, the function returns -1. Returns 0 for errors.
  */
 int generate_lookup_tag(FILE *out, AstLookup *p)
 {
@@ -286,13 +275,12 @@ int generate_lookup_tag(FILE *out, AstLookup *p)
 
   for (tag = item->tags; tag != item->tags_end; ++tag) {
     if ((*tag)->value && string_equal((*tag)->name, p->name)) {
-      if (generate_code(out, (*tag)->value))
-        return -1;
+      CHECK(generate_code(out, (*tag)->value));
       return 1;
     }
   }
 
-  return 0;
+  return -1;
 }
 
 /**
@@ -310,13 +298,13 @@ int generate_lookup_builtin(FILE *out, AstLookup *p)
     file_write(out, &q, &q + 1);
     return 1;
   } else if (string_equal(p->name, string_init_l("lower", 5))) {
-    return !generate_lower(out, symbol_as_item(p->symbol)->name);
+    return generate_lower(out, symbol_as_item(p->symbol)->name);
   } else if (string_equal(p->name, string_init_l("upper", 5))) {
-    return !generate_upper(out, symbol_as_item(p->symbol)->name);
+    return generate_upper(out, symbol_as_item(p->symbol)->name);
   } else if (string_equal(p->name, string_init_l("camel", 5))) {
-    return !generate_camel(out, symbol_as_item(p->symbol)->name);
+    return generate_camel(out, symbol_as_item(p->symbol)->name);
   } else if (string_equal(p->name, string_init_l("mixed", 5))) {
-    return !generate_mixed(out, symbol_as_item(p->symbol)->name);
+    return generate_mixed(out, symbol_as_item(p->symbol)->name);
   }
 
   return 0;
@@ -341,7 +329,7 @@ int generate_lower(FILE *out, String s)
   }
   write_trailing(out, s, inner);
 
-  return 0;
+  return 1;
 }
 
 /**
@@ -363,7 +351,7 @@ int generate_upper(FILE *out, String s)
   }
   write_trailing(out, s, inner);
 
-  return 0;
+  return 1;
 }
 
 /**
@@ -381,7 +369,7 @@ int generate_camel(FILE *out, String s)
   }
   write_trailing(out, s, inner);
 
-  return 0;
+  return 1;
 }
 
 /**
@@ -403,7 +391,7 @@ int generate_mixed(FILE *out, String s)
   }
   write_trailing(out, s, inner);
 
-  return 0;
+  return 1;
 }
 
 /**
@@ -483,20 +471,20 @@ String scan_symbol(String s, char const *p)
  * @param s the entire string, including leading and trailing underscores.
  * @param inner the inner portion of the string after underscores have been
  * stripped.
- * @return 0 for success
+ * @return 0 for failure
  */
 int write_leading(FILE *out, String s, String inner)
 {
   if (s.p != inner.p)
     return file_write(out, s.p, inner.p);
-  return 0;
+  return 1;
 }
 
 int write_trailing(FILE *out, String s, String inner)
 {
   if (inner.end != s.end)
     return file_write(out, inner.end, s.end);
-  return 0;
+  return 1;
 }
 
 /**
@@ -507,9 +495,9 @@ int write_lower(FILE *out, String s)
   char const *p;
   for (p = s.p; p != s.end; ++p) {
     char c = 'A' <= *p && *p <= 'Z' ? *p - 'A' + 'a' : *p;
-    if (file_write(out, &c, &c + 1)) return 1;
+    CHECK(file_write(out, &c, &c + 1));
   }
-  return 0;
+  return 1;
 }
 
 /**
@@ -520,9 +508,9 @@ int write_upper(FILE *out, String s)
   char const *p;
   for (p = s.p; p != s.end; ++p) {
     char c = 'a' <= *p && *p <= 'z' ? *p - 'a' + 'A' : *p;
-    if (file_write(out, &c, &c + 1)) return 1;
+    CHECK(file_write(out, &c, &c + 1));
   }
-  return 0;
+  return 1;
 }
 
 /**
@@ -535,7 +523,7 @@ int write_cap(FILE *out, String s)
     char c = (p == s.p) ?
       ('a' <= *p && *p <= 'z' ? *p - 'a' + 'A' : *p) :
       ('A' <= *p && *p <= 'Z' ? *p - 'A' + 'a' : *p) ;
-    if (file_write(out, &c, &c + 1)) return 1;
+    CHECK(file_write(out, &c, &c + 1));
   }
-  return 0;
+  return 1;
 }

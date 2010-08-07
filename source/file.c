@@ -29,7 +29,7 @@ void file_r_init(FileR *file)
 /**
  * Opens a file, storing cleanup data and content pointers in the File
  * structure. The content pointers will be NULL if the function fails.
- * @return 0 for success
+ * @return 0 for failure
  */
 int file_r_open(FileR *file, char const *name)
 {
@@ -39,7 +39,7 @@ int file_r_open(FileR *file, char const *name)
 
   fp = fopen(name, "rb");
   if (!fp)
-    return 1;
+    return 0;
 
   if (fseek(fp, 0, SEEK_END))
     goto error;
@@ -63,18 +63,17 @@ int file_r_open(FileR *file, char const *name)
   data[size] = 0;
   file->p = data;
   file->end = data + size;
-  return 0;
+  return 1;
 
 error:
   fclose(fp);
-  return 1;
+  return 0;
 }
 
 /**
  * Closes a file.
  */
-void
-file_r_close(FileR *file)
+void file_r_close(FileR *file)
 {
   if (file->p)
     free((char *)file->p);

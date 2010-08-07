@@ -17,17 +17,21 @@
 #include "ast-builder.h"
 #include <assert.h>
 
+/**
+ * Initializes the AST-building stack.
+ * @return 0 for failure
+ */
 int ast_builder_init(AstBuilder *b)
 {
-  if (pool_init(&b->pool, 0x10000)) /* 64K block size */
-    return 1;
+  if (!pool_init(&b->pool, 0x10000)) /* 64K block size */
+    return 0;
   b->stack_size = 32;
   b->stack = malloc(b->stack_size*sizeof(AstNode));
-  if (!b->stack) return 1;
+  if (!b->stack) return 0;
   b->stack_top = 0;
   b->scope = scope_new(&b->pool, 0);
-  if (!b->scope) return 1;
-  return 0;
+  if (!b->scope) return 0;
+  return 1;
 }
 
 void ast_builder_free(AstBuilder *b)
@@ -38,7 +42,7 @@ void ast_builder_free(AstBuilder *b)
 
 /**
  * Pushes an node onto the stack.
- * @return 0 for success
+ * @return 0 for failure
  */
 int ast_builder_push(AstBuilder *b, AstType type, void *p)
 {
@@ -46,19 +50,19 @@ int ast_builder_push(AstBuilder *b, AstType type, void *p)
   node.p = p;
   node.type = type;
 
-  if (!p) return 1;
+  if (!p) return 0;
 
   /* Grow, if needed: */
   if (b->stack_size <= b->stack_top) {
     size_t new_size = 2*b->stack_size;
     AstNode *new_stack = realloc(b->stack, new_size*sizeof(AstNode));
-    if (!new_stack) return 1;
+    if (!new_stack) return 0;
     b->stack_size = new_size;
     b->stack = new_stack;
   }
   b->stack[b->stack_top] = node;
   ++b->stack_top;
-  return 0;
+  return 1;
 }
 
 /**
@@ -141,7 +145,7 @@ int ast_build_code(AstBuilder *b)
 
   node_n = ast_builder_count(b);
   nodes = pool_alloc(&b->pool, node_n*sizeof(AstCodeNode));
-  if (!nodes) return 1;
+  if (!nodes) return 0;
 
   b->stack_top -= node_n;
   for (i = 0; i < node_n; ++i)
@@ -155,7 +159,7 @@ int ast_build_code(AstBuilder *b)
 int ast_build_code_text(AstBuilder *b, String code)
 {
   if (!string_size(code))
-    return 0;
+    return 1;
 
   return ast_builder_push(b, AST_CODE_TEXT,
     ast_code_text_new(&b->pool,
@@ -177,7 +181,7 @@ int ast_build_outline(AstBuilder *b)
 
   item_n = ast_builder_count(b);
   items = pool_alloc(&b->pool, item_n*sizeof(AstOutlineItem *));
-  if (!items) return 1;
+  if (!items) return 0;
 
   b->stack_top -= item_n;
   for (i = 0; i < item_n; ++i)
@@ -200,7 +204,7 @@ int ast_build_outline_item(AstBuilder *b, String name)
 
   tag_n = ast_builder_count(b);
   tags = pool_alloc(&b->pool, tag_n*sizeof(AstOutlineTag*));
-  if (!tags) return 1;
+  if (!tags) return 0;
 
   b->stack_top -= tag_n;
   for (i = 0; i < tag_n; ++i)
@@ -236,7 +240,7 @@ int ast_build_map(AstBuilder *b, Symbol *item)
 
   line_n = ast_builder_count(b);
   lines = pool_alloc(&b->pool, line_n*sizeof(AstMapLine*));
-  if (!lines) return 1;
+  if (!lines) return 0;
 
   b->stack_top -= line_n;
   for (i = 0; i < line_n; ++i)

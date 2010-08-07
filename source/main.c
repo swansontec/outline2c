@@ -39,6 +39,7 @@ void options_init(Options *self)
 /**
  * Processes the command-line options, filling in the members of the Options
  * structure corresponding to the switches.
+ * @return 0 for failure
  */
 int options_parse(Options *self, int argc, char *argv[])
 {
@@ -82,8 +83,7 @@ int main(int argc, char *argv[])
   FILE *file_out;
 
   options_init(&opt);
-  rv = options_parse(&opt, argc, argv);
-  if (!rv) {
+  if (!options_parse(&opt, argc, argv)) {
     fprintf(stderr, "Usage: %s [-d] [-o output-file] <input-file>\n", argv[0]);
     return 1;
   }
@@ -111,5 +111,5 @@ int main(int argc, char *argv[])
   /* Munchify files: */
   rv = generate(file_out, opt.name_in, opt.debug);
   fclose(file_out);
-  return rv;
+  return !rv;
 }
