@@ -89,9 +89,10 @@ Context context_init(String file, char const *filename)
 /**
  * Prints an error message.
  */
-void error(Context *ctx, char const *message)
+int error(Context *ctx, char const *message)
 {
   fprintf(stderr, "%s:%d:%d: error: %s\n", ctx->filename, ctx->marker.line + 1, ctx->marker.column + 1, message);
+  return 0;
 }
 
 /**
@@ -194,10 +195,8 @@ symbol:
   /* Handle symbol replacement: */
   advance(ctx, 1);
   start = ctx->marker.p;
-  if (symbol->type != AST_OUTLINE_ITEM) {
-    error(ctx, "Wrong type - only outline items may be embedded in C code.\n");
-    return 0;
-  }
+  if (symbol->type != AST_OUTLINE_ITEM)
+    return error(ctx, "Wrong type - only outline items may be embedded in C code.\n");
 
   /* Is there a lookup modifier? */
   if (ctx->token == LEX_BANG) {
@@ -205,10 +204,8 @@ symbol:
     if (ctx->token == LEX_IDENTIFIER) {
       Symbol *lookup = ast_builder_scope_find(b, string_init(ctx->marker.p, ctx->cursor.p));
       if (lookup) {
-        if (lookup->type != AST_MAP) {
-          error(ctx, "Wrong type - expecting a map here.\n");
-          return 0;
-        }
+        if (lookup->type != AST_MAP)
+          return error(ctx, "Wrong type - expecting a map here.\n");
         CHECK_MEM(ast_build_call(b, lookup, symbol));
       } else {
         CHECK_MEM(ast_build_lookup(b, symbol, string_init(ctx->marker.p, ctx->cursor.p)));
@@ -227,10 +224,8 @@ done:
   CHECK_MEM(ast_build_code_text(b, string_init(start, ctx->marker.p)));
 
   /* Handle end-of-code: */
-  if (scoped && ctx->token == LEX_END) {
-    error(ctx, "Unexpected end of input in code block.");
-    return 0;
-  }
+  if (scoped && ctx->token == LEX_END)
+    return error(ctx, "Unexpected end of input in code block.");
   CHECK_MEM(ast_build_code(b));
   return 1;
 }
@@ -242,8 +237,7 @@ int parse_escape(Context *ctx, AstBuilder *b)
 {
   /* Unexpected end of input: */
   if (ctx->token == LEX_END) {
-    error(ctx, "Unexpected end of input.");
-    return 0;
+    return error(ctx, "Unexpected end of input.");
   /* Nested {} block: */
   } else if (ctx->token == LEX_BRACE_L) {
     advance(ctx, 0);
@@ -272,10 +266,8 @@ int parse_escape(Context *ctx, AstBuilder *b)
 
       /* Assignment? */
       advance(ctx, 0);
-      if (ctx->token != LEX_EQUALS) {
-        error(ctx, "No idea what this keyword is.");
-        return 0;
-      }
+      if (ctx->token != LEX_EQUALS)
+        return error(ctx, "No idea what this keyword is.");
 
       advance(ctx, 0);
       CHECK(parse_escape(ctx, b));
@@ -288,8 +280,7 @@ int parse_escape(Context *ctx, AstBuilder *b)
       return 1;
     }
   } else {
-    error(ctx, "No idea what token this is.");
-    return 0;
+    return error(ctx, "No idea what token this is.");
   }
 }
 
@@ -298,20 +289,16 @@ int parse_escape(Context *ctx, AstBuilder *b)
  */
 int parse_include(Context *ctx, AstBuilder *b)
 {
-  if (ctx->token != LEX_STRING) {
-    error(ctx, "An include statment expects a quoted filename.");
-    return 0;
-  }
+  if (ctx->token != LEX_STRING)
+    return error(ctx, "An include statment expects a quoted filename.");
 
   /* Process the file's contents: */
   CHECK(parse_file(string_init(ctx->marker.p + 1, ctx->cursor.p - 1), b));
   CHECK_MEM(ast_build_include(b));
 
   advance(ctx, 0);
-  if (ctx->token != LEX_SEMICOLON) {
-    error(ctx, "An include stament must end with a semicolon.");
-    return 0;
-  }
+  if (ctx->token != LEX_SEMICOLON)
+    return error(ctx, "An include stament must end with a semicolon.");
   return 1;
 }
 
@@ -321,10 +308,8 @@ int parse_include(Context *ctx, AstBuilder *b)
 int parse_outline(Context *ctx, AstBuilder *b)
 {
   /* Opening brace: */
-  if (ctx->token != LEX_BRACE_L) {
-    error(ctx, "An outline must start with an opening {.");
-    return 0;
-  }
+  if (ctx->token != LEX_BRACE_L)
+    return error(ctx, "An outline must start with an opening {.");
 
   advance(ctx, 0);
   CHECK_MEM(ast_builder_push_start(b));
@@ -356,10 +341,8 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
     if (ctx->token == LEX_EQUALS) {
       /* Opening brace: */
       advance(ctx, 0);
-      if (ctx->token != LEX_BRACE_L) {
-        error(ctx, "A tag's value must be a code block.");
-        return 0;
-      }
+      if (ctx->token != LEX_BRACE_L)
+        return error(ctx, "A tag's value must be a code block.");
 
       CHECK(parse_code(ctx, b, 1));
       advance(ctx, 0);
@@ -368,10 +351,8 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
       last = string_null();
     }
   }
-  if (!string_size(last)) {
-    error(ctx, "An outline item must have a name.");
-    return 0;
-  }
+  if (!string_size(last))
+    return error(ctx, "An outline item must have a name.");
 
   /* Handle any sub-items: */
   if (ctx->token == LEX_BRACE_L) {
@@ -384,8 +365,7 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
     return 1;
   /* Anything else is an error: */
   } else {
-    error(ctx, "An outline can only end with a semicolon or an opening brace.");
-    return 0;
+    return error(ctx, "An outline can only end with a semicolon or an opening brace.");
   }
 }
 
@@ -399,20 +379,16 @@ int parse_map(Context *ctx, AstBuilder *b)
   CHECK_MEM(ast_builder_scope_new(b));
 
   /* Map name: */
-  if (ctx->token != LEX_IDENTIFIER) {
-    error(ctx, "An map stament must begin with a name.");
-    return 0;
-  }
+  if (ctx->token != LEX_IDENTIFIER)
+    return error(ctx, "An map stament must begin with a name.");
   item = ast_builder_scope_add(b, string_init(ctx->marker.p, ctx->cursor.p));
   CHECK_MEM(item);
   item->type = AST_OUTLINE_ITEM;
   advance(ctx, 0);
 
   /* Opening brace: */
-  if (ctx->token != LEX_BRACE_L) {
-    error(ctx, "An opening { must come after the name of a map.");
-    return 0;
-  }
+  if (ctx->token != LEX_BRACE_L)
+    return error(ctx, "An opening { must come after the name of a map.");
 
   /* Lines: */
   advance(ctx, 0);
@@ -436,10 +412,8 @@ int parse_map_line(Context *ctx, AstBuilder *b)
   CHECK(parse_filter(ctx, b));
 
   /* Opening brace: */
-  if (ctx->token != LEX_BRACE_L) {
-    error(ctx, "A line within a \"map\" staement must end with a code block.");
-    return 0;
-  }
+  if (ctx->token != LEX_BRACE_L)
+    return error(ctx, "A line within a \"map\" staement must end with a code block.");
 
   /* Parse the code: */
   CHECK(parse_code(ctx, b, 1));
@@ -461,10 +435,8 @@ int parse_for(Context *ctx, AstBuilder *b)
 
   CHECK_MEM(ast_builder_scope_new(b));
 
-  if (ctx->token != LEX_IDENTIFIER) {
-    error(ctx, "Expecting a new symbol name here.");
-    return 0;
-  }
+  if (ctx->token != LEX_IDENTIFIER)
+    return error(ctx, "Expecting a new symbol name here.");
   item = ast_builder_scope_add(b, string_init(ctx->marker.p, ctx->cursor.p));
   CHECK_MEM(item);
   item->type = AST_OUTLINE_ITEM;
@@ -473,27 +445,18 @@ int parse_for(Context *ctx, AstBuilder *b)
   /* in keyword: */
   if (ctx->token != LEX_IDENTIFIER || !string_equal(
     string_init(ctx->marker.p, ctx->cursor.p),
-    string_init_l("in", 2))
-  ) {
-    error(ctx, "Expecting the \"in\" keyword here.");
-    return 0;
-  }
+    string_init_l("in", 2)))
+    return error(ctx, "Expecting the \"in\" keyword here.");
   advance(ctx, 0);
 
   /* Outline name: */
-  if (ctx->token != LEX_IDENTIFIER) {
-    error(ctx, "An outline name must come after the \"in\" keyword.");
-    return 0;
-  }
+  if (ctx->token != LEX_IDENTIFIER)
+    return error(ctx, "An outline name must come after the \"in\" keyword.");
   outline = ast_builder_scope_find(b, string_init(ctx->marker.p, ctx->cursor.p));
-  if (!outline) {
-    error(ctx, "Could not find an outline with this name.");
-    return 0;
-  }
-  if (outline->type != AST_OUTLINE && outline->type != AST_OUTLINE_ITEM) {
-    error(ctx, "Wrong type - the for statement expects an outline.\n");
-    return 0;
-  }
+  if (!outline)
+    return error(ctx, "Could not find an outline with this name.");
+  if (outline->type != AST_OUTLINE && outline->type != AST_OUTLINE_ITEM)
+    return error(ctx, "Wrong type - the for statement expects an outline.\n");
 
   advance(ctx, 0);
 
@@ -524,10 +487,8 @@ modifier:
 modifier_end:
 
   /* Opening brace: */
-  if (ctx->token != LEX_BRACE_L) {
-    error(ctx, "A \"for\" staement must end with a code block.");
-    return 0;
-  }
+  if (ctx->token != LEX_BRACE_L)
+    return error(ctx, "A \"for\" staement must end with a code block.");
 
   /* Parse the code: */
   CHECK(parse_code(ctx, b, 1));
@@ -569,8 +530,7 @@ want_term:
     goto want_term;
 
   } else {
-    error(ctx, "There seems to be a missing term here.");
-    return 0;
+    return error(ctx, "There seems to be a missing term here.");
   }
 
 want_operator:
@@ -610,17 +570,14 @@ want_operator:
         CHECK_MEM(ast_build_filter_or(b));
       }
     }
-    if (!top) {
-      error(ctx, "No maching opening parenthesis.");
-      return 0;
-    }
+    if (!top)
+      return error(ctx, "No maching opening parenthesis.");
     --top;
     advance(ctx, 0);
     goto want_operator;
 
   } else if (ctx->token == LEX_BANG || ctx->token == LEX_PAREN_L) {
-    error(ctx, "There seems to be a missing operator here.");
-    return 0;
+    return error(ctx, "There seems to be a missing operator here.");
 
   } else {
     goto done;
@@ -635,8 +592,7 @@ done:
     } else if (stack[top-1] == OR) {
       CHECK_MEM(ast_build_filter_or(b));
     } else if (stack[top-1] == LPAREN) {
-      error(ctx, "No maching closing parenthesis.");
-      return 0;
+      return error(ctx, "No maching closing parenthesis.");
     }
   }
   CHECK_MEM(ast_build_filter(b));
