@@ -18,32 +18,34 @@
 #include "parser.h"
 #include "filter.h"
 #include "debug.h"
-#include <stdio.h>
 #include <assert.h>
 
-int generate_code(FileW *out, AstCode *p);
+int generate_code(FILE *out, AstCode *p);
 int generate_include(AstInclude *p);
-int generate_for(FileW *out, AstFor *p);
+int generate_for(FILE *out, AstFor *p);
 int generate_set(AstSet *p);
-int generate_symbol_ref(FileW *out, AstSymbolRef *p);
-int generate_call(FileW *out, AstCall *p);
-int generate_lookup(FileW *out, AstLookup *p);
-int generate_lookup_tag(FileW *out, AstLookup *p);
-int generate_lookup_builtin(FileW *out, AstLookup *p);
-int generate_lookup_map(FileW *out, AstLookup *p);
+int generate_symbol_ref(FILE *out, AstSymbolRef *p);
+int generate_call(FILE *out, AstCall *p);
+int generate_lookup(FILE *out, AstLookup *p);
+int generate_lookup_tag(FILE *out, AstLookup *p);
+int generate_lookup_builtin(FILE *out, AstLookup *p);
+int generate_lookup_map(FILE *out, AstLookup *p);
 
-int generate_lower(FileW *out, String s);
-int generate_upper(FileW *out, String s);
-int generate_camel(FileW *out, String s);
-int generate_mixed(FileW *out, String s);
+int generate_lower(FILE *out, String s);
+int generate_upper(FILE *out, String s);
+int generate_camel(FILE *out, String s);
+int generate_mixed(FILE *out, String s);
 
 String strip_symbol(String s);
 String scan_symbol(String s, char const *p);
-int write_leading(FileW *out, String s, String inner);
-int write_trailing(FileW *out, String s, String inner);
-int write_lower(FileW *out, String s);
-int write_upper(FileW *out, String s);
-int write_cap(FileW *out, String s);
+int write_leading(FILE *out, String s, String inner);
+int write_trailing(FILE *out, String s, String inner);
+int write_lower(FILE *out, String s);
+int write_upper(FILE *out, String s);
+int write_cap(FILE *out, String s);
+
+/* Writes bytes to a file, and returns 0 on success. */
+#define file_write(file, p, end) (fwrite(p, 1, end - p, file) != end - p)
 
 AstOutlineItem *symbol_as_item(Symbol *p)
 {
@@ -55,7 +57,7 @@ AstOutlineItem *symbol_as_item(Symbol *p)
  * Opens the file given in filename, parses it, processes it, and writes the
  * results to the output file.
  */
-int generate(FileW *out, String filename, int debug)
+int generate(FILE *out, String filename, int debug)
 {
   int rv;
   AstBuilder b;
@@ -86,7 +88,7 @@ int generate(FileW *out, String filename, int debug)
 /**
  * Processes source code, writing the result to the output file.
  */
-int generate_code(FileW *out, AstCode *p)
+int generate_code(FILE *out, AstCode *p)
 {
   int rv;
   AstCodeNode *node;
@@ -94,7 +96,7 @@ int generate_code(FileW *out, AstCode *p)
   for (node = p->nodes; node != p->nodes_end; ++node) {
     if (node->type == AST_CODE_TEXT) {
       AstCodeText *p = node->p;
-      rv = file_w_write(out, p->code.p, p->code.end);
+      rv = file_write(out, p->code.p, p->code.end);
       if (rv) return rv;
     } else if (node->type == AST_INCLUDE) {
       rv = generate_include(node->p);
@@ -146,7 +148,7 @@ int generate_include(AstInclude *p)
 /**
  * Performs code-generation for a for statement node
  */
-int generate_for(FileW *out, AstFor *p)
+int generate_for(FILE *out, AstFor *p)
 {
   AstOutline *items;
   AstOutlineItem **item;
@@ -171,7 +173,7 @@ int generate_for(FileW *out, AstFor *p)
         p->item->value = *item;
         if (p->list && need_comma) {
           char c = ',';
-          file_w_write(out, &c, &c + 1);
+          file_write(out, &c, &c + 1);
         }
         if (generate_code(out, p->code))
           return 1;
@@ -184,7 +186,7 @@ int generate_for(FileW *out, AstFor *p)
         p->item->value = *item;
         if (p->list && need_comma) {
           char c = ',';
-          file_w_write(out, &c, &c + 1);
+          file_write(out, &c, &c + 1);
         }
         if (generate_code(out, p->code))
           return 1;
@@ -208,17 +210,17 @@ int generate_set(AstSet *p)
 /**
  * Performs code-generation for a symbol node
  */
-int generate_symbol_ref(FileW *out, AstSymbolRef *p)
+int generate_symbol_ref(FILE *out, AstSymbolRef *p)
 {
   AstOutlineItem *item = symbol_as_item(p->symbol);
-  file_w_write(out, item->name.p, item->name.end);
+  file_write(out, item->name.p, item->name.end);
   return 0;
 }
 
 /**
  * Performs code-generation for a map call
  */
-int generate_call(FileW *out, AstCall *p)
+int generate_call(FILE *out, AstCall *p)
 {
   AstOutlineItem *item;
   AstMap *map;
@@ -251,7 +253,7 @@ int generate_call(FileW *out, AstCall *p)
 /**
  * Performs code-generation for a lookup node.
  */
-int generate_lookup(FileW *out, AstLookup *p)
+int generate_lookup(FILE *out, AstLookup *p)
 {
   int rv;
 
@@ -277,7 +279,7 @@ int generate_lookup(FileW *out, AstLookup *p)
  * exists and has a value, the function emits the value and returns 1.
  * Otherwise, the function returns 0. Returns -1 for errors.
  */
-int generate_lookup_tag(FileW *out, AstLookup *p)
+int generate_lookup_tag(FILE *out, AstLookup *p)
 {
   AstOutlineItem *item = symbol_as_item(p->symbol);
   AstOutlineTag **tag;
@@ -297,15 +299,15 @@ int generate_lookup_tag(FileW *out, AstLookup *p)
  * If the lookup name matches one of the built-in transformations, generate
  * that and return 1. Otherwise, return 0.
  */
-int generate_lookup_builtin(FileW *out, AstLookup *p)
+int generate_lookup_builtin(FILE *out, AstLookup *p)
 {
   AstOutlineItem *item;
   if (string_equal(p->name, string_init_l("quote", 5))) {
     char q = '"';
-    file_w_write(out, &q, &q + 1);
+    file_write(out, &q, &q + 1);
     item = symbol_as_item(p->symbol);
-    file_w_write(out, item->name.p, item->name.end);
-    file_w_write(out, &q, &q + 1);
+    file_write(out, item->name.p, item->name.end);
+    file_write(out, &q, &q + 1);
     return 1;
   } else if (string_equal(p->name, string_init_l("lower", 5))) {
     return !generate_lower(out, symbol_as_item(p->symbol)->name);
@@ -323,7 +325,7 @@ int generate_lookup_builtin(FileW *out, AstLookup *p)
 /**
  * Writes a string to the output file, converting it to lower_case
  */
-int generate_lower(FileW *out, String s)
+int generate_lower(FILE *out, String s)
 {
   String inner = strip_symbol(s);
   String word = scan_symbol(inner, inner.p);
@@ -334,7 +336,7 @@ int generate_lower(FileW *out, String s)
     word = scan_symbol(inner, word.end);
     if (string_size(word)) {
       char c = '_';
-      file_w_write(out, &c, &c + 1);
+      file_write(out, &c, &c + 1);
     }
   }
   write_trailing(out, s, inner);
@@ -345,7 +347,7 @@ int generate_lower(FileW *out, String s)
 /**
  * Writes a string to the output file, converting it to UPPER_CASE
  */
-int generate_upper(FileW *out, String s)
+int generate_upper(FILE *out, String s)
 {
   String inner = strip_symbol(s);
   String word = scan_symbol(inner, inner.p);
@@ -356,7 +358,7 @@ int generate_upper(FileW *out, String s)
     word = scan_symbol(inner, word.end);
     if (string_size(word)) {
       char c = '_';
-      file_w_write(out, &c, &c + 1);
+      file_write(out, &c, &c + 1);
     }
   }
   write_trailing(out, s, inner);
@@ -367,7 +369,7 @@ int generate_upper(FileW *out, String s)
 /**
  * Writes a string to the output file, converting it to CamelCase
  */
-int generate_camel(FileW *out, String s)
+int generate_camel(FILE *out, String s)
 {
   String inner = strip_symbol(s);
   String word = scan_symbol(inner, inner.p);
@@ -385,7 +387,7 @@ int generate_camel(FileW *out, String s)
 /**
  * Writes a string to the output file, converting it to mixedCase
  */
-int generate_mixed(FileW *out, String s)
+int generate_mixed(FILE *out, String s)
 {
   String inner = strip_symbol(s);
   String word = scan_symbol(inner, inner.p);
@@ -483,29 +485,29 @@ String scan_symbol(String s, char const *p)
  * stripped.
  * @return 0 for success
  */
-int write_leading(FileW *out, String s, String inner)
+int write_leading(FILE *out, String s, String inner)
 {
   if (s.p != inner.p)
-    return file_w_write(out, s.p, inner.p);
+    return file_write(out, s.p, inner.p);
   return 0;
 }
 
-int write_trailing(FileW *out, String s, String inner)
+int write_trailing(FILE *out, String s, String inner)
 {
   if (inner.end != s.end)
-    return file_w_write(out, inner.end, s.end);
+    return file_write(out, inner.end, s.end);
   return 0;
 }
 
 /**
  * Writes a word to a file in lower case.
  */
-int write_lower(FileW *out, String s)
+int write_lower(FILE *out, String s)
 {
   char const *p;
   for (p = s.p; p != s.end; ++p) {
     char c = 'A' <= *p && *p <= 'Z' ? *p - 'A' + 'a' : *p;
-    if (file_w_write(out, &c, &c + 1)) return 1;
+    if (file_write(out, &c, &c + 1)) return 1;
   }
   return 0;
 }
@@ -513,12 +515,12 @@ int write_lower(FileW *out, String s)
 /**
  * Writes a word to a file in UPPER case.
  */
-int write_upper(FileW *out, String s)
+int write_upper(FILE *out, String s)
 {
   char const *p;
   for (p = s.p; p != s.end; ++p) {
     char c = 'a' <= *p && *p <= 'z' ? *p - 'a' + 'A' : *p;
-    if (file_w_write(out, &c, &c + 1)) return 1;
+    if (file_write(out, &c, &c + 1)) return 1;
   }
   return 0;
 }
@@ -526,14 +528,14 @@ int write_upper(FileW *out, String s)
 /**
  * Writes a word to a file in Capitalized case.
  */
-int write_cap(FileW *out, String s)
+int write_cap(FILE *out, String s)
 {
   char const *p;
   for (p = s.p; p != s.end; ++p) {
     char c = (p == s.p) ?
       ('a' <= *p && *p <= 'z' ? *p - 'a' + 'A' : *p) :
       ('A' <= *p && *p <= 'Z' ? *p - 'A' + 'a' : *p) ;
-    if (file_w_write(out, &c, &c + 1)) return 1;
+    if (file_write(out, &c, &c + 1)) return 1;
   }
   return 0;
 }

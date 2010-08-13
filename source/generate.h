@@ -17,9 +17,9 @@
 #ifndef GENERATE_H_INCLUDED
 #define GENERATE_H_INCLUDED
 
-#include "file.h"
 #include "string.h"
+#include <stdio.h>
 
-int generate(FileW *out, String filename, int debug);
+int generate(FILE *out, String filename, int debug);
 
 #endif

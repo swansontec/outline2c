@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-#include "string.h"
 #include "generate.h"
-#include <stdio.h>
 #include <string.h>
 
 typedef struct options Options;
@@ -81,7 +79,7 @@ int main(int argc, char *argv[])
   int rv;
   Options opt;
   char *s;
-  FileW file_out;
+  FILE *file_out;
 
   options_init(&opt);
   rv = options_parse(&opt, argc, argv);
@@ -102,8 +100,8 @@ int main(int argc, char *argv[])
   }
 
   /* Open output file: */
-  rv = file_w_open(&file_out, s);
-  if (rv) {
+  file_out = fopen(s, "wb");
+  if (!file_out) {
     fprintf(stderr, "Could not open file \"%s\"\n", s);
     free(s);
     return 1;
@@ -111,7 +109,7 @@ int main(int argc, char *argv[])
   free(s);
 
   /* Munchify files: */
-  rv = generate(&file_out, opt.name_in, opt.debug);
-  file_w_close(&file_out);
+  rv = generate(file_out, opt.name_in, opt.debug);
+  fclose(file_out);
   return rv;
 }
