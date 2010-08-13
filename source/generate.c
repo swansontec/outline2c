@@ -46,6 +46,7 @@ int write_cap(FILE *out, String s);
 
 /* Writes bytes to a file, and returns 0 for failure. */
 #define file_write(file, p, end) (fwrite(p, 1, end - p, file) == end - p)
+#define file_putc(file, c) (fputc(c, file) != EOF)
 
 /**
  * All generate functions return 1 for success and 0 for failure. This
@@ -163,10 +164,8 @@ int generate_for(FILE *out, AstFor *p)
     for (item = items->items_end - 1; item != items->items - 1; --item) {
       if (!p->filter || test_filter(p->filter, *item)) {
         p->item->value = *item;
-        if (p->list && need_comma) {
-          char c = ',';
-          file_write(out, &c, &c + 1);
-        }
+        if (p->list && need_comma)
+          CHECK(file_putc(out, ','));
         CHECK(generate_code(out, p->code));
         need_comma = 1;
       }
@@ -175,10 +174,8 @@ int generate_for(FILE *out, AstFor *p)
     for (item = items->items; item != items->items_end; ++item) {
       if (!p->filter || test_filter(p->filter, *item)) {
         p->item->value = *item;
-        if (p->list && need_comma) {
-          char c = ',';
-          file_write(out, &c, &c + 1);
-        }
+        if (p->list && need_comma)
+          CHECK(file_putc(out, ','));
         CHECK(generate_code(out, p->code));
         need_comma = 1;
       }
@@ -203,7 +200,7 @@ int generate_set(AstSet *p)
 int generate_symbol_ref(FILE *out, AstSymbolRef *p)
 {
   AstOutlineItem *item = symbol_as_item(p->symbol);
-  file_write(out, item->name.p, item->name.end);
+  CHECK(file_write(out, item->name.p, item->name.end));
   return 1;
 }
 
@@ -291,11 +288,10 @@ int generate_lookup_builtin(FILE *out, AstLookup *p)
 {
   AstOutlineItem *item;
   if (string_equal(p->name, string_init_l("quote", 5))) {
-    char q = '"';
-    file_write(out, &q, &q + 1);
+    CHECK(file_putc(out, '"'));
     item = symbol_as_item(p->symbol);
-    file_write(out, item->name.p, item->name.end);
-    file_write(out, &q, &q + 1);
+    CHECK(file_write(out, item->name.p, item->name.end));
+    CHECK(file_putc(out, '"'));
     return 1;
   } else if (string_equal(p->name, string_init_l("lower", 5))) {
     return generate_lower(out, symbol_as_item(p->symbol)->name);
@@ -322,10 +318,8 @@ int generate_lower(FILE *out, String s)
   while (string_size(word)) {
     write_lower(out, word);
     word = scan_symbol(inner, word.end);
-    if (string_size(word)) {
-      char c = '_';
-      file_write(out, &c, &c + 1);
-    }
+    if (string_size(word))
+      CHECK(file_putc(out, '_'));
   }
   write_trailing(out, s, inner);
 
@@ -344,10 +338,8 @@ int generate_upper(FILE *out, String s)
   while (string_size(word)) {
     write_upper(out, word);
     word = scan_symbol(inner, word.end);
-    if (string_size(word)) {
-      char c = '_';
-      file_write(out, &c, &c + 1);
-    }
+    if (string_size(word))
+      CHECK(file_putc(out, '_'));
   }
   write_trailing(out, s, inner);
 
@@ -495,7 +487,7 @@ int write_lower(FILE *out, String s)
   char const *p;
   for (p = s.p; p != s.end; ++p) {
     char c = 'A' <= *p && *p <= 'Z' ? *p - 'A' + 'a' : *p;
-    CHECK(file_write(out, &c, &c + 1));
+    CHECK(file_putc(out, c));
   }
   return 1;
 }
@@ -508,7 +500,7 @@ int write_upper(FILE *out, String s)
   char const *p;
   for (p = s.p; p != s.end; ++p) {
     char c = 'a' <= *p && *p <= 'z' ? *p - 'a' + 'A' : *p;
-    CHECK(file_write(out, &c, &c + 1));
+    CHECK(file_putc(out, c));
   }
   return 1;
 }
@@ -523,7 +515,7 @@ int write_cap(FILE *out, String s)
     char c = (p == s.p) ?
       ('a' <= *p && *p <= 'z' ? *p - 'a' + 'A' : *p) :
       ('A' <= *p && *p <= 'Z' ? *p - 'A' + 'a' : *p) ;
-    CHECK(file_write(out, &c, &c + 1));
+    CHECK(file_putc(out, c));
   }
   return 1;
 }
