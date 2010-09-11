@@ -33,6 +33,7 @@
 #include <stdio.h>
 
 typedef struct context Context;
+typedef struct Location Location;
 
 /**
  * Contains everything related to the current input scanner state.
@@ -41,9 +42,17 @@ struct context
 {
   String file;
   char const *filename;
-  Cursor cursor;
-  Cursor marker;
+  char const *cursor;
+  char const *marker;
   Token token;
+};
+
+/**
+ * Holds line and column information
+ */
+struct Location {
+  unsigned line;
+  unsigned column;
 };
 
 int parse_code(Context *ctx, AstBuilder *b, int scoped);
@@ -80,10 +89,37 @@ Context context_init(String file, char const *filename)
   Context ctx;
   ctx.file = file;
   ctx.filename = filename;
-  ctx.cursor = cursor_init(file.p);
+  ctx.cursor = file.p;
   ctx.marker = ctx.cursor;
   ctx.token = LEX_START;
   return ctx;
+}
+
+/**
+ * Obtains line and column numbers given a pointer into a file. This is not
+ * fast, but printing errors is hardly a bottleneck. This routine counts from
+ * 0, but most text editors start from 1. It might make sense to add 1 to the
+ * returned values.
+ */
+Location location_init(String file, char const *position)
+{
+  Location self;
+  char const *p;
+
+  self.line = 0;
+  self.column = 0;
+  for (p = file.p; p < position; ++p) {
+    if (*p == '\n') {
+      ++self.line;
+      self.column = 0;
+    } else if (*p == '\t') {
+      self.column += 8;
+      self.column -= self.column % 8;
+    } else {
+      ++self.column;
+    }
+  }
+  return self;
 }
 
 /**
@@ -91,7 +127,8 @@ Context context_init(String file, char const *filename)
  */
 int error(Context *ctx, char const *message)
 {
-  fprintf(stderr, "%s:%d:%d: error: %s\n", ctx->filename, ctx->marker.line + 1, ctx->marker.column + 1, message);
+  Location l = location_init(ctx->file, ctx->marker);
+  fprintf(stderr, "%s:%d:%d: error: %s\n", ctx->filename, l.line + 1, l.column + 1, message);
   return 0;
 }
 
@@ -150,7 +187,7 @@ int parse_code(Context *ctx, AstBuilder *b, int scoped)
   char const *start;
 
   advance(ctx, 1);
-  start = ctx->marker.p;
+  start = ctx->marker;
   CHECK_MEM(ast_builder_push_start(b));
 
 code:
@@ -159,7 +196,7 @@ code:
   if (ctx->token == LEX_PASTE) goto paste;
   if (ctx->token == LEX_ESCAPE_O2C) goto escape;
   if (scoped && ctx->token == LEX_IDENTIFIER) {
-    symbol = ast_builder_scope_find(b, string_init(ctx->marker.p, ctx->cursor.p));
+    symbol = ast_builder_scope_find(b, string_init(ctx->marker, ctx->cursor));
     if (symbol)
       goto symbol;
   } else if (scoped && ctx->token == LEX_BRACE_R) {
@@ -172,29 +209,29 @@ code:
   goto code;
 
 paste:
-  CHECK_MEM(ast_build_code_text(b, string_init(start, ctx->marker.p)));
+  CHECK_MEM(ast_build_code_text(b, string_init(start, ctx->marker)));
 
   /* Handle token pasting: */
   advance(ctx, 1);
-  start = ctx->marker.p;
+  start = ctx->marker;
   goto code;
 
 escape:
-  CHECK_MEM(ast_build_code_text(b, string_init(start, ctx->marker.p)));
+  CHECK_MEM(ast_build_code_text(b, string_init(start, ctx->marker)));
 
   /* Handle @o2c escape sequences: */
   advance(ctx, 0);
   CHECK(parse_escape(ctx, b));
   advance(ctx, 1);
-  start = ctx->marker.p;
+  start = ctx->marker;
   goto code;
 
 symbol:
-  CHECK_MEM(ast_build_code_text(b, string_init(start, ctx->marker.p)));
+  CHECK_MEM(ast_build_code_text(b, string_init(start, ctx->marker)));
 
   /* Handle symbol replacement: */
   advance(ctx, 1);
-  start = ctx->marker.p;
+  start = ctx->marker;
   if (symbol->type != AST_OUTLINE_ITEM)
     return error(ctx, "Wrong type - only outline items may be embedded in C code.\n");
 
@@ -202,16 +239,16 @@ symbol:
   if (ctx->token == LEX_BANG) {
     advance(ctx, 1);
     if (ctx->token == LEX_IDENTIFIER) {
-      Symbol *lookup = ast_builder_scope_find(b, string_init(ctx->marker.p, ctx->cursor.p));
+      Symbol *lookup = ast_builder_scope_find(b, string_init(ctx->marker, ctx->cursor));
       if (lookup) {
         if (lookup->type != AST_MAP)
           return error(ctx, "Wrong type - expecting a map here.\n");
         CHECK_MEM(ast_build_call(b, lookup, symbol));
       } else {
-        CHECK_MEM(ast_build_lookup(b, symbol, string_init(ctx->marker.p, ctx->cursor.p)));
+        CHECK_MEM(ast_build_lookup(b, symbol, string_init(ctx->marker, ctx->cursor)));
       }
       advance(ctx, 1);
-      start = ctx->marker.p;
+      start = ctx->marker;
     } else {
       CHECK_MEM(ast_build_symbol_ref(b, symbol));
     }
@@ -221,7 +258,7 @@ symbol:
   goto code;
 
 done:
-  CHECK_MEM(ast_build_code_text(b, string_init(start, ctx->marker.p)));
+  CHECK_MEM(ast_build_code_text(b, string_init(start, ctx->marker)));
 
   /* Handle end-of-code: */
   if (scoped && ctx->token == LEX_END)
@@ -248,7 +285,7 @@ int parse_escape(Context *ctx, AstBuilder *b)
     return 1;
   /* Keywords: */
   } else if (ctx->token == LEX_IDENTIFIER) {
-    String temp = string_init(ctx->marker.p, ctx->cursor.p);
+    String temp = string_init(ctx->marker, ctx->cursor);
     if (string_equal(temp, string_init_l("include", 7))) {
       advance(ctx, 0);
       return parse_include(ctx, b);
@@ -293,7 +330,7 @@ int parse_include(Context *ctx, AstBuilder *b)
     return error(ctx, "An include statment expects a quoted filename.");
 
   /* Process the file's contents: */
-  CHECK(parse_file(string_init(ctx->marker.p + 1, ctx->cursor.p - 1), b));
+  CHECK(parse_file(string_init(ctx->marker + 1, ctx->cursor - 1), b));
   CHECK_MEM(ast_build_include(b));
 
   advance(ctx, 0);
@@ -336,7 +373,7 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
     if (string_size(last)) {
       CHECK_MEM(ast_build_outline_tag(b, last));
     }
-    last = string_init(ctx->marker.p, ctx->cursor.p);
+    last = string_init(ctx->marker, ctx->cursor);
     advance(ctx, 0);
     if (ctx->token == LEX_EQUALS) {
       /* Opening brace: */
@@ -381,7 +418,7 @@ int parse_map(Context *ctx, AstBuilder *b)
   /* Map name: */
   if (ctx->token != LEX_IDENTIFIER)
     return error(ctx, "An map stament must begin with a name.");
-  item = ast_builder_scope_add(b, string_init(ctx->marker.p, ctx->cursor.p));
+  item = ast_builder_scope_add(b, string_init(ctx->marker, ctx->cursor));
   CHECK_MEM(item);
   item->type = AST_OUTLINE_ITEM;
   advance(ctx, 0);
@@ -437,14 +474,14 @@ int parse_for(Context *ctx, AstBuilder *b)
 
   if (ctx->token != LEX_IDENTIFIER)
     return error(ctx, "Expecting a new symbol name here.");
-  item = ast_builder_scope_add(b, string_init(ctx->marker.p, ctx->cursor.p));
+  item = ast_builder_scope_add(b, string_init(ctx->marker, ctx->cursor));
   CHECK_MEM(item);
   item->type = AST_OUTLINE_ITEM;
   advance(ctx, 0);
 
   /* in keyword: */
   if (ctx->token != LEX_IDENTIFIER || !string_equal(
-    string_init(ctx->marker.p, ctx->cursor.p),
+    string_init(ctx->marker, ctx->cursor),
     string_init_l("in", 2)))
     return error(ctx, "Expecting the \"in\" keyword here.");
   advance(ctx, 0);
@@ -452,7 +489,7 @@ int parse_for(Context *ctx, AstBuilder *b)
   /* Outline name: */
   if (ctx->token != LEX_IDENTIFIER)
     return error(ctx, "An outline name must come after the \"in\" keyword.");
-  outline = ast_builder_scope_find(b, string_init(ctx->marker.p, ctx->cursor.p));
+  outline = ast_builder_scope_find(b, string_init(ctx->marker, ctx->cursor));
   if (!outline)
     return error(ctx, "Could not find an outline with this name.");
   if (outline->type != AST_OUTLINE && outline->type != AST_OUTLINE_ITEM)
@@ -466,7 +503,7 @@ modifier:
     goto modifier_end;
 
   /* "with" modifier: */
-  token = string_init(ctx->marker.p, ctx->cursor.p);
+  token = string_init(ctx->marker, ctx->cursor);
   if (string_equal(token, string_init_l("with", 4))) {
     advance(ctx, 0);
     CHECK(parse_filter(ctx, b));
@@ -510,7 +547,7 @@ int parse_filter(Context *ctx, AstBuilder *b)
 
 want_term:
   if (ctx->token == LEX_IDENTIFIER) {
-    CHECK_MEM(ast_build_filter_tag(b, string_init(ctx->marker.p, ctx->cursor.p)));
+    CHECK_MEM(ast_build_filter_tag(b, string_init(ctx->marker, ctx->cursor)));
     advance(ctx, 0);
     goto want_operator;
 

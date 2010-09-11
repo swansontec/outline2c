@@ -17,20 +17,6 @@
 #ifndef LEXER_H_INCLUDED
 #define LEXER_H_INCLUDED
 
-typedef struct cursor Cursor;
-
-/**
- * A reference to a location within the input stream.
- */
-struct cursor
-{
-  char const *p;
-  unsigned line;
-  unsigned column;
-};
-
-Cursor cursor_init(char const *start);
-
 /**
  * Possible token types.
  */
@@ -69,6 +55,6 @@ enum token {
 };
 typedef enum token Token;
 
-Token lex(Cursor *cursor, char const *end);
+Token lex(char const **p, char const *end);
 
 #endif
