@@ -118,7 +118,7 @@ int parse_file(String filename, AstBuilder *b)
 
   s = string_to_c(filename);
   if (!file_r_open(&file, s)) {
-    fprintf(stderr, "error: Could not open file %s\n", s);
+    fprintf(stderr, "error: Could not open source file \"%s\"\n", s);
     return 0;
   }
   ctx = context_init(string_init(file.p, file.end), s);

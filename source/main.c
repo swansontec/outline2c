@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
   /* Open output file: */
   file_out = fopen(s, "wb");
   if (!file_out) {
-    fprintf(stderr, "Could not open file \"%s\"\n", s);
+    fprintf(stderr, "error: Could not open output file \"%s\"\n", s);
     free(s);
     return 1;
   }
