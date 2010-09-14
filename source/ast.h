@@ -18,6 +18,7 @@
 #define AST_H_INCLUDED
 
 #include "scope.h"
+#include "list.h"
 
 typedef struct ast_code                 AstCode;
 typedef struct ast_code_text            AstCodeText;
@@ -75,14 +76,14 @@ int ast_is_code_node(Type type);
 int ast_is_filter_node(Type type);
 
 /* Type-conversion functions */
-AstCodeNode         ast_to_code_node(Dynamic node);
+AstCodeNode         ast_to_code_node(ListNode node);
 AstFilterNode       ast_to_filter_node(Dynamic node);
 
 AstCode            *ast_to_code(Dynamic node);
 AstOutline         *ast_to_outline(Dynamic node);
-AstOutlineItem     *ast_to_outline_item(Dynamic node);
-AstOutlineTag      *ast_to_outline_tag(Dynamic node);
-AstMapLine         *ast_to_map_line(Dynamic node);
+AstOutlineItem     *ast_to_outline_item(ListNode node);
+AstOutlineTag      *ast_to_outline_tag(ListNode node);
+AstMapLine         *ast_to_map_line(ListNode node);
 AstFilter          *ast_to_filter(Dynamic node);
 AstSymbolRef       *ast_to_symbol_ref(Dynamic node);
 
@@ -91,8 +92,7 @@ AstSymbolRef       *ast_to_symbol_ref(Dynamic node);
  * sequences and replacement symbols.
  */
 struct ast_code {
-  AstCodeNode *nodes;
-  AstCodeNode *nodes_end;
+  ListNode *nodes;
 };
 
 /**
@@ -113,16 +113,14 @@ struct ast_include {
  * An outline.
  */
 struct ast_outline {
-  AstOutlineItem **items;
-  AstOutlineItem **items_end;
+  ListNode *items;
 };
 
 /**
  * An individual item in an outline.
  */
 struct ast_outline_item {
-  AstOutlineTag **tags;
-  AstOutlineTag **tags_end;
+  ListNode *tags;
   String name;
   AstOutline *children;
 };
@@ -141,8 +139,7 @@ struct ast_outline_tag {
 struct ast_map
 {
   Symbol *item;
-  AstMapLine **lines;
-  AstMapLine **lines_end;
+  ListNode *lines;
 };
 
 struct ast_map_line
@@ -238,13 +235,13 @@ struct ast_lookup {
   String name;
 };
 
-AstCode            *ast_code_new                (Pool *p, AstCodeNode *nodes, AstCodeNode *nodes_end);
+AstCode            *ast_code_new                (Pool *p, ListNode *nodes);
 AstCodeText        *ast_code_text_new           (Pool *p, String code);
-AstInclude         *ast_include_new             (Pool *p, AstCode *file);
-AstOutline         *ast_outline_new             (Pool *p, AstOutlineItem **items, AstOutlineItem **items_end);
-AstOutlineItem     *ast_outline_item_new        (Pool *p, AstOutlineTag **tags, AstOutlineTag **tags_end, String name, AstOutline *children);
+AstInclude         *ast_include_new             (Pool *p, AstCode *code);
+AstOutline         *ast_outline_new             (Pool *p, ListNode *items);
+AstOutlineItem     *ast_outline_item_new        (Pool *p, ListNode *tags, String name, AstOutline *children);
 AstOutlineTag      *ast_outline_tag_new         (Pool *p, String name, AstCode *value);
-AstMap             *ast_map_new                 (Pool *p, Symbol *item, AstMapLine **lines, AstMapLine **lines_end);
+AstMap             *ast_map_new                 (Pool *p, Symbol *item, ListNode *lines);
 AstMapLine         *ast_map_line_new            (Pool *p, AstFilter *filter, AstCode *code);
 AstFor             *ast_for_new                 (Pool *p, Symbol *item, Symbol *outline, AstFilter *filter, int reverse, int list, AstCode *code);
 AstFilter          *ast_filter_new              (Pool *p, AstFilterNode test);

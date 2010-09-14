@@ -39,7 +39,7 @@ int ast_is_filter_node(Type type)
     type == AST_FILTER_AND;
 }
 
-AstCodeNode ast_to_code_node(Dynamic node)
+AstCodeNode ast_to_code_node(ListNode node)
 {
   AstCodeNode temp;
   assert(ast_is_code_node(node.type));
@@ -69,19 +69,19 @@ AstOutline *ast_to_outline(Dynamic node)
   return node.p;
 }
 
-AstOutlineItem *ast_to_outline_item(Dynamic node)
+AstOutlineItem *ast_to_outline_item(ListNode node)
 {
   assert(node.type == AST_OUTLINE_ITEM);
   return node.p;
 }
 
-AstOutlineTag *ast_to_outline_tag(Dynamic node)
+AstOutlineTag *ast_to_outline_tag(ListNode node)
 {
   assert(node.type == AST_OUTLINE_TAG);
   return node.p;
 }
 
-AstMapLine *ast_to_map_line(Dynamic node)
+AstMapLine *ast_to_map_line(ListNode node)
 {
   assert(node.type == AST_MAP_LINE);
   return node.p;
@@ -99,14 +99,13 @@ AstSymbolRef *ast_to_symbol_ref(Dynamic node)
   return node.p;
 }
 
-AstCode *ast_code_new(Pool *p, AstCodeNode *nodes, AstCodeNode *nodes_end)
+AstCode *ast_code_new(Pool *p, ListNode *nodes)
 {
   AstCode *self = pool_alloc(p, sizeof(AstCode));
   if (!self) return 0;
   self->nodes = nodes;
-  self->nodes_end = nodes_end;
 
-  if (!self->nodes) return 0;
+  /* nodes may be NULL */
   return self;
 }
 
@@ -130,27 +129,25 @@ AstInclude *ast_include_new(Pool *p, AstCode *code)
   return self;
 }
 
-AstOutline *ast_outline_new(Pool *p, AstOutlineItem **items, AstOutlineItem **items_end)
+AstOutline *ast_outline_new(Pool *p, ListNode *items)
 {
   AstOutline *self = pool_alloc(p, sizeof(AstOutline));
   if (!self) return 0;
   self->items = items;
-  self->items_end = items_end;
 
-  if (!self->items) return 0;
+  /* items may be NULL */
   return self;
 }
 
-AstOutlineItem *ast_outline_item_new(Pool *p, AstOutlineTag **tags, AstOutlineTag **tags_end, String name, AstOutline *children)
+AstOutlineItem *ast_outline_item_new(Pool *p, ListNode *tags, String name, AstOutline *children)
 {
   AstOutlineItem *self = pool_alloc(p, sizeof(AstOutlineItem));
   if (!self) return 0;
   self->tags = tags;
-  self->tags_end = tags_end;
   self->name = pool_string_copy(p, name);
   self->children = children;
 
-  if (!self->tags) return 0;
+  /* tags may be NULL */
   if (!string_size(self->name)) return 0;
   /* children may be NULL */
   return self;
@@ -168,16 +165,15 @@ AstOutlineTag *ast_outline_tag_new(Pool *p, String name, AstCode *value)
   return self;
 }
 
-AstMap *ast_map_new(Pool *p, Symbol *item, AstMapLine **lines, AstMapLine **lines_end)
+AstMap *ast_map_new(Pool *p, Symbol *item, ListNode *lines)
 {
   AstMap *self = pool_alloc(p, sizeof(AstMap));
   if (!self) return 0;
   self->item = item;
   self->lines = lines;
-  self->lines_end = lines_end;
 
   if (!self->item) return 0;
-  if (!self->lines) return 0;
+  /* lines may be NULL */
   return self;
 }
 

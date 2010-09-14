@@ -45,10 +45,10 @@ int test_filter_node(AstFilterNode test, AstOutlineItem *item)
 
 int test_filter_tag(AstFilterTag *test, AstOutlineItem *item)
 {
-  AstOutlineTag **tag;
+  ListNode *tag;
 
-  for (tag = item->tags; tag != item->tags_end; ++tag) {
-    if (string_equal((*tag)->name, test->tag))
+  for (tag = item->tags; tag; tag = tag->next) {
+    if (string_equal(ast_to_outline_tag(*tag)->name, test->tag))
       return 1;
   }
 

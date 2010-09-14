@@ -134,19 +134,17 @@ int ast_build_code(AstBuilder *b)
 {
   size_t i;
   size_t node_n;
-  AstCodeNode *nodes;
+  ListBuilder nodes = list_builder_init();
 
   node_n = ast_builder_count(b);
-  nodes = pool_alloc(&b->pool, node_n*sizeof(AstCodeNode));
-  if (!nodes) return 0;
 
   b->stack_top -= node_n;
   for (i = 0; i < node_n; ++i)
-    nodes[i] = ast_to_code_node(b->stack[b->stack_top + i]);
+    if (!list_builder_add(&nodes, &b->pool, b->stack[b->stack_top + i])) return 0;
   --b->stack_top;
 
   return ast_builder_push(b, AST_CODE,
-    ast_code_new(&b->pool, nodes, nodes + node_n));
+    ast_code_new(&b->pool, nodes.first));
 }
 
 int ast_build_code_text(AstBuilder *b, String code)
@@ -170,42 +168,38 @@ int ast_build_outline(AstBuilder *b)
 {
   size_t i;
   size_t item_n;
-  AstOutlineItem **items;
+  ListBuilder items = list_builder_init();
 
   item_n = ast_builder_count(b);
-  items = pool_alloc(&b->pool, item_n*sizeof(AstOutlineItem *));
-  if (!items) return 0;
 
   b->stack_top -= item_n;
   for (i = 0; i < item_n; ++i)
-    items[i] = ast_to_outline_item(b->stack[b->stack_top + i]);
+    if (!list_builder_add(&items, &b->pool, b->stack[b->stack_top + i])) return 0;
   --b->stack_top;
 
   return ast_builder_push(b, AST_OUTLINE,
-    ast_outline_new(&b->pool, items, items + item_n));
+    ast_outline_new(&b->pool, items.first));
 }
 
 int ast_build_outline_item(AstBuilder *b, String name)
 {
   size_t i;
   size_t tag_n;
-  AstOutlineTag **tags;
+  ListBuilder tags = list_builder_init();
   AstOutline *children;
 
   children = ast_builder_peek(b).type == AST_OUTLINE ?
     ast_to_outline(ast_builder_pop(b)) : 0;
 
   tag_n = ast_builder_count(b);
-  tags = pool_alloc(&b->pool, tag_n*sizeof(AstOutlineTag*));
-  if (!tags) return 0;
 
   b->stack_top -= tag_n;
   for (i = 0; i < tag_n; ++i)
-    tags[i] = ast_to_outline_tag(b->stack[b->stack_top + i]);
+    if (!list_builder_add(&tags, &b->pool, b->stack[b->stack_top + i])) return 0;
   --b->stack_top;
 
   return ast_builder_push(b, AST_OUTLINE_ITEM,
-    ast_outline_item_new(&b->pool, tags, tags + tag_n, name, children));
+    ast_outline_item_new(&b->pool, tags.first, name, children));
 }
 
 int ast_build_outline_tag(AstBuilder *b, String symbol)
@@ -223,19 +217,17 @@ int ast_build_map(AstBuilder *b, Symbol *item)
 {
   size_t i;
   size_t line_n;
-  AstMapLine **lines;
+  ListBuilder lines = list_builder_init();
 
   line_n = ast_builder_count(b);
-  lines = pool_alloc(&b->pool, line_n*sizeof(AstMapLine*));
-  if (!lines) return 0;
 
   b->stack_top -= line_n;
   for (i = 0; i < line_n; ++i)
-    lines[i] = ast_to_map_line(b->stack[b->stack_top + i]);
+    if (!list_builder_add(&lines, &b->pool, b->stack[b->stack_top + i])) return 0;
   --b->stack_top;
 
   return ast_builder_push(b, AST_MAP,
-    ast_map_new(&b->pool, item, lines, lines + line_n));
+    ast_map_new(&b->pool, item, lines.first));
 }
 
 int ast_build_map_line(AstBuilder *b)

@@ -107,10 +107,10 @@ int generate(FILE *out, String filename, int debug)
  */
 int generate_code(FILE *out, AstCode *p)
 {
-  AstCodeNode *node;
+  ListNode *node;
 
-  for (node = p->nodes; node != p->nodes_end; ++node)
-    CHECK(generate_code_node(out, *node));
+  for (node = p->nodes; node; node = node->next)
+    CHECK(generate_code_node(out, ast_to_code_node(*node)));
   return 1;
 }
 
@@ -145,9 +145,9 @@ int generate_code_node(FILE *out, AstCodeNode node)
  */
 int generate_include(AstInclude *p)
 {
-  AstCodeNode *node;
+  ListNode *node;
 
-  for (node = p->code->nodes; node != p->code->nodes_end; ++node) {
+  for (node = p->code->nodes; node; node = node->next) {
     if (node->type == AST_SET) {
       CHECK(generate_set(node->p));
     } else if (node->type == AST_INCLUDE) {
@@ -162,27 +162,33 @@ int generate_include(AstInclude *p)
  */
 int generate_for(FILE *out, AstFor *p)
 {
-  AstOutline *items;
-  AstOutlineItem **item;
+  AstOutline *outline;
   int need_comma = 0;
 
   /* Find the outline list to process: */
   if (p->outline->type == AST_OUTLINE) {
-    items = p->outline->value;
+    outline = p->outline->value;
   } else if (p->outline->type == AST_OUTLINE_ITEM) {
     AstOutlineItem *item = p->outline->value;
-    items = item->children;
+    outline = item->children;
   } else {
     assert(0);
   }
-  if (!items)
+  if (!outline)
     return 1;
 
   /* Process the list: */
   if (p->reverse) {
-    for (item = items->items_end - 1; item != items->items - 1; --item) {
-      if (!p->filter || test_filter(p->filter, *item)) {
-        p->item->value = *item;
+    /* Warning: O(n^2) reversing algorithm */
+    ListNode *item, *last = 0;
+    while (outline->items != last) {
+      item = outline->items;
+      while (item->next != last)
+        item = item->next;
+      last = item;
+
+      p->item->value = ast_to_outline_item(*item);
+      if (!p->filter || test_filter(p->filter, p->item->value)) {
         if (p->list && need_comma)
           CHECK(file_putc(out, ','));
         CHECK(generate_code(out, p->code));
@@ -190,9 +196,10 @@ int generate_for(FILE *out, AstFor *p)
       }
     }
   } else {
-    for (item = items->items; item != items->items_end; ++item) {
-      if (!p->filter || test_filter(p->filter, *item)) {
-        p->item->value = *item;
+    ListNode *item;
+    for (item = outline->items; item; item = item->next) {
+      p->item->value = ast_to_outline_item(*item);
+      if (!p->filter || test_filter(p->filter, p->item->value)) {
         if (p->list && need_comma)
           CHECK(file_putc(out, ','));
         CHECK(generate_code(out, p->code));
@@ -230,7 +237,7 @@ int generate_call(FILE *out, AstCall *p)
 {
   AstOutlineItem *item;
   AstMap *map;
-  AstMapLine **line;
+  ListNode *line;
   char *temp;
 
   /* Symbol lookup: */
@@ -241,9 +248,10 @@ int generate_call(FILE *out, AstCall *p)
   map->item->value = p->data->value;
 
   /* Match against the map: */
-  for (line = map->lines; line != map->lines_end; ++line) {
-    if (test_filter((*line)->filter, item)) {
-      CHECK(generate_code(out, (*line)->code));
+  for (line = map->lines; line; line = line->next) {
+    AstMapLine *l = ast_to_map_line(*line);
+    if (test_filter(l->filter, item)) {
+      CHECK(generate_code(out, l->code));
       return 1;
     }
   }
@@ -287,11 +295,12 @@ int generate_lookup(FILE *out, AstLookup *p)
 int generate_lookup_tag(FILE *out, AstLookup *p)
 {
   AstOutlineItem *item = symbol_as_item(p->symbol);
-  AstOutlineTag **tag;
+  ListNode *tag;
 
-  for (tag = item->tags; tag != item->tags_end; ++tag) {
-    if ((*tag)->value && string_equal((*tag)->name, p->name)) {
-      CHECK(generate_code(out, (*tag)->value));
+  for (tag = item->tags; tag; tag = tag->next) {
+    AstOutlineTag *t = ast_to_outline_tag(*tag);
+    if (t->value && string_equal(t->name, p->name)) {
+      CHECK(generate_code(out, t->value));
       return 1;
     }
   }

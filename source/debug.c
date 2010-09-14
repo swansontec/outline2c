@@ -59,10 +59,10 @@ static void space(int indent)
  */
 void dump_code(AstCode *p, int indent)
 {
-  AstCodeNode *node;
+  ListNode *node;
 
-  for (node = p->nodes; node != p->nodes_end; ++node)
-    dump_code_node(*node, indent);
+  for (node = p->nodes; node; node = node->next)
+    dump_code_node(ast_to_code_node(*node), indent);
 }
 
 void dump_code_node(AstCodeNode node, int indent)
@@ -115,11 +115,11 @@ void dump_node(Dynamic node, int indent)
  */
 void dump_outline(AstOutline *p, int indent)
 {
-  AstOutlineItem **item;
+  ListNode *item;
 
   printf(" {\n");
-  for (item = p->items; item != p->items_end; ++item) {
-    dump_outline_item(*item, indent + INDENT);
+  for (item = p->items; item; item = item->next) {
+    dump_outline_item(ast_to_outline_item(*item), indent + INDENT);
     printf("\n");
   }
   space(indent);
@@ -132,12 +132,12 @@ void dump_outline(AstOutline *p, int indent)
 void dump_outline_item(AstOutlineItem *p, int indent)
 {
   char *temp;
-  AstOutlineTag **tag;
+  ListNode *tag;
 
   /* Tags: */
   space(indent);
-  for (tag = p->tags; tag != p->tags_end; ++tag) {
-    dump_outline_tag(*tag, indent);
+  for (tag = p->tags; tag; tag = tag->next) {
+    dump_outline_tag(ast_to_outline_tag(*tag), indent);
     printf(" ");
   }
 
@@ -147,7 +147,7 @@ void dump_outline_item(AstOutlineItem *p, int indent)
   free(temp);
 
   /* Children: */
-  if (p->children && p->children->items != p->children->items_end)
+  if (p->children && p->children->items)
     dump_outline(p->children, indent);
   else
     printf(";");
@@ -170,14 +170,14 @@ void dump_outline_tag(AstOutlineTag *p, int indent)
  */
 void dump_map(AstMap *p)
 {
-  AstMapLine **line;
+  ListNode *line;
 
   printf("map ");
   dump_symbol(p->item);
   printf(" {\n");
 
-  for (line = p->lines; line != p->lines_end; ++line)
-    dump_map_line(*line);
+  for (line = p->lines; line; line = line->next)
+    dump_map_line(ast_to_map_line(*line));
 
   printf("}");
 }
