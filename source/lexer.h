@@ -56,5 +56,6 @@ enum token {
 typedef enum token Token;
 
 Token lex(char const **p, char const *end);
+Token lex_next(char const **start, char const **p, char const *end);
 
 #endif

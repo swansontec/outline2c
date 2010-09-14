@@ -168,3 +168,15 @@ Token lex(char const **p, char const *end)
     return LEX_ERROR;
   }
 }
+
+/**
+ * Identifies the next token, filtering out whitespace & comments.
+ */
+Token lex_next(char const **start, char const **p, char const *end)
+{
+  Token token;
+  do {
+    *start = *p; token = lex(p, end);
+  } while (token == LEX_WHITESPACE || token == LEX_COMMENT);
+  return token;
+}
