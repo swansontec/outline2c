@@ -101,115 +101,101 @@ AstSymbolRef *ast_to_symbol_ref(Dynamic node)
 
 AstCode *ast_code_new(Pool *p, AstCodeNode *nodes, AstCodeNode *nodes_end)
 {
-  AstCode *self;
-  if (!nodes) return 0;
-
-  self = pool_alloc(p, sizeof(AstCode));
+  AstCode *self = pool_alloc(p, sizeof(AstCode));
   if (!self) return 0;
   self->nodes = nodes;
   self->nodes_end = nodes_end;
+
+  if (!self->nodes) return 0;
   return self;
 }
 
 AstCodeText *ast_code_text_new(Pool *p, String code)
 {
-  AstCodeText *self;
-  if (!string_size(code)) return 0;
-
-  self = pool_alloc(p, sizeof(AstCodeText));
+  AstCodeText *self = pool_alloc(p, sizeof(AstCodeText));
   if (!self) return 0;
-  self->code = code;
+  self->code = pool_string_copy(p, code);
+
+  if (!string_size(self->code)) return 0;
   return self;
 }
 
 AstInclude *ast_include_new(Pool *p, AstCode *code)
 {
-  AstInclude *self;
-  if (!code) return 0;
-
-  self = pool_alloc(p, sizeof(AstInclude));
+  AstInclude *self = pool_alloc(p, sizeof(AstInclude));
   if (!self) return 0;
   self->code = code;
+
+  if (!self->code) return 0;
   return self;
 }
 
 AstOutline *ast_outline_new(Pool *p, AstOutlineItem **items, AstOutlineItem **items_end)
 {
-  AstOutline *self;
-  if (!items) return 0;
-
-  self = pool_alloc(p, sizeof(AstOutline));
+  AstOutline *self = pool_alloc(p, sizeof(AstOutline));
   if (!self) return 0;
   self->items = items;
   self->items_end = items_end;
+
+  if (!self->items) return 0;
   return self;
 }
 
 AstOutlineItem *ast_outline_item_new(Pool *p, AstOutlineTag **tags, AstOutlineTag **tags_end, String name, AstOutline *children)
 {
-  AstOutlineItem *self;
-  if (!tags) return 0;
-  if (!string_size(name)) return 0;
-  /* children may be NULL */
-
-  self = pool_alloc(p, sizeof(AstOutlineItem));
+  AstOutlineItem *self = pool_alloc(p, sizeof(AstOutlineItem));
   if (!self) return 0;
   self->tags = tags;
   self->tags_end = tags_end;
-  self->name = name;
+  self->name = pool_string_copy(p, name);
   self->children = children;
+
+  if (!self->tags) return 0;
+  if (!string_size(self->name)) return 0;
+  /* children may be NULL */
   return self;
 }
 
 AstOutlineTag *ast_outline_tag_new(Pool *p, String name, AstCode *value)
 {
-  AstOutlineTag *self;
-  if (!string_size(name)) return 0;
-  /* value may be NULL */
-
-  self = pool_alloc(p, sizeof(AstOutlineTag));
+  AstOutlineTag *self = pool_alloc(p, sizeof(AstOutlineTag));
   if (!self) return 0;
-  self->name = name;
+  self->name = pool_string_copy(p, name);
   self->value = value;
+
+  if (!string_size(self->name)) return 0;
+  /* value may be NULL */
   return self;
 }
 
 AstMap *ast_map_new(Pool *p, Symbol *item, AstMapLine **lines, AstMapLine **lines_end)
 {
-  AstMap *self;
-  if (!item) return 0;
-  if (!lines) return 0;
-
-  self = pool_alloc(p, sizeof(AstMap));
+  AstMap *self = pool_alloc(p, sizeof(AstMap));
   if (!self) return 0;
   self->item = item;
   self->lines = lines;
   self->lines_end = lines_end;
+
+  if (!self->item) return 0;
+  if (!self->lines) return 0;
   return self;
 }
 
 AstMapLine *ast_map_line_new(Pool *p, AstFilter *filter, AstCode *code)
 {
-  AstMapLine *self;
-  if (!filter) return 0;
-  if (!code) return 0;
-
-  self = pool_alloc(p, sizeof(AstMapLine));
+  AstMapLine *self = pool_alloc(p, sizeof(AstMapLine));
   if (!self) return 0;
   self->filter = filter;
   self->code = code;
+
+  if (!self->filter) return 0;
+  if (!self->code) return 0;
   return self;
 }
 
 AstFor *ast_for_new(Pool *p, Symbol *item, Symbol *outline, AstFilter *filter, int reverse, int list, AstCode *code)
 {
-  AstFor *self;
-  if (!item) return 0;
-  if (!outline) return 0;
-  /* filter may be NULL */
-  if (!code) return 0;
-
-  self = pool_alloc(p, sizeof(AstFor));
+  AstFor *self = pool_alloc(p, sizeof(AstFor));
   if (!self) return 0;
   self->item = item;
   self->outline = outline;
@@ -217,123 +203,118 @@ AstFor *ast_for_new(Pool *p, Symbol *item, Symbol *outline, AstFilter *filter, i
   self->reverse = reverse;
   self->list = list;
   self->code = code;
+
+  if (!self->item) return 0;
+  if (!self->outline) return 0;
+  /* filter may be NULL */
+  if (!self->code) return 0;
   return self;
 }
 
 AstFilter *ast_filter_new(Pool *p, AstFilterNode test)
 {
-  AstFilter *self;
-  if (!test.p) return 0;
-
-  self = pool_alloc(p, sizeof(AstFilter));
+  AstFilter *self = pool_alloc(p, sizeof(AstFilter));
   if (!self) return 0;
   self->test = test;
+
+  if (!self->test.p) return 0;
   return self;
 }
 
 AstFilterTag *ast_filter_tag_new(Pool *p, String tag)
 {
-  AstFilterTag *self;
-  if (!string_size(tag)) return 0;
-
-  self = pool_alloc(p, sizeof(AstFilterTag));
+  AstFilterTag *self = pool_alloc(p, sizeof(AstFilterTag));
   if (!self) return 0;
-  self->tag = tag;
+  self->tag = pool_string_copy(p, tag);
+
+  if (!string_size(self->tag)) return 0;
   return self;
 }
 
 AstFilterAny *ast_filter_any_new(Pool *p)
 {
-  AstFilterAny *self;
-
-  self = pool_alloc(p, sizeof(AstFilterAny));
+  AstFilterAny *self = pool_alloc(p, sizeof(AstFilterAny));
   if (!self) return 0;
+
   return self;
 }
 
 AstFilterNot *ast_filter_not_new(Pool *p, AstFilterNode test)
 {
-  AstFilterNot *self;
-  if (!test.p) return 0;
-
-  self = pool_alloc(p, sizeof(AstFilterNot));
+  AstFilterNot *self = pool_alloc(p, sizeof(AstFilterNot));
   if (!self) return 0;
   self->test = test;
+
+  if (!self->test.p) return 0;
   return self;
 }
 
 AstFilterAnd *ast_filter_and_new(Pool *p, AstFilterNode test_a, AstFilterNode test_b)
 {
-  AstFilterAnd *self;
-  if (!test_a.p) return 0;
-  if (!test_b.p) return 0;
-
-  self = pool_alloc(p, sizeof(AstFilterAnd));
+  AstFilterAnd *self = pool_alloc(p, sizeof(AstFilterAnd));
   if (!self) return 0;
   self->test_a = test_a;
   self->test_b = test_b;
+
+  if (!self->test_a.p) return 0;
+  if (!self->test_b.p) return 0;
   return self;
 }
 
 AstFilterOr *ast_filter_or_new(Pool *p, AstFilterNode test_a, AstFilterNode test_b)
 {
-  AstFilterOr *self;
-  if (!test_a.p) return 0;
-  if (!test_b.p) return 0;
-
-  self = pool_alloc(p, sizeof(AstFilterOr));
+  AstFilterOr *self = pool_alloc(p, sizeof(AstFilterOr));
   if (!self) return 0;
   self->test_a = test_a;
   self->test_b = test_b;
+
+  if (!self->test_a.p) return 0;
+  if (!self->test_b.p) return 0;
   return self;
 }
 
 AstSet *ast_set_new(Pool *p, Symbol *symbol, Dynamic value)
 {
-  AstSet *self;
-  if (!symbol) return 0;
-  if (!value.p) return 0;
-
-  self = pool_alloc(p, sizeof(AstSet));
+  AstSet *self = pool_alloc(p, sizeof(AstSet));
   if (!self) return 0;
   self->symbol = symbol;
   self->value = value;
+
+  if (!self->symbol) return 0;
+  if (!self->value.p) return 0;
   return self;
 }
 
 AstSymbolRef *ast_symbol_ref_new(Pool *p, Symbol *symbol)
 {
-  AstSymbolRef *self;
-  if (!symbol) return 0;
-
-  self = pool_alloc(p, sizeof(AstSymbolRef));
+  AstSymbolRef *self = pool_alloc(p, sizeof(AstSymbolRef));
   if (!self) return 0;
   self->symbol = symbol;
+
+  if (!self->symbol) return 0;
   return self;
 }
 
 AstCall *ast_call_new(Pool *p, Symbol *f, Symbol *data)
 {
-  AstCall *self;
-  if (!f) return 0;
-  if (!data) return 0;
-
-  self = pool_alloc(p, sizeof(AstCall));
+  AstCall *self = pool_alloc(p, sizeof(AstCall));
   if (!self) return 0;
   self->f = f;
   self->data = data;
+
+  if (!self->f) return 0;
+  if (!self->data) return 0;
   return self;
 }
 
 AstLookup *ast_lookup_new(Pool *p, Symbol *symbol, String name)
 {
-  AstLookup *self;
-  if (!symbol) return 0;
-  if (!string_size(name)) return 0;
-
-  self = pool_alloc(p, sizeof(AstLookup));
+  AstLookup *self = pool_alloc(p, sizeof(AstLookup));
   if (!self) return 0;
   self->symbol = symbol;
-  self->name = name;
+  self->name = pool_string_copy(p, name);
+
+  if (!self->symbol) return 0;
+  if (!string_size(self->name)) return 0;
   return self;
 }
