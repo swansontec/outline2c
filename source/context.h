@@ -17,6 +17,7 @@
 #ifndef CONTEXT_H_INCLUDED
 #define CONTEXT_H_INCLUDED
 
+#include "type.h"
 #include "string.h"
 
 typedef struct Context Context;
@@ -28,6 +29,7 @@ struct Context {
   String file;
   String filename;
   char const *cursor;
+  Dynamic out;
 };
 
 int context_error(Context *ctx, char const *message);

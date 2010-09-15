@@ -88,7 +88,7 @@ int generate(FILE *out, String filename, int debug)
   }
   ctx.cursor = ctx.file.p;
   CHECK(parse_code(&ctx, &b, 0));
-  code = ast_to_code(ast_builder_pop(&b));
+  code = ast_to_code(ctx.out);
   string_free(ctx.file);
 
   if (debug) {

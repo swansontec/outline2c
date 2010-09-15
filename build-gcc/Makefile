@@ -22,7 +22,7 @@ objects = ast.o ast-builder.o context.o debug.o filter.o generate.o lexer.o list
 # Inter-header dependencies:
 ast_h      = ../source/ast.h $(scope_h) $(list_h)
 ast_builder_h = ../source/ast-builder.h $(ast_h)
-context_h  = ../source/context.h $(string_h)
+context_h  = ../source/context.h $(type_h) $(string_h)
 debug_h    = ../source/debug.h $(ast_h)
 filter_h   = ../source/filter.h $(ast_h)
 generate_h = ../source/generate.h $(string_h)

@@ -36,7 +36,6 @@ struct ast_builder {
 int ast_builder_init(AstBuilder *b);
 void ast_builder_free(AstBuilder *b);
 
-int ast_builder_push(AstBuilder *b, Type type, void *p);
 Dynamic ast_builder_pop(AstBuilder *b);
 
 Scope  *ast_builder_scope_new(AstBuilder *b);

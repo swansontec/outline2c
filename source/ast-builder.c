@@ -44,7 +44,7 @@ void ast_builder_free(AstBuilder *b)
  * Pushes an node onto the stack.
  * @return 0 for failure
  */
-int ast_builder_push(AstBuilder *b, Type type, void *p)
+static int ast_builder_push(AstBuilder *b, Type type, void *p)
 {
   Dynamic node;
   node.p = p;

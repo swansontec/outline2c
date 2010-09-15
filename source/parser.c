@@ -42,6 +42,14 @@ int parse_for(Context *ctx, AstBuilder *b);
 
 int parse_filter(Context *ctx, AstBuilder *b);
 
+static int out(Context *ctx, Type type, void *p)
+{
+  if (!p) return 0;
+  ctx->out.type = type;
+  ctx->out.p = p;
+  return 1;
+}
+
 /**
  * All parser functions return 1 for success and 0 for failure. This
  * macro checks a return code and bails out if it indicates an error.
@@ -112,7 +120,7 @@ escape:
 
   /* "\ol" escape sequences: */
   CHECK(parse_escape(ctx, b));
-  CHECK_MEM(list_builder_add2(&nodes, &b->pool, ast_builder_pop(b)));
+  CHECK_MEM(list_builder_add2(&nodes, &b->pool, ctx->out));
 
   start_c = ctx->cursor;
   start = ctx->cursor; token = lex(&ctx->cursor, ctx->file.end);
@@ -159,7 +167,7 @@ done:
   /* End-of-code: */
   if (scoped && token == LEX_END)
     return context_error(ctx, "Unexpected end of input in code block.");
-  CHECK_MEM(ast_builder_push(b, AST_CODE,
+  CHECK_MEM(out(ctx, AST_CODE,
     ast_code_new(&b->pool, nodes.first)));
   return 1;
 }
@@ -189,7 +197,6 @@ int parse_escape(Context *ctx, AstBuilder *b)
       return parse_for(ctx, b);
     } else {
       Symbol *symbol;
-      Dynamic value;
 
       /* Assignment? */
       token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -197,14 +204,13 @@ int parse_escape(Context *ctx, AstBuilder *b)
         return context_error(ctx, "No idea what this keyword is.");
 
       CHECK(parse_escape(ctx, b));
-      value = ast_builder_pop(b);
 
       symbol = ast_builder_scope_add(b, temp);
       CHECK_MEM(symbol);
-      symbol->type = value.type;
+      symbol->type = ctx->out.type;
 
-      CHECK_MEM(ast_builder_push(b, AST_SET,
-        ast_set_new(&b->pool, symbol, value)));
+      CHECK_MEM(out(ctx, AST_SET,
+        ast_set_new(&b->pool, symbol, ctx->out)));
       return 1;
     }
   } else {
@@ -244,7 +250,7 @@ int parse_include(Context *ctx, AstBuilder *b)
   }
   ctx->cursor = ctx->file.p;
   CHECK(parse_code(ctx, b, 0));
-  code = ast_to_code(ast_builder_pop(b));
+  code = ast_to_code(ctx->out);
   string_free(ctx->file);
 
   /* Restore the context: */
@@ -257,7 +263,7 @@ int parse_include(Context *ctx, AstBuilder *b)
   if (token != LEX_SEMICOLON)
     return context_error(ctx, "An include stament must end with a semicolon.");
 
-  CHECK_MEM(ast_builder_push(b, AST_INCLUDE,
+  CHECK_MEM(out(ctx, AST_INCLUDE,
     ast_include_new(&b->pool, code)));
   return 1;
 }
@@ -281,11 +287,11 @@ int parse_outline(Context *ctx, AstBuilder *b)
   while (token != LEX_BRACE_R) {
     ctx->cursor = start;
     CHECK(parse_outline_item(ctx, b));
-    CHECK_MEM(list_builder_add2(&items, &b->pool, ast_builder_pop(b)));
+    CHECK_MEM(list_builder_add2(&items, &b->pool, ctx->out));
     token = lex_next(&start, &ctx->cursor, ctx->file.end);
   }
 
-  CHECK_MEM(ast_builder_push(b, AST_OUTLINE,
+  CHECK_MEM(out(ctx, AST_OUTLINE,
     ast_outline_new(&b->pool, items.first)));
   return 1;
 }
@@ -321,7 +327,7 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
 
       /* Value: */
       CHECK(parse_code(ctx, b, 1));
-      code = ast_to_code(ast_builder_pop(b));
+      code = ast_to_code(ctx->out);
 
       CHECK_MEM(list_builder_add(&tags, &b->pool, AST_OUTLINE_TAG,
         ast_outline_tag_new(&b->pool, last, code)));
@@ -337,12 +343,12 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
   if (token == LEX_BRACE_L) {
     ctx->cursor = start;
     CHECK(parse_outline(ctx, b));
-    children = ast_to_outline(ast_builder_pop(b));
+    children = ast_to_outline(ctx->out);
   } else if (token != LEX_SEMICOLON) {
     return context_error(ctx, "An outline can only end with a semicolon or an opening brace.");
   }
 
-  CHECK_MEM(ast_builder_push(b, AST_OUTLINE_ITEM,
+  CHECK_MEM(out(ctx, AST_OUTLINE_ITEM,
     ast_outline_item_new(&b->pool, tags.first, last, children)));
   return 1;
 }
@@ -377,12 +383,12 @@ int parse_map(Context *ctx, AstBuilder *b)
   while (token != LEX_BRACE_R) {
     ctx->cursor = start;
     CHECK(parse_map_line(ctx, b));
-    CHECK_MEM(list_builder_add2(&lines, &b->pool, ast_builder_pop(b)));
+    CHECK_MEM(list_builder_add2(&lines, &b->pool, ctx->out));
     token = lex_next(&start, &ctx->cursor, ctx->file.end);
   }
 
   ast_builder_scope_pop(b);
-  CHECK_MEM(ast_builder_push(b, AST_MAP,
+  CHECK_MEM(out(ctx, AST_MAP,
     ast_map_new(&b->pool, item, lines.first)));
   return 1;
 }
@@ -399,7 +405,7 @@ int parse_map_line(Context *ctx, AstBuilder *b)
 
   /* Filter: */
   CHECK(parse_filter(ctx, b));
-  filter = ast_to_filter(ast_builder_pop(b));
+  filter = ast_to_filter(ctx->out);
 
   /* Opening brace: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -408,9 +414,9 @@ int parse_map_line(Context *ctx, AstBuilder *b)
 
   /* Code: */
   CHECK(parse_code(ctx, b, 1));
-  code = ast_to_code(ast_builder_pop(b));
+  code = ast_to_code(ctx->out);
 
-  CHECK_MEM(ast_builder_push(b, AST_MAP_LINE,
+  CHECK_MEM(out(ctx, AST_MAP_LINE,
     ast_map_line_new(&b->pool, filter, code)));
   return 1;
 }
@@ -464,7 +470,7 @@ modifier:
     /* "with" modifier: */
     if (string_equal(s, string_init_l("with", 4))) {
       CHECK(parse_filter(ctx, b));
-      filter = ast_to_filter(ast_builder_pop(b));
+      filter = ast_to_filter(ctx->out);
       goto modifier;
 
     /* "reverse" modifier: */
@@ -485,10 +491,10 @@ modifier:
 
   /* Code: */
   CHECK(parse_code(ctx, b, 1));
-  code = ast_to_code(ast_builder_pop(b));
+  code = ast_to_code(ctx->out);
 
   ast_builder_scope_pop(b);
-  CHECK_MEM(ast_builder_push(b, AST_FOR,
+  CHECK_MEM(out(ctx, AST_FOR,
     ast_for_new(&b->pool, item, outline, filter, reverse, list, code)));
   return 1;
 }
@@ -588,7 +594,7 @@ done:
     }
   }
 
-  CHECK_MEM(ast_builder_push(b, AST_FILTER,
+  CHECK_MEM(out(ctx, AST_FILTER,
     ast_filter_new(&b->pool, ast_to_filter_node(ast_builder_pop(b)))));
   return 1;
 }
