@@ -71,8 +71,13 @@ int parse_code(Context *ctx, AstBuilder *b, int scoped)
   Token token;
   Symbol *symbol;
   int indent = 1;
+  ListBuilder nodes = list_builder_init();
 
-  CHECK_MEM(ast_builder_push_start(b));
+#define WRITE_CODE \
+  if (start_c != start) \
+    CHECK_MEM(list_builder_add(&nodes, &b->pool, AST_CODE_TEXT, \
+      ast_code_text_new(&b->pool, string_init(start_c, start))));
+
   start_c = ctx->cursor;
   start = ctx->cursor; token = lex(&ctx->cursor, ctx->file.end);
 
@@ -95,7 +100,7 @@ code:
   goto code;
 
 paste:
-  CHECK_MEM(ast_build_code_text(b, string_init(start_c, start)));
+  WRITE_CODE
 
   /* Token pasting: */
   start_c = ctx->cursor;
@@ -103,17 +108,18 @@ paste:
   goto code;
 
 escape:
-  CHECK_MEM(ast_build_code_text(b, string_init(start_c, start)));
+  WRITE_CODE
 
   /* "\ol" escape sequences: */
   CHECK(parse_escape(ctx, b));
+  CHECK_MEM(list_builder_add2(&nodes, &b->pool, ast_builder_pop(b)));
 
   start_c = ctx->cursor;
   start = ctx->cursor; token = lex(&ctx->cursor, ctx->file.end);
   goto code;
 
 symbol:
-  CHECK_MEM(ast_build_code_text(b, string_init(start_c, start)));
+  WRITE_CODE
 
   /* Symbol replacement: */
   if (symbol->type != AST_OUTLINE_ITEM)
@@ -129,27 +135,32 @@ symbol:
       if (lookup) {
         if (lookup->type != AST_MAP)
           return context_error(ctx, "Wrong type - expecting a map here.\n");
-        CHECK_MEM(ast_build_call(b, lookup, symbol));
+        CHECK_MEM(list_builder_add(&nodes, &b->pool, AST_CALL,
+          ast_call_new(&b->pool, lookup, symbol)));
       } else {
-        CHECK_MEM(ast_build_lookup(b, symbol, string_init(start, ctx->cursor)));
+        CHECK_MEM(list_builder_add(&nodes, &b->pool, AST_LOOKUP,
+          ast_lookup_new(&b->pool, symbol, string_init(start, ctx->cursor))));
       }
       start_c = ctx->cursor;
       start = ctx->cursor; token = lex(&ctx->cursor, ctx->file.end);
     } else {
-      CHECK_MEM(ast_build_symbol_ref(b, symbol));
+      CHECK_MEM(list_builder_add(&nodes, &b->pool, AST_SYMBOL_REF,
+        ast_symbol_ref_new(&b->pool, symbol)));
     }
   } else {
-    CHECK_MEM(ast_build_symbol_ref(b, symbol));
+    CHECK_MEM(list_builder_add(&nodes, &b->pool, AST_SYMBOL_REF,
+      ast_symbol_ref_new(&b->pool, symbol)));
   }
   goto code;
 
 done:
-  CHECK_MEM(ast_build_code_text(b, string_init(start_c, start)));
+  WRITE_CODE
 
   /* End-of-code: */
   if (scoped && token == LEX_END)
     return context_error(ctx, "Unexpected end of input in code block.");
-  CHECK_MEM(ast_build_code(b));
+  CHECK_MEM(ast_builder_push(b, AST_CODE,
+    ast_code_new(&b->pool, nodes.first)));
   return 1;
 }
 
@@ -165,15 +176,6 @@ int parse_escape(Context *ctx, AstBuilder *b)
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token == LEX_END) {
     return context_error(ctx, "Unexpected end of input.");
-  /* Nested {} block: */
-  } else if (token == LEX_BRACE_L) {
-    token = lex_next(&start, &ctx->cursor, ctx->file.end);
-    while (token != LEX_BRACE_R) {
-      ctx->cursor = start;
-      CHECK(parse_escape(ctx, b));
-      token = lex_next(&start, &ctx->cursor, ctx->file.end);
-    }
-    return 1;
   /* Keywords: */
   } else if (token == LEX_IDENTIFIER) {
     String temp = string_init(start, ctx->cursor);
@@ -187,6 +189,7 @@ int parse_escape(Context *ctx, AstBuilder *b)
       return parse_for(ctx, b);
     } else {
       Symbol *symbol;
+      Dynamic value;
 
       /* Assignment? */
       token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -194,12 +197,14 @@ int parse_escape(Context *ctx, AstBuilder *b)
         return context_error(ctx, "No idea what this keyword is.");
 
       CHECK(parse_escape(ctx, b));
+      value = ast_builder_pop(b);
 
       symbol = ast_builder_scope_add(b, temp);
       CHECK_MEM(symbol);
-      symbol->type = ast_builder_peek(b).type;
+      symbol->type = value.type;
 
-      CHECK_MEM(ast_build_set(b, symbol));
+      CHECK_MEM(ast_builder_push(b, AST_SET,
+        ast_set_new(&b->pool, symbol, value)));
       return 1;
     }
   } else {
@@ -217,7 +222,9 @@ int parse_include(Context *ctx, AstBuilder *b)
   String old_file;
   String old_filename;
   char const *old_cursor;
+  AstCode *code;
 
+  /* File name: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_STRING)
     return context_error(ctx, "An include statment expects a quoted filename.");
@@ -237,6 +244,7 @@ int parse_include(Context *ctx, AstBuilder *b)
   }
   ctx->cursor = ctx->file.p;
   CHECK(parse_code(ctx, b, 0));
+  code = ast_to_code(ast_builder_pop(b));
   string_free(ctx->file);
 
   /* Restore the context: */
@@ -244,11 +252,13 @@ int parse_include(Context *ctx, AstBuilder *b)
   ctx->filename = old_filename;
   ctx->cursor = old_cursor;
 
+  /* Closing semicolon: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_SEMICOLON)
     return context_error(ctx, "An include stament must end with a semicolon.");
 
-  CHECK_MEM(ast_build_include(b));
+  CHECK_MEM(ast_builder_push(b, AST_INCLUDE,
+    ast_include_new(&b->pool, code)));
   return 1;
 }
 
@@ -259,6 +269,7 @@ int parse_outline(Context *ctx, AstBuilder *b)
 {
   char const *start;
   Token token;
+  ListBuilder items = list_builder_init();
 
   /* Opening brace: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -266,15 +277,16 @@ int parse_outline(Context *ctx, AstBuilder *b)
     return context_error(ctx, "An outline must start with an opening {.");
 
   /* Items: */
-  CHECK_MEM(ast_builder_push_start(b));
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   while (token != LEX_BRACE_R) {
     ctx->cursor = start;
     CHECK(parse_outline_item(ctx, b));
+    CHECK_MEM(list_builder_add2(&items, &b->pool, ast_builder_pop(b)));
     token = lex_next(&start, &ctx->cursor, ctx->file.end);
   }
 
-  CHECK_MEM(ast_build_outline(b));
+  CHECK_MEM(ast_builder_push(b, AST_OUTLINE,
+    ast_outline_new(&b->pool, items.first)));
   return 1;
 }
 
@@ -287,17 +299,21 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
   char const *start;
   Token token;
   String last = string_null();
+  ListBuilder tags = list_builder_init();
+  AstOutline *children = 0;
 
   /* Handle the words making up the item: */
-  CHECK_MEM(ast_builder_push_start(b));
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   while (token == LEX_IDENTIFIER) {
     if (string_size(last)) {
-      CHECK_MEM(ast_build_outline_tag(b, last));
+      CHECK_MEM(list_builder_add(&tags, &b->pool, AST_OUTLINE_TAG,
+        ast_outline_tag_new(&b->pool, last, 0)));
     }
     last = string_init(start, ctx->cursor);
     token = lex_next(&start, &ctx->cursor, ctx->file.end);
     if (token == LEX_EQUALS) {
+      AstCode *code;
+
       /* Opening brace: */
       token = lex_next(&start, &ctx->cursor, ctx->file.end);
       if (token != LEX_BRACE_L)
@@ -305,8 +321,10 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
 
       /* Value: */
       CHECK(parse_code(ctx, b, 1));
+      code = ast_to_code(ast_builder_pop(b));
 
-      CHECK_MEM(ast_build_outline_tag(b, last));
+      CHECK_MEM(list_builder_add(&tags, &b->pool, AST_OUTLINE_TAG,
+        ast_outline_tag_new(&b->pool, last, code)));
 
       last = string_null();
       token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -319,11 +337,13 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
   if (token == LEX_BRACE_L) {
     ctx->cursor = start;
     CHECK(parse_outline(ctx, b));
+    children = ast_to_outline(ast_builder_pop(b));
   } else if (token != LEX_SEMICOLON) {
     return context_error(ctx, "An outline can only end with a semicolon or an opening brace.");
   }
 
-  CHECK_MEM(ast_build_outline_item(b, last));
+  CHECK_MEM(ast_builder_push(b, AST_OUTLINE_ITEM,
+    ast_outline_item_new(&b->pool, tags.first, last, children)));
   return 1;
 }
 
@@ -335,6 +355,7 @@ int parse_map(Context *ctx, AstBuilder *b)
   char const *start;
   Token token;
   Symbol *item;
+  ListBuilder lines = list_builder_init();
 
   CHECK_MEM(ast_builder_scope_new(b));
 
@@ -352,16 +373,17 @@ int parse_map(Context *ctx, AstBuilder *b)
     return context_error(ctx, "An opening { must come after the name of a map.");
 
   /* Lines: */
-  CHECK_MEM(ast_builder_push_start(b));
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   while (token != LEX_BRACE_R) {
     ctx->cursor = start;
     CHECK(parse_map_line(ctx, b));
+    CHECK_MEM(list_builder_add2(&lines, &b->pool, ast_builder_pop(b)));
     token = lex_next(&start, &ctx->cursor, ctx->file.end);
   }
 
   ast_builder_scope_pop(b);
-  CHECK_MEM(ast_build_map(b, item));
+  CHECK_MEM(ast_builder_push(b, AST_MAP,
+    ast_map_new(&b->pool, item, lines.first)));
   return 1;
 }
 
@@ -372,9 +394,12 @@ int parse_map_line(Context *ctx, AstBuilder *b)
 {
   char const *start;
   Token token;
+  AstFilter *filter;
+  AstCode *code;
 
   /* Filter: */
   CHECK(parse_filter(ctx, b));
+  filter = ast_to_filter(ast_builder_pop(b));
 
   /* Opening brace: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -383,8 +408,10 @@ int parse_map_line(Context *ctx, AstBuilder *b)
 
   /* Code: */
   CHECK(parse_code(ctx, b, 1));
+  code = ast_to_code(ast_builder_pop(b));
 
-  CHECK_MEM(ast_build_map_line(b));
+  CHECK_MEM(ast_builder_push(b, AST_MAP_LINE,
+    ast_map_line_new(&b->pool, filter, code)));
   return 1;
 }
 
@@ -397,9 +424,10 @@ int parse_for(Context *ctx, AstBuilder *b)
   Token token;
   Symbol *item;
   Symbol *outline;
-  String symbol;
+  AstFilter *filter = 0;
   int reverse = 0;
   int list = 0;
+  AstCode *code;
 
   CHECK_MEM(ast_builder_scope_new(b));
 
@@ -431,20 +459,21 @@ int parse_for(Context *ctx, AstBuilder *b)
 modifier:
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token == LEX_IDENTIFIER) {
-    symbol = string_init(start, ctx->cursor);
+    String s = string_init(start, ctx->cursor);
 
     /* "with" modifier: */
-    if (string_equal(symbol, string_init_l("with", 4))) {
+    if (string_equal(s, string_init_l("with", 4))) {
       CHECK(parse_filter(ctx, b));
+      filter = ast_to_filter(ast_builder_pop(b));
       goto modifier;
 
     /* "reverse" modifier: */
-    } else if (string_equal(symbol, string_init_l("reverse", 7))) {
+    } else if (string_equal(s, string_init_l("reverse", 7))) {
       reverse = 1;
       goto modifier;
 
     /* "list" modifier: */
-    } else if (string_equal(symbol, string_init_l("list", 4))) {
+    } else if (string_equal(s, string_init_l("list", 4))) {
       list = 1;
       goto modifier;
     } else {
@@ -456,9 +485,11 @@ modifier:
 
   /* Code: */
   CHECK(parse_code(ctx, b, 1));
+  code = ast_to_code(ast_builder_pop(b));
 
   ast_builder_scope_pop(b);
-  CHECK_MEM(ast_build_for(b, item, outline, reverse, list));
+  CHECK_MEM(ast_builder_push(b, AST_FOR,
+    ast_for_new(&b->pool, item, outline, filter, reverse, list, code)));
   return 1;
 }
 
@@ -557,6 +588,7 @@ done:
     }
   }
 
-  CHECK_MEM(ast_build_filter(b));
+  CHECK_MEM(ast_builder_push(b, AST_FILTER,
+    ast_filter_new(&b->pool, ast_to_filter_node(ast_builder_pop(b)))));
   return 1;
 }

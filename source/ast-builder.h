@@ -37,9 +37,7 @@ int ast_builder_init(AstBuilder *b);
 void ast_builder_free(AstBuilder *b);
 
 int ast_builder_push(AstBuilder *b, Type type, void *p);
-int ast_builder_push_start(AstBuilder *b);
 Dynamic ast_builder_pop(AstBuilder *b);
-Dynamic ast_builder_peek(AstBuilder *b);
 
 Scope  *ast_builder_scope_new(AstBuilder *b);
 Symbol *ast_builder_scope_add(AstBuilder *b, String symbol);
@@ -49,24 +47,10 @@ Symbol *ast_builder_scope_find(AstBuilder *b, String symbol);
 /*
  * Functions for assembling an AST. All functions return 0 on success.
  */
-int ast_build_code(AstBuilder *b);
-int ast_build_code_text(AstBuilder *b, String code);
-int ast_build_include(AstBuilder *b);
-int ast_build_outline(AstBuilder *b);
-int ast_build_outline_item(AstBuilder *b, String name);
-int ast_build_outline_tag(AstBuilder *b, String symbol);
-int ast_build_map(AstBuilder *b, Symbol *item);
-int ast_build_map_line(AstBuilder *b);
-int ast_build_for(AstBuilder *b, Symbol *item, Symbol *outline, int reverse, int list);
-int ast_build_filter(AstBuilder *b);
 int ast_build_filter_tag(AstBuilder *b, String tag);
 int ast_build_filter_any(AstBuilder *b);
 int ast_build_filter_not(AstBuilder *b);
 int ast_build_filter_and(AstBuilder *b);
 int ast_build_filter_or(AstBuilder *b);
-int ast_build_set(AstBuilder *b, Symbol *symbol);
-int ast_build_symbol_ref(AstBuilder *b, Symbol *symbol);
-int ast_build_call(AstBuilder *b, Symbol *f, Symbol *data);
-int ast_build_lookup(AstBuilder *b, Symbol *symbol, String name);
 
 #endif

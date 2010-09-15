@@ -30,13 +30,14 @@ ListBuilder list_builder_init()
 /**
  * Adds an item to the end of a list.
  */
-int list_builder_add(ListBuilder *b, Pool *pool, Dynamic item)
+int list_builder_add(ListBuilder *b, Pool *pool, Type type, void *p)
 {
   ListNode *node = pool_alloc(pool, sizeof(ListNode));
   if (!node) return 0;
   node->next = 0;
-  node->p = item.p;
-  node->type = item.type;
+  node->p = p;
+  node->type = type;
+  if (!node->p) return 0;
 
   if (!b->first) {
     b->first = node;
@@ -47,4 +48,9 @@ int list_builder_add(ListBuilder *b, Pool *pool, Dynamic item)
   }
 
   return 1;
+}
+
+int list_builder_add2(ListBuilder *b, Pool *pool, Dynamic item)
+{
+  return list_builder_add(b, pool, item.type, item.p);
 }

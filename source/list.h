@@ -45,6 +45,7 @@ struct ListBuilder {
 };
 
 ListBuilder list_builder_init();
-int list_builder_add(ListBuilder *b, Pool *pool, Dynamic item);
+int list_builder_add(ListBuilder *b, Pool *pool, Type type, void *p);
+int list_builder_add2(ListBuilder *b, Pool *pool, Dynamic item);
 
 #endif

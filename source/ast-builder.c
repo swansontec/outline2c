@@ -65,34 +65,10 @@ int ast_builder_push(AstBuilder *b, Type type, void *p)
   return 1;
 }
 
-/**
- * Pushes a list start marker onto the stack.
- */
-int ast_builder_push_start(AstBuilder *b)
-{
-  return ast_builder_push(b, TYPE_END, b /* HACK */);
-}
-
 Dynamic ast_builder_pop(AstBuilder *b)
 {
   --b->stack_top;
   return b->stack[b->stack_top];
-}
-
-Dynamic ast_builder_peek(AstBuilder *b)
-{
-  return (b->stack[b->stack_top - 1]);
-}
-
-/**
- * Finds the length of the list at the top of the stack.
- */
-static size_t ast_builder_count(AstBuilder *b)
-{
-  size_t i = b->stack_top;
-  while (0 < i && b->stack[i - 1].type != TYPE_END)
-    --i;
-  return i == 0 ? 0 : b->stack_top - i;
 }
 
 /**
@@ -130,140 +106,6 @@ Symbol *ast_builder_scope_find(AstBuilder *b, String symbol)
 /*
  * Functions for assembling an AST. All functions return 0 on success.
  */
-int ast_build_code(AstBuilder *b)
-{
-  size_t i;
-  size_t node_n;
-  ListBuilder nodes = list_builder_init();
-
-  node_n = ast_builder_count(b);
-
-  b->stack_top -= node_n;
-  for (i = 0; i < node_n; ++i)
-    if (!list_builder_add(&nodes, &b->pool, b->stack[b->stack_top + i])) return 0;
-  --b->stack_top;
-
-  return ast_builder_push(b, AST_CODE,
-    ast_code_new(&b->pool, nodes.first));
-}
-
-int ast_build_code_text(AstBuilder *b, String code)
-{
-  if (!string_size(code))
-    return 1;
-
-  return ast_builder_push(b, AST_CODE_TEXT,
-    ast_code_text_new(&b->pool, code));
-}
-
-int ast_build_include(AstBuilder *b)
-{
-  AstCode *code = ast_to_code(ast_builder_pop(b));
-
-  return ast_builder_push(b, AST_INCLUDE,
-    ast_include_new(&b->pool, code));
-}
-
-int ast_build_outline(AstBuilder *b)
-{
-  size_t i;
-  size_t item_n;
-  ListBuilder items = list_builder_init();
-
-  item_n = ast_builder_count(b);
-
-  b->stack_top -= item_n;
-  for (i = 0; i < item_n; ++i)
-    if (!list_builder_add(&items, &b->pool, b->stack[b->stack_top + i])) return 0;
-  --b->stack_top;
-
-  return ast_builder_push(b, AST_OUTLINE,
-    ast_outline_new(&b->pool, items.first));
-}
-
-int ast_build_outline_item(AstBuilder *b, String name)
-{
-  size_t i;
-  size_t tag_n;
-  ListBuilder tags = list_builder_init();
-  AstOutline *children;
-
-  children = ast_builder_peek(b).type == AST_OUTLINE ?
-    ast_to_outline(ast_builder_pop(b)) : 0;
-
-  tag_n = ast_builder_count(b);
-
-  b->stack_top -= tag_n;
-  for (i = 0; i < tag_n; ++i)
-    if (!list_builder_add(&tags, &b->pool, b->stack[b->stack_top + i])) return 0;
-  --b->stack_top;
-
-  return ast_builder_push(b, AST_OUTLINE_ITEM,
-    ast_outline_item_new(&b->pool, tags.first, name, children));
-}
-
-int ast_build_outline_tag(AstBuilder *b, String symbol)
-{
-  AstCode *code;
-
-  code = ast_builder_peek(b).type == AST_CODE ?
-    ast_to_code(ast_builder_pop(b)) : 0;
-
-  return ast_builder_push(b, AST_OUTLINE_TAG,
-    ast_outline_tag_new(&b->pool, symbol, code));
-}
-
-int ast_build_map(AstBuilder *b, Symbol *item)
-{
-  size_t i;
-  size_t line_n;
-  ListBuilder lines = list_builder_init();
-
-  line_n = ast_builder_count(b);
-
-  b->stack_top -= line_n;
-  for (i = 0; i < line_n; ++i)
-    if (!list_builder_add(&lines, &b->pool, b->stack[b->stack_top + i])) return 0;
-  --b->stack_top;
-
-  return ast_builder_push(b, AST_MAP,
-    ast_map_new(&b->pool, item, lines.first));
-}
-
-int ast_build_map_line(AstBuilder *b)
-{
-  AstFilter *filter;
-  AstCode *code;
-
-  code = ast_to_code(ast_builder_pop(b));
-  filter = ast_to_filter(ast_builder_pop(b));
-
-  return ast_builder_push(b, AST_MAP_LINE,
-    ast_map_line_new(&b->pool, filter, code));
-}
-
-int ast_build_for(AstBuilder *b, Symbol *item, Symbol *outline, int reverse, int list)
-{
-  AstFilter *filter;
-  AstCode *code;
-
-  code = ast_to_code(ast_builder_pop(b));
-
-  filter = ast_builder_peek(b).type == AST_FILTER ?
-    ast_to_filter(ast_builder_pop(b)) : 0;
-
-  return ast_builder_push(b, AST_FOR,
-    ast_for_new(&b->pool, item, outline, filter, reverse, list, code));
-}
-
-int ast_build_filter(AstBuilder *b)
-{
-  AstFilterNode test = ast_to_filter_node(ast_builder_pop(b));
-
-  return ast_builder_push(b, AST_FILTER,
-    ast_filter_new(&b->pool, test));
-}
-
 int ast_build_filter_tag(AstBuilder *b, String tag)
 {
   return ast_builder_push(b, AST_FILTER_TAG,
@@ -300,30 +142,4 @@ int ast_build_filter_or(AstBuilder *b)
 
   return ast_builder_push(b, AST_FILTER_OR,
     ast_filter_or_new(&b->pool, test_a, test_b));
-}
-
-int ast_build_set(AstBuilder *b, Symbol *symbol)
-{
-  Dynamic value = ast_builder_pop(b);
-
-  return ast_builder_push(b, AST_SET,
-    ast_set_new(&b->pool, symbol, value));
-}
-
-int ast_build_symbol_ref(AstBuilder *b, Symbol *symbol)
-{
-  return ast_builder_push(b, AST_SYMBOL_REF,
-    ast_symbol_ref_new(&b->pool, symbol));
-}
-
-int ast_build_call(AstBuilder *b, Symbol *f, Symbol *data)
-{
-  return ast_builder_push(b, AST_CALL,
-    ast_call_new(&b->pool, f, data));
-}
-
-int ast_build_lookup(AstBuilder *b, Symbol *symbol, String name)
-{
-  return ast_builder_push(b, AST_LOOKUP,
-    ast_lookup_new(&b->pool, symbol, name));
 }
