@@ -20,8 +20,8 @@ CFLAGS = -g -std=c89 -pedantic
 objects = ast.o ast-builder.o debug.o file.o filter.o generate.o lexer.o main.o parser.o pool.o scope.o string.o
 
 # Inter-header dependencies:
-ast_h      = ../source/ast.h $(pool_h)
-ast_builder_h = ../source/ast-builder.h $(ast_h) $(scope_h)
+ast_h      = ../source/ast.h $(scope_h)
+ast_builder_h = ../source/ast-builder.h $(ast_h)
 debug_h    = ../source/debug.h $(ast_h)
 file_h     = ../source/file.h
 filter_h   = ../source/filter.h $(ast_h)
@@ -29,8 +29,9 @@ generate_h = ../source/generate.h $(string_h)
 lexer_h    = ../source/lexer.h
 parser_h   = ../source/parser.h $(ast_builder_h)
 pool_h     = ../source/pool.h $(string_h)
-scope_h    = ../source/scope.h $(ast_h)
+scope_h    = ../source/scope.h $(type_h) $(pool_h)
 string_h   = ../source/string.h
+type_h     = ../source/type.h
 
 all: outline2c
 

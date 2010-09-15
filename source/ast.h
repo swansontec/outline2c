@@ -17,9 +17,7 @@
 #ifndef AST_H_INCLUDED
 #define AST_H_INCLUDED
 
-#include "pool.h"
-
-typedef struct symbol Symbol;
+#include "scope.h"
 
 typedef struct ast_file                 AstFile;
 typedef struct ast_code                 AstCode;
@@ -42,45 +40,8 @@ typedef struct ast_symbol_ref           AstSymbolRef;
 typedef struct ast_call                 AstCall;
 typedef struct ast_lookup               AstLookup;
 
-typedef struct ast_node                 AstNode;
 typedef struct ast_code_node            AstCodeNode;
 typedef struct ast_filter_node          AstFilterNode;
-
-/**
- * Types
- */
-enum ast_type {
-  AST_FILE,
-  AST_CODE,
-  AST_CODE_TEXT,
-  AST_INCLUDE,
-  AST_OUTLINE,
-  AST_OUTLINE_ITEM,
-  AST_OUTLINE_TAG,
-  AST_MAP,
-  AST_MAP_LINE,
-  AST_FOR,
-  AST_FILTER,
-  AST_FILTER_TAG,
-  AST_FILTER_ANY,
-  AST_FILTER_NOT,
-  AST_FILTER_AND,
-  AST_FILTER_OR,
-  AST_SET,
-  AST_SYMBOL_REF,
-  AST_CALL,
-  AST_LOOKUP,
-  AST_END
-};
-typedef enum ast_type AstType;
-
-/**
- * Points to any AST node.
- */
-struct ast_node {
-  void *p;
-  AstType type;
-};
 
 /**
  * Points to one of:
@@ -96,7 +57,7 @@ struct ast_node {
  */
 struct ast_code_node {
   void *p;
-  AstType type;
+  Type type;
 };
 
 /**
@@ -109,25 +70,25 @@ struct ast_code_node {
  */
 struct ast_filter_node {
   void *p;
-  AstType type;
+  Type type;
 };
 
 /* Type-checking functions */
-int ast_is_code_node(AstNode node);
-int ast_is_filter_node(AstNode node);
+int ast_is_code_node(Type type);
+int ast_is_filter_node(Type type);
 
 /* Type-conversion functions */
-AstCodeNode         ast_to_code_node(AstNode node);
-AstFilterNode       ast_to_filter_node(AstNode node);
+AstCodeNode         ast_to_code_node(Dynamic node);
+AstFilterNode       ast_to_filter_node(Dynamic node);
 
-AstFile            *ast_to_file(AstNode node);
-AstCode            *ast_to_code(AstNode node);
-AstOutline         *ast_to_outline(AstNode node);
-AstOutlineItem     *ast_to_outline_item(AstNode node);
-AstOutlineTag      *ast_to_outline_tag(AstNode node);
-AstMapLine         *ast_to_map_line(AstNode node);
-AstFilter          *ast_to_filter(AstNode node);
-AstSymbolRef       *ast_to_symbol_ref(AstNode node);
+AstFile            *ast_to_file(Dynamic node);
+AstCode            *ast_to_code(Dynamic node);
+AstOutline         *ast_to_outline(Dynamic node);
+AstOutlineItem     *ast_to_outline_item(Dynamic node);
+AstOutlineTag      *ast_to_outline_tag(Dynamic node);
+AstMapLine         *ast_to_map_line(Dynamic node);
+AstFilter          *ast_to_filter(Dynamic node);
+AstSymbolRef       *ast_to_symbol_ref(Dynamic node);
 
 /**
  * A source file. This is the top-level element of the AST.

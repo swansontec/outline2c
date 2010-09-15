@@ -108,6 +108,7 @@
     <ClInclude Include="..\source\pool.h" />
     <ClInclude Include="..\source\scope.h" />
     <ClInclude Include="..\source\string.h" />
+    <ClInclude Include="..\source\type.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

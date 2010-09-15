@@ -17,91 +17,91 @@
 #include "ast.h"
 #include <assert.h>
 
-int ast_is_code_node(AstNode node)
+int ast_is_code_node(Type type)
 {
   return
-    node.type == AST_CODE_TEXT ||
-    node.type == AST_INCLUDE ||
-    node.type == AST_OUTLINE ||
-    node.type == AST_MAP ||
-    node.type == AST_FOR ||
-    node.type == AST_SET ||
-    node.type == AST_SYMBOL_REF ||
-    node.type == AST_CALL ||
-    node.type == AST_LOOKUP;
+    type == AST_CODE_TEXT ||
+    type == AST_INCLUDE ||
+    type == AST_OUTLINE ||
+    type == AST_MAP ||
+    type == AST_FOR ||
+    type == AST_SET ||
+    type == AST_SYMBOL_REF ||
+    type == AST_CALL ||
+    type == AST_LOOKUP;
 }
 
-int ast_is_filter_node(AstNode node)
+int ast_is_filter_node(Type type)
 {
   return
-    node.type == AST_FILTER_TAG ||
-    node.type == AST_FILTER_ANY ||
-    node.type == AST_FILTER_NOT ||
-    node.type == AST_FILTER_OR ||
-    node.type == AST_FILTER_AND;
+    type == AST_FILTER_TAG ||
+    type == AST_FILTER_ANY ||
+    type == AST_FILTER_NOT ||
+    type == AST_FILTER_OR ||
+    type == AST_FILTER_AND;
 }
 
-AstCodeNode ast_to_code_node(AstNode node)
+AstCodeNode ast_to_code_node(Dynamic node)
 {
   AstCodeNode temp;
-  assert(ast_is_code_node(node));
+  assert(ast_is_code_node(node.type));
   temp.p = node.p;
   temp.type = node.type;
   return temp;
 }
 
-AstFilterNode ast_to_filter_node(AstNode node)
+AstFilterNode ast_to_filter_node(Dynamic node)
 {
   AstFilterNode temp;
-  assert(ast_is_filter_node(node));
+  assert(ast_is_filter_node(node.type));
   temp.p = node.p;
   temp.type = node.type;
   return temp;
 }
 
-AstFile *ast_to_file(AstNode node)
+AstFile *ast_to_file(Dynamic node)
 {
   assert(node.type == AST_FILE);
   return node.p;
 }
 
-AstCode *ast_to_code(AstNode node)
+AstCode *ast_to_code(Dynamic node)
 {
   assert(node.type == AST_CODE);
   return node.p;
 }
 
-AstOutline *ast_to_outline(AstNode node)
+AstOutline *ast_to_outline(Dynamic node)
 {
   assert(node.type == AST_OUTLINE);
   return node.p;
 }
 
-AstOutlineItem *ast_to_outline_item(AstNode node)
+AstOutlineItem *ast_to_outline_item(Dynamic node)
 {
   assert(node.type == AST_OUTLINE_ITEM);
   return node.p;
 }
 
-AstOutlineTag *ast_to_outline_tag(AstNode node)
+AstOutlineTag *ast_to_outline_tag(Dynamic node)
 {
   assert(node.type == AST_OUTLINE_TAG);
   return node.p;
 }
 
-AstMapLine *ast_to_map_line(AstNode node)
+AstMapLine *ast_to_map_line(Dynamic node)
 {
   assert(node.type == AST_MAP_LINE);
   return node.p;
 }
 
-AstFilter *ast_to_filter(AstNode node)
+AstFilter *ast_to_filter(Dynamic node)
 {
   assert(node.type == AST_FILTER);
   return node.p;
 }
 
-AstSymbolRef *ast_to_symbol_ref(AstNode node)
+AstSymbolRef *ast_to_symbol_ref(Dynamic node)
 {
   assert(node.type == AST_SYMBOL_REF);
   return node.p;

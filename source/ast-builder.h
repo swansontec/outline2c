@@ -18,7 +18,6 @@
 #define AST_BUILDER_H_INCLUDED
 
 #include "ast.h"
-#include "scope.h"
 #include <stdlib.h>
 
 typedef struct ast_builder AstBuilder;
@@ -28,7 +27,7 @@ typedef struct ast_builder AstBuilder;
  */
 struct ast_builder {
   Pool pool;
-  AstNode *stack;
+  Dynamic *stack;
   size_t stack_size;
   size_t stack_top;
   Scope *scope;
@@ -37,10 +36,10 @@ struct ast_builder {
 int ast_builder_init(AstBuilder *b);
 void ast_builder_free(AstBuilder *b);
 
-int ast_builder_push(AstBuilder *b, AstType type, void *p);
+int ast_builder_push(AstBuilder *b, Type type, void *p);
 int ast_builder_push_start(AstBuilder *b);
-AstNode ast_builder_pop(AstBuilder *b);
-AstNode ast_builder_peek(AstBuilder *b);
+Dynamic ast_builder_pop(AstBuilder *b);
+Dynamic ast_builder_peek(AstBuilder *b);
 
 Scope  *ast_builder_scope_new(AstBuilder *b);
 Symbol *ast_builder_scope_add(AstBuilder *b, String symbol);

@@ -38,6 +38,7 @@
     <ClInclude Include="..\source\string.h">
       <Filter>utility</Filter>
     </ClInclude>
+    <ClInclude Include="..\source\type.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="utility">

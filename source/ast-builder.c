@@ -26,7 +26,7 @@ int ast_builder_init(AstBuilder *b)
   if (!pool_init(&b->pool, 0x10000)) /* 64K block size */
     return 0;
   b->stack_size = 32;
-  b->stack = malloc(b->stack_size*sizeof(AstNode));
+  b->stack = malloc(b->stack_size*sizeof(Dynamic));
   if (!b->stack) return 0;
   b->stack_top = 0;
   b->scope = scope_new(&b->pool, 0);
@@ -44,9 +44,9 @@ void ast_builder_free(AstBuilder *b)
  * Pushes an node onto the stack.
  * @return 0 for failure
  */
-int ast_builder_push(AstBuilder *b, AstType type, void *p)
+int ast_builder_push(AstBuilder *b, Type type, void *p)
 {
-  AstNode node;
+  Dynamic node;
   node.p = p;
   node.type = type;
 
@@ -55,7 +55,7 @@ int ast_builder_push(AstBuilder *b, AstType type, void *p)
   /* Grow, if needed: */
   if (b->stack_size <= b->stack_top) {
     size_t new_size = 2*b->stack_size;
-    AstNode *new_stack = realloc(b->stack, new_size*sizeof(AstNode));
+    Dynamic *new_stack = realloc(b->stack, new_size*sizeof(Dynamic));
     if (!new_stack) return 0;
     b->stack_size = new_size;
     b->stack = new_stack;
@@ -70,16 +70,16 @@ int ast_builder_push(AstBuilder *b, AstType type, void *p)
  */
 int ast_builder_push_start(AstBuilder *b)
 {
-  return ast_builder_push(b, AST_END, b /* HACK */);
+  return ast_builder_push(b, TYPE_END, b /* HACK */);
 }
 
-AstNode ast_builder_pop(AstBuilder *b)
+Dynamic ast_builder_pop(AstBuilder *b)
 {
   --b->stack_top;
   return b->stack[b->stack_top];
 }
 
-AstNode ast_builder_peek(AstBuilder *b)
+Dynamic ast_builder_peek(AstBuilder *b)
 {
   return (b->stack[b->stack_top - 1]);
 }
@@ -90,7 +90,7 @@ AstNode ast_builder_peek(AstBuilder *b)
 static size_t ast_builder_count(AstBuilder *b)
 {
   size_t i = b->stack_top;
-  while (0 < i && b->stack[i - 1].type != AST_END)
+  while (0 < i && b->stack[i - 1].type != TYPE_END)
     --i;
   return i == 0 ? 0 : b->stack_top - i;
 }

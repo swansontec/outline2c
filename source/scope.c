@@ -33,7 +33,7 @@ Symbol *scope_add(Scope *s, Pool *p, String symbol)
 
   sym = pool_alloc(p, sizeof(Symbol));
   sym->symbol = symbol;
-  sym->type = AST_END;
+  sym->type = TYPE_END;
   sym->value = 0;
   sym->next = s->first;
   s->first = sym;

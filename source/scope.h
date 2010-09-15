@@ -17,9 +17,10 @@
 #ifndef SCOPE_H_INCLUDED
 #define SCOPE_H_INCLUDED
 
-#include "ast.h"
+#include "type.h"
+#include "pool.h"
 
-/* Symbol is typedefed in ast.h to avoid a circular depenency. */
+typedef struct symbol Symbol;
 typedef struct scope Scope;
 
 /**
@@ -27,7 +28,7 @@ typedef struct scope Scope;
  */
 struct symbol {
   String symbol;
-  AstType type;
+  Type type;
   void *value;
 
   /* The linked-list structure should not be embedded within this struct,
