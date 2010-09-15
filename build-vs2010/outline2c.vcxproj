@@ -85,6 +85,7 @@
   <ItemGroup>
     <ClCompile Include="..\source\ast-builder.c" />
     <ClCompile Include="..\source\ast.c" />
+    <ClCompile Include="..\source\context.c" />
     <ClCompile Include="..\source\debug.c" />
     <ClCompile Include="..\source\file.c" />
     <ClCompile Include="..\source\filter.c" />
@@ -99,6 +100,7 @@
   <ItemGroup>
     <ClInclude Include="..\source\ast-builder.h" />
     <ClInclude Include="..\source\ast.h" />
+    <ClInclude Include="..\source\context.h" />
     <ClInclude Include="..\source\debug.h" />
     <ClInclude Include="..\source\file.h" />
     <ClInclude Include="..\source\filter.h" />

@@ -3,6 +3,7 @@
   <ItemGroup>
     <ClCompile Include="..\source\ast-builder.c" />
     <ClCompile Include="..\source\ast.c" />
+    <ClCompile Include="..\source\context.c" />
     <ClCompile Include="..\source\debug.c" />
     <ClCompile Include="..\source\file.c">
       <Filter>utility</Filter>
@@ -23,6 +24,7 @@
   <ItemGroup>
     <ClInclude Include="..\source\ast-builder.h" />
     <ClInclude Include="..\source\ast.h" />
+    <ClInclude Include="..\source\context.h" />
     <ClInclude Include="..\source\debug.h" />
     <ClInclude Include="..\source\file.h">
       <Filter>utility</Filter>

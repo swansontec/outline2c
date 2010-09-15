@@ -25,30 +25,10 @@
  */
 
 #include "parser.h"
+#include "context.h"
 #include "lexer.h"
 #include "file.h"
 #include <stdio.h>
-
-typedef struct context Context;
-typedef struct Location Location;
-
-/**
- * Contains everything related to the current input scanner state.
- */
-struct context
-{
-  String file;
-  char const *filename;
-  char const *cursor;
-};
-
-/**
- * Holds line and column information
- */
-struct Location {
-  unsigned line;
-  unsigned column;
-};
 
 int parse_code(Context *ctx, AstBuilder *b, int scoped);
 int parse_escape(Context *ctx, AstBuilder *b);
@@ -75,55 +55,6 @@ int parse_filter(Context *ctx, AstBuilder *b);
  * Verifies that a memory-allocating call succeeded.
  */
 #define CHECK_MEM(r) do { if (!r) { fprintf(stderr, "Out of memory on line %d!\n", __LINE__); return 0; } } while(0)
-
-/**
- * Prepares a fresh context structure.
- */
-Context context_init(String file, char const *filename)
-{
-  Context ctx;
-  ctx.file = file;
-  ctx.filename = filename;
-  ctx.cursor = file.p;
-  return ctx;
-}
-
-/**
- * Obtains line and column numbers given a pointer into a file. This is not
- * fast, but printing errors is hardly a bottleneck. This routine counts from
- * 0, but most text editors start from 1. It might make sense to add 1 to the
- * returned values.
- */
-Location location_init(String file, char const *position)
-{
-  Location self;
-  char const *p;
-
-  self.line = 0;
-  self.column = 0;
-  for (p = file.p; p < position; ++p) {
-    if (*p == '\n') {
-      ++self.line;
-      self.column = 0;
-    } else if (*p == '\t') {
-      self.column += 8;
-      self.column -= self.column % 8;
-    } else {
-      ++self.column;
-    }
-  }
-  return self;
-}
-
-/**
- * Prints an error message.
- */
-int error(Context *ctx, char const *message)
-{
-  Location l = location_init(ctx->file, ctx->cursor);
-  fprintf(stderr, "%s:%d:%d: error: %s\n", ctx->filename, l.line + 1, l.column + 1, message);
-  return 0;
-}
 
 /**
  * Processes a source file, adding its contents to the AST.
@@ -214,7 +145,7 @@ symbol:
 
   /* Symbol replacement: */
   if (symbol->type != AST_OUTLINE_ITEM)
-    return error(ctx, "Wrong type - only outline items may be embedded in C code.\n");
+    return context_error(ctx, "Wrong type - only outline items may be embedded in C code.\n");
 
   /* Is there a lookup modifier? */
   start_c = ctx->cursor;
@@ -225,7 +156,7 @@ symbol:
       Symbol *lookup = ast_builder_scope_find(b, string_init(start, ctx->cursor));
       if (lookup) {
         if (lookup->type != AST_MAP)
-          return error(ctx, "Wrong type - expecting a map here.\n");
+          return context_error(ctx, "Wrong type - expecting a map here.\n");
         CHECK_MEM(ast_build_call(b, lookup, symbol));
       } else {
         CHECK_MEM(ast_build_lookup(b, symbol, string_init(start, ctx->cursor)));
@@ -245,7 +176,7 @@ done:
 
   /* End-of-code: */
   if (scoped && token == LEX_END)
-    return error(ctx, "Unexpected end of input in code block.");
+    return context_error(ctx, "Unexpected end of input in code block.");
   CHECK_MEM(ast_build_code(b));
   return 1;
 }
@@ -261,7 +192,7 @@ int parse_escape(Context *ctx, AstBuilder *b)
   /* Unexpected end of input: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token == LEX_END) {
-    return error(ctx, "Unexpected end of input.");
+    return context_error(ctx, "Unexpected end of input.");
   /* Nested {} block: */
   } else if (token == LEX_BRACE_L) {
     token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -288,7 +219,7 @@ int parse_escape(Context *ctx, AstBuilder *b)
       /* Assignment? */
       token = lex_next(&start, &ctx->cursor, ctx->file.end);
       if (token != LEX_EQUALS)
-        return error(ctx, "No idea what this keyword is.");
+        return context_error(ctx, "No idea what this keyword is.");
 
       CHECK(parse_escape(ctx, b));
 
@@ -300,7 +231,7 @@ int parse_escape(Context *ctx, AstBuilder *b)
       return 1;
     }
   } else {
-    return error(ctx, "No idea what token this is.");
+    return context_error(ctx, "No idea what token this is.");
   }
 }
 
@@ -314,7 +245,7 @@ int parse_include(Context *ctx, AstBuilder *b)
 
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_STRING)
-    return error(ctx, "An include statment expects a quoted filename.");
+    return context_error(ctx, "An include statment expects a quoted filename.");
 
   /* Process the file's contents: */
   CHECK(parse_file(string_init(start + 1, ctx->cursor - 1), b));
@@ -322,7 +253,7 @@ int parse_include(Context *ctx, AstBuilder *b)
 
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_SEMICOLON)
-    return error(ctx, "An include stament must end with a semicolon.");
+    return context_error(ctx, "An include stament must end with a semicolon.");
 
   return 1;
 }
@@ -338,7 +269,7 @@ int parse_outline(Context *ctx, AstBuilder *b)
   /* Opening brace: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_BRACE_L)
-    return error(ctx, "An outline must start with an opening {.");
+    return context_error(ctx, "An outline must start with an opening {.");
 
   /* Items: */
   CHECK_MEM(ast_builder_push_start(b));
@@ -376,7 +307,7 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
       /* Opening brace: */
       token = lex_next(&start, &ctx->cursor, ctx->file.end);
       if (token != LEX_BRACE_L)
-        return error(ctx, "A tag's value must be a code block.");
+        return context_error(ctx, "A tag's value must be a code block.");
 
       /* Value: */
       CHECK(parse_code(ctx, b, 1));
@@ -388,14 +319,14 @@ int parse_outline_item(Context *ctx, AstBuilder *b)
     }
   }
   if (!string_size(last))
-    return error(ctx, "An outline item must have a name.");
+    return context_error(ctx, "An outline item must have a name.");
 
   /* Is there a sub-outline? */
   if (token == LEX_BRACE_L) {
     ctx->cursor = start;
     CHECK(parse_outline(ctx, b));
   } else if (token != LEX_SEMICOLON) {
-    return error(ctx, "An outline can only end with a semicolon or an opening brace.");
+    return context_error(ctx, "An outline can only end with a semicolon or an opening brace.");
   }
 
   CHECK_MEM(ast_build_outline_item(b, last));
@@ -416,7 +347,7 @@ int parse_map(Context *ctx, AstBuilder *b)
   /* Map name: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_IDENTIFIER)
-    return error(ctx, "An map stament must begin with a name.");
+    return context_error(ctx, "An map stament must begin with a name.");
   item = ast_builder_scope_add(b, string_init(start, ctx->cursor));
   CHECK_MEM(item);
   item->type = AST_OUTLINE_ITEM;
@@ -424,7 +355,7 @@ int parse_map(Context *ctx, AstBuilder *b)
   /* Opening brace: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_BRACE_L)
-    return error(ctx, "An opening { must come after the name of a map.");
+    return context_error(ctx, "An opening { must come after the name of a map.");
 
   /* Lines: */
   CHECK_MEM(ast_builder_push_start(b));
@@ -454,7 +385,7 @@ int parse_map_line(Context *ctx, AstBuilder *b)
   /* Opening brace: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_BRACE_L)
-    return error(ctx, "A line within a \"map\" staement must end with a code block.");
+    return context_error(ctx, "A line within a \"map\" staement must end with a code block.");
 
   /* Code: */
   CHECK(parse_code(ctx, b, 1));
@@ -481,7 +412,7 @@ int parse_for(Context *ctx, AstBuilder *b)
   /* Variable name: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_IDENTIFIER)
-    return error(ctx, "Expecting a new symbol name here.");
+    return context_error(ctx, "Expecting a new symbol name here.");
   item = ast_builder_scope_add(b, string_init(start, ctx->cursor));
   CHECK_MEM(item);
   item->type = AST_OUTLINE_ITEM;
@@ -490,17 +421,17 @@ int parse_for(Context *ctx, AstBuilder *b)
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_IDENTIFIER ||
     !string_equal(string_init(start, ctx->cursor), string_init_l("in", 2)))
-    return error(ctx, "Expecting the \"in\" keyword here.");
+    return context_error(ctx, "Expecting the \"in\" keyword here.");
 
   /* Outline name: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_IDENTIFIER)
-    return error(ctx, "An outline name must come after the \"in\" keyword.");
+    return context_error(ctx, "An outline name must come after the \"in\" keyword.");
   outline = ast_builder_scope_find(b, string_init(start, ctx->cursor));
   if (!outline)
-    return error(ctx, "Could not find an outline with this name.");
+    return context_error(ctx, "Could not find an outline with this name.");
   if (outline->type != AST_OUTLINE && outline->type != AST_OUTLINE_ITEM)
-    return error(ctx, "Wrong type - the for statement expects an outline.\n");
+    return context_error(ctx, "Wrong type - the for statement expects an outline.\n");
 
   /* Behavior modification keywords: */
 modifier:
@@ -523,10 +454,10 @@ modifier:
       list = 1;
       goto modifier;
     } else {
-      return error(ctx, "Invalid \"for\" statement modifier.");
+      return context_error(ctx, "Invalid \"for\" statement modifier.");
     }
   } else if (token != LEX_BRACE_L) {
-    return error(ctx, "A \"for\" staement must end with a code block.");
+    return context_error(ctx, "A \"for\" staement must end with a code block.");
   }
 
   /* Code: */
@@ -567,7 +498,7 @@ want_term:
     goto want_term;
 
   } else {
-    return error(ctx, "There seems to be a missing term here.");
+    return context_error(ctx, "There seems to be a missing term here.");
   }
 
 want_operator:
@@ -607,12 +538,12 @@ want_operator:
       }
     }
     if (!top)
-      return error(ctx, "No maching opening parenthesis.");
+      return context_error(ctx, "No maching opening parenthesis.");
     --top;
     goto want_operator;
 
   } else if (token == LEX_BANG || token == LEX_PAREN_L) {
-    return error(ctx, "There seems to be a missing operator here.");
+    return context_error(ctx, "There seems to be a missing operator here.");
 
   } else {
     ctx->cursor = start;
@@ -628,7 +559,7 @@ done:
     } else if (stack[top-1] == OR) {
       CHECK_MEM(ast_build_filter_or(b));
     } else if (stack[top-1] == LPAREN) {
-      return error(ctx, "No maching closing parenthesis.");
+      return context_error(ctx, "No maching closing parenthesis.");
     }
   }
 
