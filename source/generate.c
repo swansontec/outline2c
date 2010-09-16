@@ -69,6 +69,7 @@ AstOutlineItem *symbol_as_item(Symbol *p)
 int generate(FILE *out, String filename, int debug)
 {
   AstBuilder b;
+  Context ctx;
   AstCode *code;
 
   if (!ast_builder_init(&b)) {
@@ -76,8 +77,19 @@ int generate(FILE *out, String filename, int debug)
     return 0;
   }
 
-  CHECK(parse_file(filename, &b));
+  /* Parse the input file: */
+  ctx.filename = filename;
+  ctx.file = string_load(filename);
+  if (!string_size(ctx.file)) {
+    char *s = string_to_c(filename);
+    fprintf(stderr, "error: Could not open source file \"%s\"\n", s);
+    free(s);
+    return 0;
+  }
+  ctx.cursor = ctx.file.p;
+  CHECK(parse_code(&ctx, &b, 0));
   code = ast_to_code(ast_builder_pop(&b));
+  string_free(ctx.file);
 
   if (debug) {
     printf("--- AST: ---\n");

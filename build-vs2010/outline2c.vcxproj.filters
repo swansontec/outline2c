@@ -5,9 +5,6 @@
     <ClCompile Include="..\source\ast.c" />
     <ClCompile Include="..\source\context.c" />
     <ClCompile Include="..\source\debug.c" />
-    <ClCompile Include="..\source\file.c">
-      <Filter>utility</Filter>
-    </ClCompile>
     <ClCompile Include="..\source\filter.c" />
     <ClCompile Include="..\source\generate.c" />
     <ClCompile Include="..\source\lexer.c" />
@@ -26,9 +23,6 @@
     <ClInclude Include="..\source\ast.h" />
     <ClInclude Include="..\source\context.h" />
     <ClInclude Include="..\source\debug.h" />
-    <ClInclude Include="..\source\file.h">
-      <Filter>utility</Filter>
-    </ClInclude>
     <ClInclude Include="..\source\filter.h" />
     <ClInclude Include="..\source\generate.h" />
     <ClInclude Include="..\source\lexer.h" />

@@ -20,18 +20,6 @@
 typedef struct Location Location;
 
 /**
- * Prepares a fresh context structure.
- */
-Context context_init(String file, char const *filename)
-{
-  Context ctx;
-  ctx.file = file;
-  ctx.filename = filename;
-  ctx.cursor = file.p;
-  return ctx;
-}
-
-/**
  * Holds line and column information
  */
 struct Location {
@@ -71,7 +59,9 @@ Location location_init(String file, char const *position)
  */
 int context_error(Context *ctx, char const *message)
 {
+  char *name = string_to_c(ctx->filename);
   Location l = location_init(ctx->file, ctx->cursor);
-  fprintf(stderr, "%s:%d:%d: error: %s\n", ctx->filename, l.line + 1, l.column + 1, message);
+  fprintf(stderr, "%s:%d:%d: error: %s\n", name, l.line + 1, l.column + 1, message);
+  free(name);
   return 0;
 }

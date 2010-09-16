@@ -26,11 +26,10 @@ typedef struct Context Context;
  */
 struct Context {
   String file;
-  char const *filename;
+  String filename;
   char const *cursor;
 };
 
-Context context_init(String file, char const *filename);
 int context_error(Context *ctx, char const *message);
 
 #endif

@@ -56,6 +56,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <OutputFile>$(OutDir)outline2c.exe</OutputFile>
@@ -72,6 +73,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <OutputFile>$(OutDir)outline2c.exe</OutputFile>
@@ -87,7 +89,6 @@
     <ClCompile Include="..\source\ast.c" />
     <ClCompile Include="..\source\context.c" />
     <ClCompile Include="..\source\debug.c" />
-    <ClCompile Include="..\source\file.c" />
     <ClCompile Include="..\source\filter.c" />
     <ClCompile Include="..\source\generate.c" />
     <ClCompile Include="..\source\lexer.c" />
@@ -102,7 +103,6 @@
     <ClInclude Include="..\source\ast.h" />
     <ClInclude Include="..\source\context.h" />
     <ClInclude Include="..\source\debug.h" />
-    <ClInclude Include="..\source\file.h" />
     <ClInclude Include="..\source\filter.h" />
     <ClInclude Include="..\source\generate.h" />
     <ClInclude Include="..\source\lexer.h" />

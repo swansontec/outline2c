@@ -17,8 +17,9 @@
 #ifndef PARSER_H_INCLUDED
 #define PARSER_H_INCLUDED
 
+#include "context.h"
 #include "ast-builder.h"
 
-int parse_file(String filename, AstBuilder *b);
+int parse_code(Context *ctx, AstBuilder *b, int scoped);
 
 #endif

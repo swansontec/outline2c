@@ -16,6 +16,8 @@
 
 #include "string.h"
 #include <string.h>
+#include <malloc.h>
+#include <stdio.h>
 
 String string_init(char const *p, char const *end)
 {
@@ -96,4 +98,58 @@ size_t string_rmatch(String s1, String s2)
     --p1; --p2;
   }
   return s1.end - p1;
+}
+
+/**
+ * Opens a file, storing cleanup data and content pointers in the File
+ * structure. The content pointers will be NULL if the function fails.
+ * @return 0 for failure
+ */
+String string_load(String file)
+{
+  char *c_name = 0;
+  FILE *fp = 0;
+  long size;
+  char *data = 0;
+
+  c_name = string_to_c(file);
+  if (!c_name) goto error;
+
+  fp = fopen(c_name, "rb");
+  if (!fp) goto error;
+
+  if (fseek(fp, 0, SEEK_END))
+    goto error;
+
+  size = ftell(fp);
+  if (size == -1L) goto error;
+
+  if (fseek(fp, 0, SEEK_SET))
+    goto error;
+
+  data = malloc(size + 1);
+  if (!data) goto error;
+
+  if (fread(data, 1, size, fp) != size)
+    goto error;
+
+  free(c_name);
+  fclose(fp);
+  data[size] = 0;
+  return string_init(data, data + size);
+
+error:
+  if (c_name) free(c_name);
+  if (fp)     fclose(fp);
+  if (data)   free(data);
+  return string_null();
+}
+
+/**
+ * Frees the memory allocated by string_load.
+ */
+void string_free(String data)
+{
+  if (data.p)
+    free((char *)data.p);
 }

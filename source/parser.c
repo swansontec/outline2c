@@ -25,12 +25,9 @@
  */
 
 #include "parser.h"
-#include "context.h"
 #include "lexer.h"
-#include "file.h"
 #include <stdio.h>
 
-int parse_code(Context *ctx, AstBuilder *b, int scoped);
 int parse_escape(Context *ctx, AstBuilder *b);
 
 int parse_include(Context *ctx, AstBuilder *b);
@@ -55,30 +52,6 @@ int parse_filter(Context *ctx, AstBuilder *b);
  * Verifies that a memory-allocating call succeeded.
  */
 #define CHECK_MEM(r) do { if (!r) { fprintf(stderr, "Out of memory on line %d!\n", __LINE__); return 0; } } while(0)
-
-/**
- * Processes a source file, adding its contents to the AST.
- */
-int parse_file(String filename, AstBuilder *b)
-{
-  FileR file;
-  Context ctx;
-  char *s;
-
-  s = string_to_c(filename);
-  if (!file_r_open(&file, s)) {
-    fprintf(stderr, "error: Could not open source file \"%s\"\n", s);
-    return 0;
-  }
-  ctx = context_init(string_init(file.p, file.end), s);
-
-  /* Parse the input file: */
-  CHECK(parse_code(&ctx, b, 0));
-
-  file_r_close(&file);
-  free(s);
-  return 1;
-}
 
 /**
  * Parses a block of code in the host language, looking for escape sequences
@@ -241,19 +214,41 @@ int parse_include(Context *ctx, AstBuilder *b)
 {
   char const *start;
   Token token;
+  String old_file;
+  String old_filename;
+  char const *old_cursor;
 
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_STRING)
     return context_error(ctx, "An include statment expects a quoted filename.");
 
+  /* Save the context: */
+  old_file = ctx->file;
+  old_filename = ctx->filename;
+  old_cursor = ctx->cursor;
+
   /* Process the file's contents: */
-  CHECK(parse_file(string_init(start + 1, ctx->cursor - 1), b));
-  CHECK_MEM(ast_build_include(b));
+  ctx->filename = string_init(start + 1, ctx->cursor - 1);
+  ctx->file = string_load(ctx->filename);
+  if (!string_size(ctx->file)) {
+    ctx->file = old_file;
+    ctx->filename = old_filename;
+    return context_error(ctx, "Could not open the included file.");
+  }
+  ctx->cursor = ctx->file.p;
+  CHECK(parse_code(ctx, b, 0));
+  string_free(ctx->file);
+
+  /* Restore the context: */
+  ctx->file = old_file;
+  ctx->filename = old_filename;
+  ctx->cursor = old_cursor;
 
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_SEMICOLON)
     return context_error(ctx, "An include stament must end with a semicolon.");
 
+  CHECK_MEM(ast_build_include(b));
   return 1;
 }
 
