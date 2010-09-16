@@ -18,7 +18,6 @@
 #define AST_BUILDER_H_INCLUDED
 
 #include "ast.h"
-#include <stdlib.h>
 
 typedef struct ast_builder AstBuilder;
 
@@ -27,29 +26,15 @@ typedef struct ast_builder AstBuilder;
  */
 struct ast_builder {
   Pool pool;
-  Dynamic *stack;
-  size_t stack_size;
-  size_t stack_top;
   Scope *scope;
 };
 
 int ast_builder_init(AstBuilder *b);
 void ast_builder_free(AstBuilder *b);
 
-Dynamic ast_builder_pop(AstBuilder *b);
-
 Scope  *ast_builder_scope_new(AstBuilder *b);
 Symbol *ast_builder_scope_add(AstBuilder *b, String symbol);
 void    ast_builder_scope_pop(AstBuilder *b);
 Symbol *ast_builder_scope_find(AstBuilder *b, String symbol);
-
-/*
- * Functions for assembling an AST. All functions return 0 on success.
- */
-int ast_build_filter_tag(AstBuilder *b, String tag);
-int ast_build_filter_any(AstBuilder *b);
-int ast_build_filter_not(AstBuilder *b);
-int ast_build_filter_and(AstBuilder *b);
-int ast_build_filter_or(AstBuilder *b);
 
 #endif

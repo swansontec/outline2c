@@ -26,6 +26,7 @@
 
 #include "parser.h"
 #include "lexer.h"
+#include "filter.h"
 #include <stdio.h>
 
 int parse_escape(Context *ctx, AstBuilder *b);
@@ -507,17 +508,20 @@ int parse_filter(Context *ctx, AstBuilder *b)
 {
   char const *start;
   Token token;
+  FilterBuilder fb;
   enum operators { NOT, AND, OR, LPAREN } stack[32];
   int top = 0;
+
+  CHECK_MEM(filter_builder_init(&fb));
 
 want_term:
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token == LEX_IDENTIFIER) {
-    CHECK_MEM(ast_build_filter_tag(b, string_init(start, ctx->cursor)));
+    CHECK_MEM(filter_build_tag(&fb, &b->pool, string_init(start, ctx->cursor)));
     goto want_operator;
 
   } else if (token == LEX_STAR) {
-    CHECK_MEM(ast_build_filter_any(b));
+    CHECK_MEM(filter_build_any(&fb, &b->pool));
     goto want_operator;
 
   } else if (token == LEX_BANG) {
@@ -537,9 +541,9 @@ want_operator:
   if (token == LEX_AMP) {
     for (; top && stack[top-1] <= AND; --top) {
       if (stack[top-1] == NOT) {
-        CHECK_MEM(ast_build_filter_not(b));
+        CHECK_MEM(filter_build_not(&fb, &b->pool));
       } else if (stack[top-1] == AND) {
-        CHECK_MEM(ast_build_filter_and(b));
+        CHECK_MEM(filter_build_and(&fb, &b->pool));
       }
     }
     stack[top++] = AND;
@@ -548,11 +552,11 @@ want_operator:
   } else if (token == LEX_PIPE) {
     for (; top && stack[top-1] <= OR; --top) {
       if (stack[top-1] == NOT) {
-        CHECK_MEM(ast_build_filter_not(b));
+        CHECK_MEM(filter_build_not(&fb, &b->pool));
       } else if (stack[top-1] == AND) {
-        CHECK_MEM(ast_build_filter_and(b));
+        CHECK_MEM(filter_build_and(&fb, &b->pool));
       } else if (stack[top-1] == OR) {
-        CHECK_MEM(ast_build_filter_or(b));
+        CHECK_MEM(filter_build_or(&fb, &b->pool));
       }
     }
     stack[top++] = OR;
@@ -561,11 +565,11 @@ want_operator:
   } else if (token == LEX_PAREN_R) {
     for (; top && stack[top-1] < LPAREN; --top) {
       if (stack[top-1] == NOT) {
-        CHECK_MEM(ast_build_filter_not(b));
+        CHECK_MEM(filter_build_not(&fb, &b->pool));
       } else if (stack[top-1] == AND) {
-        CHECK_MEM(ast_build_filter_and(b));
+        CHECK_MEM(filter_build_and(&fb, &b->pool));
       } else if (stack[top-1] == OR) {
-        CHECK_MEM(ast_build_filter_or(b));
+        CHECK_MEM(filter_build_or(&fb, &b->pool));
       }
     }
     if (!top)
@@ -584,17 +588,18 @@ want_operator:
 done:
   for (; top; --top) {
     if (stack[top-1] == NOT) {
-      CHECK_MEM(ast_build_filter_not(b));
+      CHECK_MEM(filter_build_not(&fb, &b->pool));
     } else if (stack[top-1] == AND) {
-      CHECK_MEM(ast_build_filter_and(b));
+      CHECK_MEM(filter_build_and(&fb, &b->pool));
     } else if (stack[top-1] == OR) {
-      CHECK_MEM(ast_build_filter_or(b));
+      CHECK_MEM(filter_build_or(&fb, &b->pool));
     } else if (stack[top-1] == LPAREN) {
       return context_error(ctx, "No maching closing parenthesis.");
     }
   }
 
   CHECK_MEM(out(ctx, AST_FILTER,
-    ast_filter_new(&b->pool, ast_to_filter_node(ast_builder_pop(b)))));
+    ast_filter_new(&b->pool, ast_to_filter_node(filter_builder_pop(&fb)))));
+  filter_builder_free(&fb);
   return 1;
 }

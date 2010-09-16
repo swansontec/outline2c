@@ -25,10 +25,6 @@ int ast_builder_init(AstBuilder *b)
 {
   if (!pool_init(&b->pool, 0x10000)) /* 64K block size */
     return 0;
-  b->stack_size = 32;
-  b->stack = malloc(b->stack_size*sizeof(Dynamic));
-  if (!b->stack) return 0;
-  b->stack_top = 0;
   b->scope = scope_new(&b->pool, 0);
   if (!b->scope) return 0;
   return 1;
@@ -37,38 +33,6 @@ int ast_builder_init(AstBuilder *b)
 void ast_builder_free(AstBuilder *b)
 {
   pool_free(&b->pool);
-  free(b->stack);
-}
-
-/**
- * Pushes an node onto the stack.
- * @return 0 for failure
- */
-static int ast_builder_push(AstBuilder *b, Type type, void *p)
-{
-  Dynamic node;
-  node.p = p;
-  node.type = type;
-
-  if (!p) return 0;
-
-  /* Grow, if needed: */
-  if (b->stack_size <= b->stack_top) {
-    size_t new_size = 2*b->stack_size;
-    Dynamic *new_stack = realloc(b->stack, new_size*sizeof(Dynamic));
-    if (!new_stack) return 0;
-    b->stack_size = new_size;
-    b->stack = new_stack;
-  }
-  b->stack[b->stack_top] = node;
-  ++b->stack_top;
-  return 1;
-}
-
-Dynamic ast_builder_pop(AstBuilder *b)
-{
-  --b->stack_top;
-  return b->stack[b->stack_top];
 }
 
 /**
@@ -101,45 +65,4 @@ void ast_builder_scope_pop(AstBuilder *b)
 Symbol *ast_builder_scope_find(AstBuilder *b, String symbol)
 {
   return scope_find(b->scope, symbol);
-}
-
-/*
- * Functions for assembling an AST. All functions return 0 on success.
- */
-int ast_build_filter_tag(AstBuilder *b, String tag)
-{
-  return ast_builder_push(b, AST_FILTER_TAG,
-    ast_filter_tag_new(&b->pool, tag));
-}
-
-int ast_build_filter_not(AstBuilder *b)
-{
-  AstFilterNode test = ast_to_filter_node(ast_builder_pop(b));
-
-  return ast_builder_push(b, AST_FILTER_NOT,
-    ast_filter_not_new(&b->pool, test));
-}
-
-int ast_build_filter_any(AstBuilder *b)
-{
-  return ast_builder_push(b, AST_FILTER_ANY,
-    ast_filter_any_new(&b->pool));
-}
-
-int ast_build_filter_and(AstBuilder *b)
-{
-  AstFilterNode test_a = ast_to_filter_node(ast_builder_pop(b));
-  AstFilterNode test_b = ast_to_filter_node(ast_builder_pop(b));
-
-  return ast_builder_push(b, AST_FILTER_AND,
-    ast_filter_and_new(&b->pool, test_a, test_b));
-}
-
-int ast_build_filter_or(AstBuilder *b)
-{
-  AstFilterNode test_a = ast_to_filter_node(ast_builder_pop(b));
-  AstFilterNode test_b = ast_to_filter_node(ast_builder_pop(b));
-
-  return ast_builder_push(b, AST_FILTER_OR,
-    ast_filter_or_new(&b->pool, test_a, test_b));
 }

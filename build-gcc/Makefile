@@ -63,7 +63,7 @@ list.o: ../source/list.c $(list_h)
 main.o: ../source/main.c $(string_h) $(generate_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/main.c
 
-parser.o: ../source/parser.c $(parser_h) $(lexer_h)
+parser.o: ../source/parser.c $(parser_h) $(lexer_h) $(filter_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/parser.c
 
 pool.o: ../source/pool.c $(pool_h) $(string_h)
