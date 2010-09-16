@@ -17,18 +17,17 @@
 CC = gcc
 CFLAGS = -g -std=c89 -pedantic
 
-objects = ast.o ast-builder.o context.o debug.o filter.o generate.o lexer.o list.o main.o parser.o pool.o scope.o string.o
+objects = ast.o context.o debug.o filter.o generate.o lexer.o list.o main.o parser.o pool.o scope.o string.o
 
 # Inter-header dependencies:
 ast_h      = ../source/ast.h $(scope_h) $(list_h)
-ast_builder_h = ../source/ast-builder.h $(ast_h)
-context_h  = ../source/context.h $(type_h) $(string_h)
+context_h  = ../source/context.h $(scope_h)
 debug_h    = ../source/debug.h $(ast_h)
 filter_h   = ../source/filter.h $(ast_h)
 generate_h = ../source/generate.h $(string_h)
 lexer_h    = ../source/lexer.h
 list_h     = ../source/list.h $(type_h) $(pool_h)
-parser_h   = ../source/parser.h $(context_h) $(ast_builder_h)
+parser_h   = ../source/parser.h $(context_h)
 pool_h     = ../source/pool.h $(string_h)
 scope_h    = ../source/scope.h $(type_h) $(pool_h)
 string_h   = ../source/string.h
@@ -38,9 +37,6 @@ all: outline2c
 
 ast.o: ../source/ast.c $(ast_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/ast.c
-
-ast-builder.o: ../source/ast-builder.c $(ast_builder_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/ast-builder.c
 
 context.o: ../source/context.c $(context_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/context.c

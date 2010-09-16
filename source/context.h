@@ -17,20 +17,40 @@
 #ifndef CONTEXT_H_INCLUDED
 #define CONTEXT_H_INCLUDED
 
-#include "type.h"
-#include "string.h"
+#include "scope.h"
 
 typedef struct Context Context;
 
 /**
- * Contains everything related to the current input scanner state.
+ * Different parts of the compiler communicate in several ways:
+ *
+ * - Allocating data from a common memory pool
+ * - Storing variables in a common namespace
+ * - Reading from a common input stream
+ * - Sending errors to a common output
+ *
+ * The Context object provides these common facilities.
  */
 struct Context {
+  /* Memory allocation: */
+  Pool *pool;
+
+  /* Current scope: */
+  Scope *scope;
+
+  /* Input stream: */
   String file;
   String filename;
   char const *cursor;
+
+  /* Return value: */
   Dynamic out;
 };
+
+Scope  *context_scope_push(Context *ctx);
+void    context_scope_pop(Context *ctx);
+Symbol *context_scope_add(Context *ctx, String symbol);
+Symbol *context_scope_get(Context *ctx, String symbol);
 
 int context_error(Context *ctx, char const *message);
 

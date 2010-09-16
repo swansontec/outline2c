@@ -18,8 +18,7 @@
 #define PARSER_H_INCLUDED
 
 #include "context.h"
-#include "ast-builder.h"
 
-int parse_code(Context *ctx, AstBuilder *b, int scoped);
+int parse_code(Context *ctx, int scoped);
 
 #endif

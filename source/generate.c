@@ -68,12 +68,19 @@ AstOutlineItem *symbol_as_item(Symbol *p)
  */
 int generate(FILE *out, String filename, int debug)
 {
-  AstBuilder b;
+  Pool pool;
   Context ctx;
   AstCode *code;
 
-  if (!ast_builder_init(&b)) {
-    fprintf(stderr, "Out of memory!\n");
+  if (!pool_init(&pool, 0x10000)) { /* 64K block size */
+    fprintf(stderr, "Out of memory! Could not create pool.\n");
+    return 0;
+  }
+  ctx.pool = &pool;
+
+  ctx.scope = scope_new(ctx.pool, 0);
+  if (!ctx.scope) {
+    fprintf(stderr, "Out of memory! Could not create first scope.\n");
     return 0;
   }
 
@@ -87,7 +94,7 @@ int generate(FILE *out, String filename, int debug)
     return 0;
   }
   ctx.cursor = ctx.file.p;
-  CHECK(parse_code(&ctx, &b, 0));
+  CHECK(parse_code(&ctx, 0));
   code = ast_to_code(ctx.out);
   string_free(ctx.file);
 
@@ -98,7 +105,7 @@ int generate(FILE *out, String filename, int debug)
 
   CHECK(generate_code(out, code));
 
-  ast_builder_free(&b);
+  pool_free(&pool);
   return 1;
 }
 
