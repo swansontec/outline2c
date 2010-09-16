@@ -88,7 +88,7 @@ void dump_node(Dynamic node, int indent)
   } else if (node.type == AST_INCLUDE) {
     AstInclude *p = node.p;
     printf("include {\n");
-    dump_code(p->file->code, indent+1);
+    dump_code(p->code, indent+1);
     printf("} /* end include */\n");
   } else if (node.type == AST_OUTLINE) {
     printf("outline");

@@ -57,12 +57,6 @@ AstFilterNode ast_to_filter_node(Dynamic node)
   return temp;
 }
 
-AstFile *ast_to_file(Dynamic node)
-{
-  assert(node.type == AST_FILE);
-  return node.p;
-}
-
 AstCode *ast_to_code(Dynamic node)
 {
   assert(node.type == AST_CODE);
@@ -105,17 +99,6 @@ AstSymbolRef *ast_to_symbol_ref(Dynamic node)
   return node.p;
 }
 
-AstFile *ast_file_new(Pool *p, AstCode *code)
-{
-  AstFile *self;
-  if (!code) return 0;
-
-  self = pool_alloc(p, sizeof(AstFile));
-  if (!self) return 0;
-  self->code = code;
-  return self;
-}
-
 AstCode *ast_code_new(Pool *p, AstCodeNode *nodes, AstCodeNode *nodes_end)
 {
   AstCode *self;
@@ -139,14 +122,14 @@ AstCodeText *ast_code_text_new(Pool *p, String code)
   return self;
 }
 
-AstInclude *ast_include_new(Pool *p, AstFile *file)
+AstInclude *ast_include_new(Pool *p, AstCode *code)
 {
   AstInclude *self;
-  if (!file) return 0;
+  if (!code) return 0;
 
   self = pool_alloc(p, sizeof(AstInclude));
   if (!self) return 0;
-  self->file = file;
+  self->code = code;
   return self;
 }
 

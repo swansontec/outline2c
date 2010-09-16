@@ -74,7 +74,6 @@ int parse_file(String filename, AstBuilder *b)
 
   /* Parse the input file: */
   CHECK(parse_code(&ctx, b, 0));
-  CHECK_MEM(ast_build_file(b));
 
   file_r_close(&file);
   free(s);

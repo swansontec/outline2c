@@ -19,7 +19,6 @@
 
 #include "scope.h"
 
-typedef struct ast_file                 AstFile;
 typedef struct ast_code                 AstCode;
 typedef struct ast_code_text            AstCodeText;
 typedef struct ast_include              AstInclude;
@@ -79,7 +78,6 @@ int ast_is_filter_node(Type type);
 AstCodeNode         ast_to_code_node(Dynamic node);
 AstFilterNode       ast_to_filter_node(Dynamic node);
 
-AstFile            *ast_to_file(Dynamic node);
 AstCode            *ast_to_code(Dynamic node);
 AstOutline         *ast_to_outline(Dynamic node);
 AstOutlineItem     *ast_to_outline_item(Dynamic node);
@@ -87,13 +85,6 @@ AstOutlineTag      *ast_to_outline_tag(Dynamic node);
 AstMapLine         *ast_to_map_line(Dynamic node);
 AstFilter          *ast_to_filter(Dynamic node);
 AstSymbolRef       *ast_to_symbol_ref(Dynamic node);
-
-/**
- * A source file. This is the top-level element of the AST.
- */
-struct ast_file {
-  AstCode *code;
-};
 
 /**
  * A block of code in the host language, possibly interspersed with o2c escape
@@ -115,7 +106,7 @@ struct ast_code_text {
  * The include keyword.
  */
 struct ast_include {
-  AstFile *file;
+  AstCode *code;
 };
 
 /**
@@ -247,10 +238,9 @@ struct ast_lookup {
   String name;
 };
 
-AstFile            *ast_file_new                (Pool *p, AstCode *code);
 AstCode            *ast_code_new                (Pool *p, AstCodeNode *nodes, AstCodeNode *nodes_end);
 AstCodeText        *ast_code_text_new           (Pool *p, String code);
-AstInclude         *ast_include_new             (Pool *p, AstFile *file);
+AstInclude         *ast_include_new             (Pool *p, AstCode *file);
 AstOutline         *ast_outline_new             (Pool *p, AstOutlineItem **items, AstOutlineItem **items_end);
 AstOutlineItem     *ast_outline_item_new        (Pool *p, AstOutlineTag **tags, AstOutlineTag **tags_end, String name, AstOutline *children);
 AstOutlineTag      *ast_outline_tag_new         (Pool *p, String name, AstCode *value);

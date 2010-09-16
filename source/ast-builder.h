@@ -49,7 +49,6 @@ Symbol *ast_builder_scope_find(AstBuilder *b, String symbol);
 /*
  * Functions for assembling an AST. All functions return 0 on success.
  */
-int ast_build_file(AstBuilder *b);
 int ast_build_code(AstBuilder *b);
 int ast_build_code_text(AstBuilder *b, String code);
 int ast_build_include(AstBuilder *b);

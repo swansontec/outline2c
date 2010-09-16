@@ -130,13 +130,6 @@ Symbol *ast_builder_scope_find(AstBuilder *b, String symbol)
 /*
  * Functions for assembling an AST. All functions return 0 on success.
  */
-int ast_build_file(AstBuilder *b)
-{
-  return ast_builder_push(b, AST_FILE,
-    ast_file_new(&b->pool,
-      ast_to_code(ast_builder_pop(b))));
-}
-
 int ast_build_code(AstBuilder *b)
 {
   size_t i;
@@ -170,7 +163,7 @@ int ast_build_include(AstBuilder *b)
 {
   return ast_builder_push(b, AST_INCLUDE,
     ast_include_new(&b->pool,
-      ast_to_file(ast_builder_pop(b))));
+      ast_to_code(ast_builder_pop(b))));
 }
 
 int ast_build_outline(AstBuilder *b)

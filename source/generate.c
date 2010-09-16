@@ -69,7 +69,7 @@ AstOutlineItem *symbol_as_item(Symbol *p)
 int generate(FILE *out, String filename, int debug)
 {
   AstBuilder b;
-  AstFile *file;
+  AstCode *code;
 
   if (!ast_builder_init(&b)) {
     fprintf(stderr, "Out of memory!\n");
@@ -77,14 +77,14 @@ int generate(FILE *out, String filename, int debug)
   }
 
   CHECK(parse_file(filename, &b));
-  file = ast_to_file(ast_builder_pop(&b));
+  code = ast_to_code(ast_builder_pop(&b));
 
   if (debug) {
     printf("--- AST: ---\n");
-    dump_code(file->code, 0);
+    dump_code(code, 0);
   }
 
-  CHECK(generate_code(out, file->code));
+  CHECK(generate_code(out, code));
 
   ast_builder_free(&b);
   return 1;
@@ -135,7 +135,7 @@ int generate_include(AstInclude *p)
 {
   AstCodeNode *node;
 
-  for (node = p->file->code->nodes; node != p->file->code->nodes_end; ++node) {
+  for (node = p->code->nodes; node != p->code->nodes_end; ++node) {
     if (node->type == AST_SET) {
       CHECK(generate_set(node->p));
     } else if (node->type == AST_INCLUDE) {

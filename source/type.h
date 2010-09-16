@@ -24,7 +24,6 @@
 #define TYPE_H_INCLUDED
 
 enum Type {
-  AST_FILE,
   AST_CODE,
   AST_CODE_TEXT,
   AST_INCLUDE,
