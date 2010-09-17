@@ -78,7 +78,8 @@ int generate(FILE *out, String filename, int debug)
   }
   ctx.pool = &pool;
 
-  ctx.scope = scope_new(ctx.pool, 0);
+  ctx.scope = 0;
+  context_scope_push(&ctx);
   if (!ctx.scope) {
     fprintf(stderr, "Out of memory! Could not create first scope.\n");
     return 0;

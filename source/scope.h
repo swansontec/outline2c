@@ -43,8 +43,4 @@ struct scope {
   Symbol *first;
 };
 
-Scope *scope_new(Pool *p, Scope *outer);
-Symbol *scope_add(Scope *s, Pool *p, String symbol);
-Symbol *scope_find(Scope *s, String symbol);
-
 #endif

@@ -17,7 +17,7 @@
 CC = gcc
 CFLAGS = -g -std=c89 -pedantic
 
-objects = ast.o context.o debug.o filter.o generate.o lexer.o list.o main.o parser.o pool.o scope.o string.o
+objects = ast.o context.o debug.o filter.o generate.o lexer.o list.o main.o parser.o pool.o string.o
 
 # Inter-header dependencies:
 ast_h      = ../source/ast.h $(scope_h) $(list_h)
@@ -64,9 +64,6 @@ parser.o: ../source/parser.c $(parser_h) $(lexer_h) $(filter_h)
 
 pool.o: ../source/pool.c $(pool_h) $(string_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/pool.c
-
-scope.o: ../source/scope.c $(scope_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/scope.c
 
 string.o: ../source/string.c $(string_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/string.c

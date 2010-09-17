@@ -26,8 +26,10 @@ typedef struct Location Location;
  */
 Scope *context_scope_push(Context *ctx)
 {
-  Scope *s = scope_new(ctx->pool, ctx->scope);
+  Scope *s = pool_alloc(ctx->pool, sizeof(Scope));
   if (!s) return 0;
+  s->outer = ctx->scope;
+  s->first = 0;
   ctx->scope = s;
   return s;
 }
@@ -44,12 +46,28 @@ void context_scope_pop(Context *ctx)
  */
 Symbol *context_scope_add(Context *ctx, String symbol)
 {
-  return scope_add(ctx->scope, ctx->pool, pool_string_copy(ctx->pool, symbol));
+  Symbol *sym = pool_alloc(ctx->pool, sizeof(Symbol));
+  if (!sym) return 0;
+  sym->symbol = pool_string_copy(ctx->pool, symbol);
+  if (!string_size(sym->symbol)) return 0;
+  sym->type = TYPE_END;
+  sym->value = 0;
+  sym->next = ctx->scope->first;
+  ctx->scope->first = sym;
+  return sym;
 }
 
 Symbol *context_scope_get(Context *ctx, String symbol)
 {
-  return scope_find(ctx->scope, symbol);
+  Scope *s = ctx->scope;
+  while (s) {
+    Symbol *sym;
+    for (sym = s->first; sym; sym = sym->next)
+      if (string_equal(sym->symbol, symbol))
+        return sym;
+    s = s->outer;
+  }
+  return 0;
 }
 
 /**

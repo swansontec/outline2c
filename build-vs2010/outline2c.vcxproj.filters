@@ -13,7 +13,6 @@
     <ClCompile Include="..\source\pool.c">
       <Filter>utility</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\scope.c" />
     <ClCompile Include="..\source\string.c">
       <Filter>utility</Filter>
     </ClCompile>

@@ -95,7 +95,6 @@
     <ClCompile Include="..\source\main.c" />
     <ClCompile Include="..\source\parser.c" />
     <ClCompile Include="..\source\pool.c" />
-    <ClCompile Include="..\source\scope.c" />
     <ClCompile Include="..\source\string.c" />
   </ItemGroup>
   <ItemGroup>
