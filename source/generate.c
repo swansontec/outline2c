@@ -25,7 +25,7 @@ int generate_code_node(FILE *out, AstCodeNode node);
 int generate_include(AstInclude *p);
 int generate_for(FILE *out, AstFor *p);
 int generate_set(AstSet *p);
-int generate_symbol_ref(FILE *out, AstSymbolRef *p);
+int generate_variable(FILE *out, AstVariable *p);
 int generate_call(FILE *out, AstCall *p);
 int generate_lookup(FILE *out, AstLookup *p);
 int generate_lookup_tag(FILE *out, AstLookup *p);
@@ -136,8 +136,8 @@ int generate_code_node(FILE *out, AstCodeNode node)
     CHECK(generate_for(out, node.p));
   } else if (node.type == AST_SET) {
     CHECK(generate_set(node.p));
-  } else if (node.type == AST_SYMBOL_REF) {
-    CHECK(generate_symbol_ref(out, node.p));
+  } else if (node.type == AST_VARIABLE) {
+    CHECK(generate_variable(out, node.p));
   } else if (node.type == AST_CALL) {
     CHECK(generate_call(out, node.p));
   } else if (node.type == AST_LOOKUP) {
@@ -231,7 +231,7 @@ int generate_set(AstSet *p)
 /**
  * Performs code-generation for a symbol node
  */
-int generate_symbol_ref(FILE *out, AstSymbolRef *p)
+int generate_variable(FILE *out, AstVariable *p)
 {
   AstOutlineItem *item = symbol_as_item(p->symbol);
   CHECK(file_write(out, item->name.p, item->name.end));

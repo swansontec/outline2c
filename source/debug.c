@@ -39,7 +39,7 @@ void dump_filter_and(AstFilterAnd *p);
 void dump_filter_or(AstFilterOr *p);
 
 void dump_set(AstSet *p);
-void dump_symbol_ref(AstSymbolRef *p);
+void dump_variable(AstVariable *p);
 void dump_call(AstCall *p);
 void dump_lookup(AstLookup *p);
 
@@ -98,8 +98,8 @@ void dump_node(Dynamic node, int indent)
     dump_for(node.p);
   } else if (node.type == AST_SET) {
     dump_set(node.p);
-  } else if (node.type == AST_SYMBOL_REF) {
-    dump_symbol_ref(node.p);
+  } else if (node.type == AST_VARIABLE) {
+    dump_variable(node.p);
   } else if (node.type == AST_CALL) {
     dump_call(node.p);
   } else if (node.type == AST_LOOKUP) {
@@ -276,7 +276,7 @@ void dump_set(AstSet *p)
 /**
  * Prints a symbol in a debug-friendly manner.
  */
-void dump_symbol_ref(AstSymbolRef *p)
+void dump_variable(AstVariable *p)
 {
   dump_symbol(p->symbol);
 }

@@ -36,7 +36,7 @@ typedef struct ast_filter_not           AstFilterNot;
 typedef struct ast_filter_and           AstFilterAnd;
 typedef struct ast_filter_or            AstFilterOr;
 typedef struct ast_set                  AstSet;
-typedef struct ast_symbol_ref           AstSymbolRef;
+typedef struct ast_variable             AstVariable;
 typedef struct ast_call                 AstCall;
 typedef struct ast_lookup               AstLookup;
 
@@ -49,7 +49,7 @@ typedef struct ast_filter_node          AstFilterNode;
  *  AstInclude
  *  AstFor
  *  AstSet
- *  AstSymbolRef
+ *  AstVariable
  *  AstCall
  *  AstLookup
  */
@@ -85,7 +85,7 @@ AstOutlineItem     *ast_to_outline_item(ListNode node);
 AstOutlineTag      *ast_to_outline_tag(ListNode node);
 AstMapLine         *ast_to_map_line(ListNode node);
 AstFilter          *ast_to_filter(Dynamic node);
-AstSymbolRef       *ast_to_symbol_ref(Dynamic node);
+AstVariable        *ast_to_variable(Dynamic node);
 
 /**
  * A block of code in the host language, possibly interspersed with o2c escape
@@ -215,7 +215,7 @@ struct ast_set {
 /**
  * A symbol to be replaced within a block of code.
  */
-struct ast_symbol_ref {
+struct ast_variable {
   Symbol *symbol;
 };
 
@@ -251,7 +251,7 @@ AstFilterNot       *ast_filter_not_new          (Pool *p, AstFilterNode test);
 AstFilterAnd       *ast_filter_and_new          (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
 AstFilterOr        *ast_filter_or_new           (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
 AstSet             *ast_set_new                 (Pool *p, Symbol *symbol, Dynamic value);
-AstSymbolRef       *ast_symbol_ref_new          (Pool *p, Symbol *symbol);
+AstVariable        *ast_variable_new            (Pool *p, Symbol *symbol);
 AstCall            *ast_call_new                (Pool *p, Symbol *f, Symbol *data);
 AstLookup          *ast_lookup_new              (Pool *p, Symbol *symbol, String name);
 

@@ -153,12 +153,12 @@ symbol:
       start_c = ctx->cursor;
       start = ctx->cursor; token = lex(&ctx->cursor, ctx->file.end);
     } else {
-      CHECK_MEM(list_builder_add(&nodes, ctx->pool, AST_SYMBOL_REF,
-        ast_symbol_ref_new(ctx->pool, symbol)));
+      CHECK_MEM(list_builder_add(&nodes, ctx->pool, AST_VARIABLE,
+        ast_variable_new(ctx->pool, symbol)));
     }
   } else {
-    CHECK_MEM(list_builder_add(&nodes, ctx->pool, AST_SYMBOL_REF,
-      ast_symbol_ref_new(ctx->pool, symbol)));
+    CHECK_MEM(list_builder_add(&nodes, ctx->pool, AST_VARIABLE,
+      ast_variable_new(ctx->pool, symbol)));
   }
   goto code;
 

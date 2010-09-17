@@ -24,7 +24,7 @@ int ast_is_code_node(Type type)
     type == AST_INCLUDE ||
     type == AST_FOR ||
     type == AST_SET ||
-    type == AST_SYMBOL_REF ||
+    type == AST_VARIABLE ||
     type == AST_CALL ||
     type == AST_LOOKUP;
 }
@@ -93,9 +93,9 @@ AstFilter *ast_to_filter(Dynamic node)
   return node.p;
 }
 
-AstSymbolRef *ast_to_symbol_ref(Dynamic node)
+AstVariable *ast_to_variable(Dynamic node)
 {
-  assert(node.type == AST_SYMBOL_REF);
+  assert(node.type == AST_VARIABLE);
   return node.p;
 }
 
@@ -281,9 +281,9 @@ AstSet *ast_set_new(Pool *p, Symbol *symbol, Dynamic value)
   return self;
 }
 
-AstSymbolRef *ast_symbol_ref_new(Pool *p, Symbol *symbol)
+AstVariable *ast_variable_new(Pool *p, Symbol *symbol)
 {
-  AstSymbolRef *self = pool_alloc(p, sizeof(AstSymbolRef));
+  AstVariable *self = pool_alloc(p, sizeof(AstVariable));
   if (!self) return 0;
   self->symbol = symbol;
 
