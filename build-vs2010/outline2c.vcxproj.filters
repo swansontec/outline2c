@@ -29,7 +29,6 @@
     <ClInclude Include="..\source\pool.h">
       <Filter>utility</Filter>
     </ClInclude>
-    <ClInclude Include="..\source\scope.h" />
     <ClInclude Include="..\source\string.h">
       <Filter>utility</Filter>
     </ClInclude>

@@ -15,7 +15,6 @@
  */
 
 #include "debug.h"
-#include "scope.h"
 #include <stdio.h>
 
 void dump_code_node(AstCodeNode node, int indent);
@@ -41,7 +40,6 @@ void dump_variable(AstVariable *p);
 void dump_call(AstCall *p);
 void dump_lookup(AstLookup *p);
 
-void dump_symbol(Symbol *p);
 void dump_text(String text);
 
 #define INDENT 2
@@ -141,7 +139,7 @@ void dump_map(AstMap *p)
   ListNode *line;
 
   printf("map ");
-  dump_symbol(p->item);
+  dump_text(p->item->name);
   printf(" {\n");
 
   for (line = p->lines; line; line = line->next)
@@ -165,9 +163,16 @@ void dump_map_line(AstMapLine *p)
 void dump_for(AstFor *p)
 {
   printf("for ");
-  dump_symbol(p->item);
+  dump_text(p->item->name);
   printf(" in ");
-  dump_symbol(p->outline);
+
+  if (p->outline.type == AST_OUTLINE) {
+    printf("outline");
+    dump_outline((AstOutline*)p->outline.p, 0);
+  } else {
+    AstVariable *v = p->outline.p;
+    dump_text(v->name);
+  }
 
   if (p->filter) {
     printf(" with ");
@@ -245,7 +250,7 @@ void dump_filter_or(AstFilterOr *p)
  */
 void dump_variable(AstVariable *p)
 {
-  dump_symbol(p->symbol);
+  dump_text(p->name);
 }
 
 /**
@@ -253,10 +258,9 @@ void dump_variable(AstVariable *p)
  */
 void dump_call(AstCall *p)
 {
-  dump_symbol(p->f);
-  printf("(");
-  dump_symbol(p->data);
-  printf(")");
+  dump_text(p->item->name);
+  printf("!");
+  dump_map(p->map);
 }
 
 /**
@@ -264,14 +268,9 @@ void dump_call(AstCall *p)
  */
 void dump_lookup(AstLookup *p)
 {
-  dump_symbol(p->symbol);
+  dump_text(p->item->name);
   printf("!");
   dump_text(p->name);
-}
-
-void dump_symbol(Symbol *p)
-{
-  dump_text(p->symbol);
 }
 
 void dump_text(String text)

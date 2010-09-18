@@ -18,20 +18,38 @@
 #include <stdio.h>
 #include <assert.h>
 
+typedef struct Symbol Symbol;
 typedef struct Location Location;
 
 /**
- * Constructs a new scope. The current scope becomes the outer scope.
- * @return the new scope, or 0 for failure.
+ * A symbol definition.
+ * TODO: These should be freed when the context pops to an outer scope, which
+ * means that they need a different memory management strategy than the AST
+ * stuff.
  */
-Scope *context_scope_push(Context *ctx)
+struct Symbol {
+  String name;
+  Dynamic value;
+  Symbol *next;
+};
+
+struct Scope {
+  Scope *outer;
+  Symbol *first;
+};
+
+/**
+ * Constructs a new scope. The current scope becomes the outer scope.
+ * @return 0 for failure.
+ */
+int context_scope_push(Context *ctx)
 {
   Scope *s = pool_alloc(ctx->pool, sizeof(Scope));
   if (!s) return 0;
   s->outer = ctx->scope;
   s->first = 0;
   ctx->scope = s;
-  return s;
+  return 1;
 }
 
 void context_scope_pop(Context *ctx)
@@ -42,29 +60,36 @@ void context_scope_pop(Context *ctx)
 
 /**
  * Adds a symbol to the current scope.
- * @return the new symbol, or 0 for failure.
+ * @return 0 for failure.
  */
-Symbol *context_scope_add(Context *ctx, String symbol)
+int context_scope_add(Context *ctx, String name, Type type, void *p)
 {
   Symbol *sym = pool_alloc(ctx->pool, sizeof(Symbol));
   if (!sym) return 0;
-  sym->symbol = pool_string_copy(ctx->pool, symbol);
-  if (!string_size(sym->symbol)) return 0;
-  sym->type = TYPE_END;
-  sym->value = 0;
+  sym->name = pool_string_copy(ctx->pool, name);
+  if (!string_size(sym->name)) return 0;
+  sym->value.p = p;
+  sym->value.type = type;
   sym->next = ctx->scope->first;
   ctx->scope->first = sym;
-  return sym;
+  return 1;
 }
 
-Symbol *context_scope_get(Context *ctx, String symbol)
+/**
+ * Searches for a symbol to the current scope. Places the symbol's value, if
+ * found, into ctx->out.
+ * @return 0 if the symbol does not exist.
+ */
+int context_scope_get(Context *ctx, String name)
 {
   Scope *s = ctx->scope;
   while (s) {
     Symbol *sym;
     for (sym = s->first; sym; sym = sym->next)
-      if (string_equal(sym->symbol, symbol))
-        return sym;
+      if (string_equal(sym->name, name)) {
+        ctx->out = sym->value;
+        return 1;
+      }
     s = s->outer;
   }
   return 0;

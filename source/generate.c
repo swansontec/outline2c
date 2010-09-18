@@ -28,7 +28,6 @@ int generate_call(FILE *out, AstCall *p);
 int generate_lookup(FILE *out, AstLookup *p);
 int generate_lookup_tag(FILE *out, AstLookup *p);
 int generate_lookup_builtin(FILE *out, AstLookup *p);
-int generate_lookup_map(FILE *out, AstLookup *p);
 
 int generate_lower(FILE *out, String s);
 int generate_upper(FILE *out, String s);
@@ -52,12 +51,6 @@ int write_cap(FILE *out, String s);
  * macro checks a return code and bails out if it indicates an error.
  */
 #define CHECK(r) do { if (!r) return 0; } while(0)
-
-AstOutlineItem *symbol_as_item(Symbol *p)
-{
-  assert(p->type == AST_OUTLINE_ITEM);
-  return p->value;
-}
 
 /**
  * Opens the file given in filename, parses it, processes it, and writes the
@@ -151,13 +144,11 @@ int generate_for(FILE *out, AstFor *p)
   int need_comma = 0;
 
   /* Find the outline list to process: */
-  if (p->outline->type == AST_OUTLINE) {
-    outline = p->outline->value;
-  } else if (p->outline->type == AST_OUTLINE_ITEM) {
-    AstOutlineItem *item = p->outline->value;
-    outline = item->children;
+  if (p->outline.type == AST_OUTLINE) {
+    outline = p->outline.p;
   } else {
-    assert(0);
+    AstVariable *v = p->outline.p;
+    outline = v->value->children;
   }
   if (!outline)
     return 1;
@@ -197,11 +188,12 @@ int generate_for(FILE *out, AstFor *p)
 }
 
 /**
- * Performs code-generation for a symbol node
+ * Performs code-generation for a variable lookup
  */
 int generate_variable(FILE *out, AstVariable *p)
 {
-  AstOutlineItem *item = symbol_as_item(p->symbol);
+  AstOutlineItem *item = p->value;
+
   CHECK(file_write(out, item->name.p, item->name.end));
   return 1;
 }
@@ -211,30 +203,23 @@ int generate_variable(FILE *out, AstVariable *p)
  */
 int generate_call(FILE *out, AstCall *p)
 {
-  AstOutlineItem *item;
-  AstMap *map;
+  AstOutlineItem *item = p->item->value;
   ListNode *line;
   char *temp;
 
-  /* Symbol lookup: */
-  assert(p->data->type == AST_OUTLINE_ITEM);
-  assert(p->f->type == AST_MAP);
-  item = p->data->value;
-  map = p->f->value;
-  map->item->value = p->data->value;
-
   /* Match against the map: */
-  for (line = map->lines; line; line = line->next) {
+  for (line = p->map->lines; line; line = line->next) {
     AstMapLine *l = ast_to_map_line(*line);
     if (test_filter(l->filter, item)) {
+      p->map->item->value = item;
       CHECK(generate_code(out, l->code));
       return 1;
     }
   }
 
   /* Nothing matched: */
-  temp = string_to_c(p->f->symbol);
-  fprintf(stderr, "Could not match against map \"%s\".\n", temp);
+  temp = string_to_c(p->item->value->name);
+  fprintf(stderr, "error: Could not match item \"%s\" against map.\n", temp);
   free(temp);
   return 0;
 }
@@ -270,7 +255,7 @@ int generate_lookup(FILE *out, AstLookup *p)
  */
 int generate_lookup_tag(FILE *out, AstLookup *p)
 {
-  AstOutlineItem *item = symbol_as_item(p->symbol);
+  AstOutlineItem *item = p->item->value;
   ListNode *tag;
 
   for (tag = item->tags; tag; tag = tag->next) {
@@ -290,21 +275,21 @@ int generate_lookup_tag(FILE *out, AstLookup *p)
  */
 int generate_lookup_builtin(FILE *out, AstLookup *p)
 {
-  AstOutlineItem *item;
+  AstOutlineItem *item = p->item->value;
+
   if (string_equal(p->name, string_init_l("quote", 5))) {
     CHECK(file_putc(out, '"'));
-    item = symbol_as_item(p->symbol);
     CHECK(file_write(out, item->name.p, item->name.end));
     CHECK(file_putc(out, '"'));
     return 1;
   } else if (string_equal(p->name, string_init_l("lower", 5))) {
-    return generate_lower(out, symbol_as_item(p->symbol)->name);
+    return generate_lower(out, item->name);
   } else if (string_equal(p->name, string_init_l("upper", 5))) {
-    return generate_upper(out, symbol_as_item(p->symbol)->name);
+    return generate_upper(out, item->name);
   } else if (string_equal(p->name, string_init_l("camel", 5))) {
-    return generate_camel(out, symbol_as_item(p->symbol)->name);
+    return generate_camel(out, item->name);
   } else if (string_equal(p->name, string_init_l("mixed", 5))) {
-    return generate_mixed(out, symbol_as_item(p->symbol)->name);
+    return generate_mixed(out, item->name);
   }
 
   return 0;

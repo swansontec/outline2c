@@ -17,9 +17,11 @@
 #ifndef CONTEXT_H_INCLUDED
 #define CONTEXT_H_INCLUDED
 
-#include "scope.h"
+#include "type.h"
+#include "pool.h"
 
 typedef struct Context Context;
+typedef struct Scope Scope;
 
 /**
  * Different parts of the compiler communicate in several ways:
@@ -47,10 +49,10 @@ struct Context {
   Dynamic out;
 };
 
-Scope  *context_scope_push(Context *ctx);
-void    context_scope_pop(Context *ctx);
-Symbol *context_scope_add(Context *ctx, String symbol);
-Symbol *context_scope_get(Context *ctx, String symbol);
+int context_scope_push(Context *ctx);
+void context_scope_pop(Context *ctx);
+int context_scope_add(Context *ctx, String name, Type type, void *p);
+int context_scope_get(Context *ctx, String name);
 
 int context_error(Context *ctx, char const *message);
 

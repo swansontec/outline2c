@@ -20,8 +20,8 @@ CFLAGS = -g -std=c89 -pedantic
 objects = ast.o context.o debug.o filter.o generate.o lexer.o list.o main.o parser.o pool.o string.o
 
 # Inter-header dependencies:
-ast_h      = ../source/ast.h $(scope_h) $(list_h)
-context_h  = ../source/context.h $(scope_h)
+ast_h      = ../source/ast.h $(list_h)
+context_h  = ../source/context.h $(type_h) $(pool_h)
 debug_h    = ../source/debug.h $(ast_h)
 filter_h   = ../source/filter.h $(ast_h)
 generate_h = ../source/generate.h $(string_h)
@@ -29,7 +29,6 @@ lexer_h    = ../source/lexer.h
 list_h     = ../source/list.h $(type_h) $(pool_h)
 parser_h   = ../source/parser.h $(context_h)
 pool_h     = ../source/pool.h $(string_h)
-scope_h    = ../source/scope.h $(type_h) $(pool_h)
 string_h   = ../source/string.h
 type_h     = ../source/type.h
 
@@ -41,7 +40,7 @@ ast.o: ../source/ast.c $(ast_h)
 context.o: ../source/context.c $(context_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/context.c
 
-debug.o: ../source/debug.c $(debug_h) $(scope_h)
+debug.o: ../source/debug.c $(debug_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/debug.c
 
 filter.o: ../source/filter.c $(filter_h)

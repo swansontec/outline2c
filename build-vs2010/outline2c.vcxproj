@@ -107,7 +107,6 @@
     <ClInclude Include="..\source\list.h" />
     <ClInclude Include="..\source\parser.h" />
     <ClInclude Include="..\source\pool.h" />
-    <ClInclude Include="..\source\scope.h" />
     <ClInclude Include="..\source\string.h" />
     <ClInclude Include="..\source\type.h" />
   </ItemGroup>

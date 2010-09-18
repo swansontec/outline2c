@@ -78,7 +78,7 @@ int parse_code(Context *ctx, int scoped)
 {
   char const *start_c, *start;
   Token token;
-  Symbol *symbol;
+  AstVariable *variable;
   int indent = 1;
   ListBuilder nodes = list_builder_init();
 
@@ -96,8 +96,7 @@ code:
   if (token == LEX_PASTE) goto paste;
   if (token == LEX_ESCAPE_O2C) goto escape;
   if (scoped && token == LEX_IDENTIFIER) {
-    symbol = context_scope_get(ctx, string_init(start, ctx->cursor));
-    if (symbol)
+    if (context_scope_get(ctx, string_init(start, ctx->cursor)))
       goto symbol;
   } else if (scoped && token == LEX_BRACE_R) {
     if (!--indent)
@@ -134,9 +133,10 @@ escape:
 symbol:
   WRITE_CODE
 
-  /* Symbol replacement: */
-  if (symbol->type != AST_OUTLINE_ITEM)
+  /* Variable lookup: */
+  if (ctx->out.type != AST_VARIABLE)
     return context_error(ctx, "Wrong type - only outline items may be embedded in C code.\n");
+  variable = ast_to_variable(ctx->out);
 
   /* Is there a lookup modifier? */
   start_c = ctx->cursor;
@@ -144,25 +144,22 @@ symbol:
   if (token == LEX_BANG) {
     start = ctx->cursor; token = lex(&ctx->cursor, ctx->file.end);
     if (token == LEX_IDENTIFIER) {
-      Symbol *lookup = context_scope_get(ctx, string_init(start, ctx->cursor));
-      if (lookup) {
-        if (lookup->type != AST_MAP)
+      if (context_scope_get(ctx, string_init(start, ctx->cursor))) {
+        if (ctx->out.type != AST_MAP)
           return context_error(ctx, "Wrong type - expecting a map here.\n");
         CHECK_MEM(list_builder_add(&nodes, ctx->pool, AST_CALL,
-          ast_call_new(ctx->pool, lookup, symbol)));
+          ast_call_new(ctx->pool, variable, ast_to_map(ctx->out))));
       } else {
         CHECK_MEM(list_builder_add(&nodes, ctx->pool, AST_LOOKUP,
-          ast_lookup_new(ctx->pool, symbol, string_init(start, ctx->cursor))));
+          ast_lookup_new(ctx->pool, variable, string_init(start, ctx->cursor))));
       }
       start_c = ctx->cursor;
       start = ctx->cursor; token = lex(&ctx->cursor, ctx->file.end);
     } else {
-      CHECK_MEM(list_builder_add(&nodes, ctx->pool, AST_VARIABLE,
-        ast_variable_new(ctx->pool, symbol)));
+      CHECK_MEM(list_builder_add(&nodes, ctx->pool, AST_VARIABLE, variable));
     }
   } else {
-    CHECK_MEM(list_builder_add(&nodes, ctx->pool, AST_VARIABLE,
-      ast_variable_new(ctx->pool, symbol)));
+    CHECK_MEM(list_builder_add(&nodes, ctx->pool, AST_VARIABLE, variable));
   }
   goto code;
 
@@ -201,19 +198,13 @@ int parse_escape(Context *ctx)
     } else if (string_equal(temp, string_init_l("for", 3))) {
       return parse_for(ctx);
     } else {
-      Symbol *symbol;
-
       /* Assignment? */
       token = lex_next(&start, &ctx->cursor, ctx->file.end);
       if (token != LEX_EQUALS)
         return context_error(ctx, "No idea what this keyword is.");
 
       CHECK(parse_escape(ctx));
-
-      symbol = context_scope_add(ctx, temp);
-      CHECK_MEM(symbol);
-      symbol->type = ctx->out.type;
-      symbol->value = ctx->out.p;
+      CHECK_MEM(context_scope_add(ctx, temp, ctx->out.type, ctx->out.p));
 
       ctx->out.type = TYPE_END;
       return 1;
@@ -364,7 +355,7 @@ int parse_map(Context *ctx)
 {
   char const *start;
   Token token;
-  Symbol *item;
+  AstVariable *item;
   ListBuilder lines = list_builder_init();
 
   CHECK_MEM(context_scope_push(ctx));
@@ -373,9 +364,9 @@ int parse_map(Context *ctx)
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_IDENTIFIER)
     return context_error(ctx, "An map stament must begin with a name.");
-  item = context_scope_add(ctx, string_init(start, ctx->cursor));
+  item = ast_variable_new(ctx->pool, string_init(start, ctx->cursor));
   CHECK_MEM(item);
-  item->type = AST_OUTLINE_ITEM;
+  CHECK_MEM(context_scope_add(ctx, item->name, AST_VARIABLE, item));
 
   /* Opening brace: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -432,8 +423,8 @@ int parse_for(Context *ctx)
 {
   char const *start;
   Token token;
-  Symbol *item;
-  Symbol *outline;
+  AstVariable *item;
+  AstForNode outline;
   AstFilter *filter = 0;
   int reverse = 0;
   int list = 0;
@@ -445,9 +436,9 @@ int parse_for(Context *ctx)
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_IDENTIFIER)
     return context_error(ctx, "Expecting a new symbol name here.");
-  item = context_scope_add(ctx, string_init(start, ctx->cursor));
+  item = ast_variable_new(ctx->pool, string_init(start, ctx->cursor));
   CHECK_MEM(item);
-  item->type = AST_OUTLINE_ITEM;
+  CHECK_MEM(context_scope_add(ctx, item->name, AST_VARIABLE, item));
 
   /* "in" keyword: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -459,11 +450,11 @@ int parse_for(Context *ctx)
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_IDENTIFIER)
     return context_error(ctx, "An outline name must come after the \"in\" keyword.");
-  outline = context_scope_get(ctx, string_init(start, ctx->cursor));
-  if (!outline)
+  if (!context_scope_get(ctx, string_init(start, ctx->cursor)))
     return context_error(ctx, "Could not find an outline with this name.");
-  if (outline->type != AST_OUTLINE && outline->type != AST_OUTLINE_ITEM)
+  if (!ast_is_for_node(ctx->out.type))
     return context_error(ctx, "Wrong type - the for statement expects an outline.\n");
+  outline = ast_to_for_node(ctx->out);
 
   /* Behavior modification keywords: */
 modifier:
