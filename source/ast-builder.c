@@ -330,7 +330,7 @@ int ast_build_filter_or(AstBuilder *b)
 
 int ast_build_set(AstBuilder *b, Symbol *symbol)
 {
-  AstCodeNode value = ast_to_code_node(ast_builder_pop(b));
+  Dynamic value = ast_builder_pop(b);
 
   return ast_builder_push(b, AST_SET,
     ast_set_new(&b->pool,

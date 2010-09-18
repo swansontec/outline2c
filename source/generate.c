@@ -112,8 +112,6 @@ int generate_code_node(FILE *out, AstCodeNode node)
     CHECK(file_write(out, p->code.p, p->code.end));
   } else if (node.type == AST_INCLUDE) {
     CHECK(generate_include(node.p));
-  } else if (node.type == AST_OUTLINE) {
-  } else if (node.type == AST_MAP) {
   } else if (node.type == AST_FOR) {
     CHECK(generate_for(out, node.p));
   } else if (node.type == AST_SET) {

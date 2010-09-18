@@ -47,8 +47,6 @@ typedef struct ast_filter_node          AstFilterNode;
  * Points to one of:
  *  AstCodeText
  *  AstInclude
- *  AstOutline
- *  AstMap
  *  AstFor
  *  AstSet
  *  AstSymbolRef
@@ -223,7 +221,7 @@ struct ast_filter_or {
  */
 struct ast_set {
   Symbol *symbol;
-  AstCodeNode value;
+  Dynamic value;
 };
 
 /**
@@ -265,7 +263,7 @@ AstFilterAny       *ast_filter_any_new          (Pool *p);
 AstFilterNot       *ast_filter_not_new          (Pool *p, AstFilterNode test);
 AstFilterAnd       *ast_filter_and_new          (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
 AstFilterOr        *ast_filter_or_new           (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
-AstSet             *ast_set_new                 (Pool *p, Symbol *symbol, AstCodeNode value);
+AstSet             *ast_set_new                 (Pool *p, Symbol *symbol, Dynamic value);
 AstSymbolRef       *ast_symbol_ref_new          (Pool *p, Symbol *symbol);
 AstCall            *ast_call_new                (Pool *p, Symbol *f, Symbol *data);
 AstLookup          *ast_lookup_new              (Pool *p, Symbol *symbol, String name);

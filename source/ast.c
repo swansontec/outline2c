@@ -22,8 +22,6 @@ int ast_is_code_node(Type type)
   return
     type == AST_CODE_TEXT ||
     type == AST_INCLUDE ||
-    type == AST_OUTLINE ||
-    type == AST_MAP ||
     type == AST_FOR ||
     type == AST_SET ||
     type == AST_SYMBOL_REF ||
@@ -307,7 +305,7 @@ AstFilterOr *ast_filter_or_new(Pool *p, AstFilterNode test_a, AstFilterNode test
   return self;
 }
 
-AstSet *ast_set_new(Pool *p, Symbol *symbol, AstCodeNode value)
+AstSet *ast_set_new(Pool *p, Symbol *symbol, Dynamic value)
 {
   AstSet *self;
   if (!symbol) return 0;
