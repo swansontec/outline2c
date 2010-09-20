@@ -44,6 +44,7 @@ void dump_call(AstCall *p);
 void dump_lookup(AstLookup *p);
 
 void dump_symbol(Symbol *p);
+void dump_text(String text);
 
 #define INDENT 2
 
@@ -82,9 +83,7 @@ void dump_node(Dynamic node, int indent)
 {
   if (node.type == AST_CODE_TEXT) {
     AstCodeText *p = node.p;
-    char *temp = string_to_c(p->code);
-    printf("%s", temp);
-    free(temp);
+    dump_text(p->code);
   } else if (node.type == AST_INCLUDE) {
     AstInclude *p = node.p;
     printf("include {\n");
@@ -131,7 +130,6 @@ void dump_outline(AstOutline *p, int indent)
  */
 void dump_outline_item(AstOutlineItem *p, int indent)
 {
-  char *temp;
   ListNode *tag;
 
   /* Tags: */
@@ -142,9 +140,7 @@ void dump_outline_item(AstOutlineItem *p, int indent)
   }
 
   /* Item name: */
-  temp = string_to_c(p->name);
-  printf("%s", temp);
-  free(temp);
+  dump_text(p->name);
 
   /* Children: */
   if (p->children && p->children->items)
@@ -155,9 +151,7 @@ void dump_outline_item(AstOutlineItem *p, int indent)
 
 void dump_outline_tag(AstOutlineTag *p, int indent)
 {
-  char *temp = string_to_c(p->name);
-  printf("%s", temp);
-  free(temp);
+  dump_text(p->name);
   if (p->value) {
     printf("={");
     dump_code(p->value, indent);
@@ -240,9 +234,7 @@ void dump_filter_node(AstFilterNode node)
 
 void dump_filter_tag(AstFilterTag *p)
 {
-  char *temp = string_to_c(p->tag);
-  printf("%s", temp);
-  free(temp);
+  dump_text(p->tag);
 }
 
 void dump_filter_any(AstFilterAny *p)
@@ -305,15 +297,17 @@ void dump_call(AstCall *p)
  */
 void dump_lookup(AstLookup *p)
 {
-  char *temp = string_to_c(p->name);
   dump_symbol(p->symbol);
-  printf("!%s", temp);
-  free(temp);
+  printf("!");
+  dump_text(p->name);
 }
 
 void dump_symbol(Symbol *p)
 {
-  char *symbol = string_to_c(p->symbol);
-  printf("%s", symbol);
-  free(symbol);
+  dump_text(p->symbol);
+}
+
+void dump_text(String text)
+{
+  fwrite(text.p, 1, text.end - text.p, stdout);
 }
