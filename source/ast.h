@@ -22,7 +22,6 @@
 
 typedef struct ast_code                 AstCode;
 typedef struct ast_code_text            AstCodeText;
-typedef struct ast_include              AstInclude;
 typedef struct ast_outline              AstOutline;
 typedef struct ast_outline_item         AstOutlineItem;
 typedef struct ast_outline_tag          AstOutlineTag;
@@ -35,7 +34,6 @@ typedef struct ast_filter_any           AstFilterAny;
 typedef struct ast_filter_not           AstFilterNot;
 typedef struct ast_filter_and           AstFilterAnd;
 typedef struct ast_filter_or            AstFilterOr;
-typedef struct ast_set                  AstSet;
 typedef struct ast_variable             AstVariable;
 typedef struct ast_call                 AstCall;
 typedef struct ast_lookup               AstLookup;
@@ -46,9 +44,7 @@ typedef struct ast_filter_node          AstFilterNode;
 /**
  * Points to one of:
  *  AstCodeText
- *  AstInclude
  *  AstFor
- *  AstSet
  *  AstVariable
  *  AstCall
  *  AstLookup
@@ -100,13 +96,6 @@ struct ast_code {
  */
 struct ast_code_text {
   String code;
-};
-
-/**
- * The include keyword.
- */
-struct ast_include {
-  AstCode *code;
 };
 
 /**
@@ -205,14 +194,6 @@ struct ast_filter_or {
 };
 
 /**
- * An assignment statement.
- */
-struct ast_set {
-  Symbol *symbol;
-  Dynamic value;
-};
-
-/**
  * A symbol to be replaced within a block of code.
  */
 struct ast_variable {
@@ -237,7 +218,6 @@ struct ast_lookup {
 
 AstCode            *ast_code_new                (Pool *p, ListNode *nodes);
 AstCodeText        *ast_code_text_new           (Pool *p, String code);
-AstInclude         *ast_include_new             (Pool *p, AstCode *code);
 AstOutline         *ast_outline_new             (Pool *p, ListNode *items);
 AstOutlineItem     *ast_outline_item_new        (Pool *p, ListNode *tags, String name, AstOutline *children);
 AstOutlineTag      *ast_outline_tag_new         (Pool *p, String name, AstCode *value);
@@ -250,7 +230,6 @@ AstFilterAny       *ast_filter_any_new          (Pool *p);
 AstFilterNot       *ast_filter_not_new          (Pool *p, AstFilterNode test);
 AstFilterAnd       *ast_filter_and_new          (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
 AstFilterOr        *ast_filter_or_new           (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
-AstSet             *ast_set_new                 (Pool *p, Symbol *symbol, Dynamic value);
 AstVariable        *ast_variable_new            (Pool *p, Symbol *symbol);
 AstCall            *ast_call_new                (Pool *p, Symbol *f, Symbol *data);
 AstLookup          *ast_lookup_new              (Pool *p, Symbol *symbol, String name);

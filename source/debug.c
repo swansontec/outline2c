@@ -19,7 +19,6 @@
 #include <stdio.h>
 
 void dump_code_node(AstCodeNode node, int indent);
-void dump_node(Dynamic node, int indent);
 
 void dump_outline(AstOutline *p, int indent);
 void dump_outline_item(AstOutlineItem *p, int indent);
@@ -38,7 +37,6 @@ void dump_filter_not(AstFilterNot *p);
 void dump_filter_and(AstFilterAnd *p);
 void dump_filter_or(AstFilterOr *p);
 
-void dump_set(AstSet *p);
 void dump_variable(AstVariable *p);
 void dump_call(AstCall *p);
 void dump_lookup(AstLookup *p);
@@ -68,36 +66,12 @@ void dump_code(AstCode *p, int indent)
 
 void dump_code_node(AstCodeNode node, int indent)
 {
-  Dynamic temp;
-  if (
-    node.type == AST_INCLUDE ||
-    node.type == AST_FOR ||
-    node.type == AST_SET)
-    printf("\\ol ");
-  temp.p = node.p;
-  temp.type = node.type;
-  dump_node(temp, indent);
-}
-
-void dump_node(Dynamic node, int indent)
-{
   if (node.type == AST_CODE_TEXT) {
     AstCodeText *p = node.p;
     dump_text(p->code);
-  } else if (node.type == AST_INCLUDE) {
-    AstInclude *p = node.p;
-    printf("include {\n");
-    dump_code(p->code, indent+1);
-    printf("} /* end include */\n");
-  } else if (node.type == AST_OUTLINE) {
-    printf("outline");
-    dump_outline(node.p, indent);
-  } else if (node.type == AST_MAP) {
-    dump_map(node.p);
   } else if (node.type == AST_FOR) {
+    printf("\\ol ");
     dump_for(node.p);
-  } else if (node.type == AST_SET) {
-    dump_set(node.p);
   } else if (node.type == AST_VARIABLE) {
     dump_variable(node.p);
   } else if (node.type == AST_CALL) {
@@ -105,7 +79,7 @@ void dump_node(Dynamic node, int indent)
   } else if (node.type == AST_LOOKUP) {
     dump_lookup(node.p);
   } else {
-    printf("(Unknown node %d)", node.type);
+    printf("(Unknown code node %d)", node.type);
   }
 }
 
@@ -264,13 +238,6 @@ void dump_filter_or(AstFilterOr *p)
   printf(" | ");
   dump_filter_node(p->test_b);
   printf(")");
-}
-
-void dump_set(AstSet *p)
-{
-  dump_symbol(p->symbol);
-  printf(" = ");
-  dump_node(p->value, 0);
 }
 
 /**

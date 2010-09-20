@@ -22,9 +22,7 @@
 
 int generate_code(FILE *out, AstCode *p);
 int generate_code_node(FILE *out, AstCodeNode node);
-int generate_include(AstInclude *p);
 int generate_for(FILE *out, AstFor *p);
-int generate_set(AstSet *p);
 int generate_variable(FILE *out, AstVariable *p);
 int generate_call(FILE *out, AstCall *p);
 int generate_lookup(FILE *out, AstLookup *p);
@@ -130,12 +128,8 @@ int generate_code_node(FILE *out, AstCodeNode node)
   if (node.type == AST_CODE_TEXT) {
     AstCodeText *p = node.p;
     CHECK(file_write(out, p->code.p, p->code.end));
-  } else if (node.type == AST_INCLUDE) {
-    CHECK(generate_include(node.p));
   } else if (node.type == AST_FOR) {
     CHECK(generate_for(out, node.p));
-  } else if (node.type == AST_SET) {
-    CHECK(generate_set(node.p));
   } else if (node.type == AST_VARIABLE) {
     CHECK(generate_variable(out, node.p));
   } else if (node.type == AST_CALL) {
@@ -144,23 +138,6 @@ int generate_code_node(FILE *out, AstCodeNode node)
     CHECK(generate_lookup(out, node.p));
   } else {
     assert(0);
-  }
-  return 1;
-}
-
-/**
- * Evaluates the symbol definitions within an included file.
- */
-int generate_include(AstInclude *p)
-{
-  ListNode *node;
-
-  for (node = p->code->nodes; node; node = node->next) {
-    if (node->type == AST_SET) {
-      CHECK(generate_set(node->p));
-    } else if (node->type == AST_INCLUDE) {
-      CHECK(generate_include(node->p));
-    }
   }
   return 1;
 }
@@ -216,15 +193,6 @@ int generate_for(FILE *out, AstFor *p)
     }
   }
 
-  return 1;
-}
-
-/**
- * Evaluates a symbol definition
- */
-int generate_set(AstSet *p)
-{
-  p->symbol->value = p->value.p;
   return 1;
 }
 

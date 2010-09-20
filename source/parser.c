@@ -121,7 +121,11 @@ escape:
 
   /* "\ol" escape sequences: */
   CHECK(parse_escape(ctx));
-  CHECK_MEM(list_builder_add2(&nodes, ctx->pool, ctx->out));
+  if (ctx->out.type != TYPE_END) {
+    if (!ast_is_code_node(ctx->out.type))
+      return context_error(ctx, "Wrong type - expecting a code node here.");
+    CHECK_MEM(list_builder_add2(&nodes, ctx->pool, ctx->out));
+  }
 
   start_c = ctx->cursor;
   start = ctx->cursor; token = lex(&ctx->cursor, ctx->file.end);
@@ -209,9 +213,9 @@ int parse_escape(Context *ctx)
       symbol = context_scope_add(ctx, temp);
       CHECK_MEM(symbol);
       symbol->type = ctx->out.type;
+      symbol->value = ctx->out.p;
 
-      CHECK_MEM(out(ctx, AST_SET,
-        ast_set_new(ctx->pool, symbol, ctx->out)));
+      ctx->out.type = TYPE_END;
       return 1;
     }
   } else {
@@ -264,8 +268,7 @@ int parse_include(Context *ctx)
   if (token != LEX_SEMICOLON)
     return context_error(ctx, "An include stament must end with a semicolon.");
 
-  CHECK_MEM(out(ctx, AST_INCLUDE,
-    ast_include_new(ctx->pool, code)));
+  ctx->out.type = TYPE_END;
   return 1;
 }
 

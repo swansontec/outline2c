@@ -21,9 +21,7 @@ int ast_is_code_node(Type type)
 {
   return
     type == AST_CODE_TEXT ||
-    type == AST_INCLUDE ||
     type == AST_FOR ||
-    type == AST_SET ||
     type == AST_VARIABLE ||
     type == AST_CALL ||
     type == AST_LOOKUP;
@@ -116,16 +114,6 @@ AstCodeText *ast_code_text_new(Pool *p, String code)
   self->code = pool_string_copy(p, code);
 
   if (!string_size(self->code)) return 0;
-  return self;
-}
-
-AstInclude *ast_include_new(Pool *p, AstCode *code)
-{
-  AstInclude *self = pool_alloc(p, sizeof(AstInclude));
-  if (!self) return 0;
-  self->code = code;
-
-  if (!self->code) return 0;
   return self;
 }
 
@@ -266,18 +254,6 @@ AstFilterOr *ast_filter_or_new(Pool *p, AstFilterNode test_a, AstFilterNode test
 
   if (!self->test_a.p) return 0;
   if (!self->test_b.p) return 0;
-  return self;
-}
-
-AstSet *ast_set_new(Pool *p, Symbol *symbol, Dynamic value)
-{
-  AstSet *self = pool_alloc(p, sizeof(AstSet));
-  if (!self) return 0;
-  self->symbol = symbol;
-  self->value = value;
-
-  if (!self->symbol) return 0;
-  if (!self->value.p) return 0;
   return self;
 }
 
