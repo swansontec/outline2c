@@ -19,23 +19,25 @@
 #include "generate.h"
 #include <string.h>
 
-typedef struct options Options;
+typedef struct Options Options;
 
 /*
  * Holds outline2c command-line options.
  */
-struct options
+struct Options
 {
   int debug;
   String name_in;
   String name_out;
 };
 
-void options_init(Options *self)
+Options options_init()
 {
-  self->debug = 0;
-  self->name_in = string_null();
-  self->name_out = string_null();
+  Options self;
+  self.debug = 0;
+  self.name_in = string_null();
+  self.name_out = string_null();
+  return self;
 }
 
 /**
@@ -134,12 +136,11 @@ void main_context_free(Context *ctx)
  */
 int main(int argc, char *argv[])
 {
-  Options opt;
+  Options opt = options_init();
   Context ctx = {0};
   Pool pool;
 
   /* Read the options: */
-  options_init(&opt);
   if (!options_parse(&opt, argc, argv)) {
     fprintf(stderr, "Usage: %s [-d] [-o output-file] <input-file>\n", argv[0]);
     return 1;
