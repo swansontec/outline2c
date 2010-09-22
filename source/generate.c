@@ -15,12 +15,9 @@
  */
 
 #include "generate.h"
-#include "parser.h"
 #include "filter.h"
-#include "debug.h"
 #include <assert.h>
 
-int generate_code(FILE *out, AstCode *p);
 int generate_code_node(FILE *out, AstCodeNode node);
 int generate_for(FILE *out, AstFor *p);
 int generate_variable(FILE *out, AstVariable *p);
@@ -45,49 +42,6 @@ int write_cap(FILE *out, String s);
 /* Writes bytes to a file, and returns 0 for failure. */
 #define file_write(file, p, end) (fwrite(p, 1, end - p, file) == end - p)
 #define file_putc(file, c) (fputc(c, file) != EOF)
-
-/**
- * Opens the file given in filename, parses it, processes it, and writes the
- * results to the output file.
- * @return 0 for failure
- */
-int generate(FILE *out, String filename, int debug)
-{
-  Pool pool;
-  Context ctx;
-  AstCode *code;
-
-  CHECK_MEM(pool_init(&pool, 0x10000)); /* 64K block size */
-  ctx.pool = &pool;
-
-  ctx.scope = 0;
-  context_scope_push(&ctx);
-  CHECK(ctx.scope);
-
-  /* Parse the input file: */
-  ctx.filename = filename;
-  ctx.file = string_load(filename);
-  if (!string_size(ctx.file)) {
-    char *s = string_to_c(filename);
-    fprintf(stderr, "error: Could not open source file \"%s\"\n", s);
-    free(s);
-    return 0;
-  }
-  ctx.cursor = ctx.file.p;
-  CHECK(parse_code(&ctx, 0));
-  code = ast_to_code(ctx.out);
-  string_free(ctx.file);
-
-  if (debug) {
-    printf("--- AST: ---\n");
-    dump_code(code, 0);
-  }
-
-  CHECK(generate_code(out, code));
-
-  pool_free(&pool);
-  return 1;
-}
 
 /**
  * Processes source code, writing the result to the output file.

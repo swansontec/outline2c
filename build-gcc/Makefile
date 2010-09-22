@@ -24,7 +24,7 @@ ast_h      = ../source/ast.h $(list_h)
 context_h  = ../source/context.h $(type_h) $(pool_h)
 debug_h    = ../source/debug.h $(ast_h)
 filter_h   = ../source/filter.h $(ast_h)
-generate_h = ../source/generate.h $(string_h)
+generate_h = ../source/generate.h $(ast_h)
 lexer_h    = ../source/lexer.h
 list_h     = ../source/list.h $(type_h) $(pool_h)
 parser_h   = ../source/parser.h $(context_h)
@@ -46,7 +46,7 @@ debug.o: ../source/debug.c $(debug_h)
 filter.o: ../source/filter.c $(filter_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/filter.c
 
-generate.o: ../source/generate.c $(generate_h) $(parser_h) $(filter_h) $(debug_h)
+generate.o: ../source/generate.c $(generate_h) $(filter_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/generate.c
 
 lexer.o: ../source/lexer.c $(lexer_h) $(string_h)
@@ -55,7 +55,7 @@ lexer.o: ../source/lexer.c $(lexer_h) $(string_h)
 list.o: ../source/list.c $(list_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/list.c
 
-main.o: ../source/main.c $(string_h) $(generate_h)
+main.o: ../source/main.c $(string_h) $(parser_h) $(debug_h) $(generate_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/main.c
 
 parser.o: ../source/parser.c $(parser_h) $(lexer_h) $(filter_h)

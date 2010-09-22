@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "parser.h"
+#include "debug.h"
 #include "generate.h"
 #include <string.h>
 
@@ -69,6 +71,49 @@ int options_parse(Options *self, int argc, char *argv[])
     }
     ++arg;
   }
+  return 1;
+}
+
+/**
+ * Opens the file given in filename, parses it, processes it, and writes the
+ * results to the output file.
+ * @return 0 for failure
+ */
+int generate(FILE *out, String filename, int debug)
+{
+  Pool pool;
+  Context ctx;
+  AstCode *code;
+
+  CHECK_MEM(pool_init(&pool, 0x10000)); /* 64K block size */
+  ctx.pool = &pool;
+
+  ctx.scope = 0;
+  context_scope_push(&ctx);
+  CHECK(ctx.scope);
+
+  /* Parse the input file: */
+  ctx.filename = filename;
+  ctx.file = string_load(filename);
+  if (!string_size(ctx.file)) {
+    char *s = string_to_c(filename);
+    fprintf(stderr, "error: Could not open source file \"%s\"\n", s);
+    free(s);
+    return 0;
+  }
+  ctx.cursor = ctx.file.p;
+  CHECK(parse_code(&ctx, 0));
+  code = ast_to_code(ctx.out);
+  string_free(ctx.file);
+
+  if (debug) {
+    printf("--- AST: ---\n");
+    dump_code(code, 0);
+  }
+
+  CHECK(generate_code(out, code));
+
+  pool_free(&pool);
   return 1;
 }
 

@@ -17,9 +17,9 @@
 #ifndef GENERATE_H_INCLUDED
 #define GENERATE_H_INCLUDED
 
-#include "string.h"
+#include "ast.h"
 #include <stdio.h>
 
-int generate(FILE *out, String filename, int debug);
+int generate_code(FILE *out, AstCode *p);
 
 #endif
