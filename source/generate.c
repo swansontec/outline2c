@@ -47,12 +47,6 @@ int write_cap(FILE *out, String s);
 #define file_putc(file, c) (fputc(c, file) != EOF)
 
 /**
- * All generate functions return 1 for success and 0 for failure. This
- * macro checks a return code and bails out if it indicates an error.
- */
-#define CHECK(r) do { if (!r) return 0; } while(0)
-
-/**
  * Opens the file given in filename, parses it, processes it, and writes the
  * results to the output file.
  * @return 0 for failure
@@ -63,18 +57,12 @@ int generate(FILE *out, String filename, int debug)
   Context ctx;
   AstCode *code;
 
-  if (!pool_init(&pool, 0x10000)) { /* 64K block size */
-    fprintf(stderr, "Out of memory! Could not create pool.\n");
-    return 0;
-  }
+  CHECK_MEM(pool_init(&pool, 0x10000)); /* 64K block size */
   ctx.pool = &pool;
 
   ctx.scope = 0;
   context_scope_push(&ctx);
-  if (!ctx.scope) {
-    fprintf(stderr, "Out of memory! Could not create first scope.\n");
-    return 0;
-  }
+  CHECK_MEM(ctx.scope);
 
   /* Parse the input file: */
   ctx.filename = filename;

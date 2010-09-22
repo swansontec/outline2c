@@ -52,17 +52,6 @@ static int out(Context *ctx, Type type, void *p)
 }
 
 /**
- * All parser functions return 1 for success and 0 for failure. This
- * macro checks a return code and bails out if it indicates an error.
- */
-#define CHECK(r) do { if (!r) return 0; } while(0)
-
-/**
- * Verifies that a memory-allocating call succeeded.
- */
-#define CHECK_MEM(r) do { if (!r) { fprintf(stderr, "Out of memory on line %d!\n", __LINE__); return 0; } } while(0)
-
-/**
  * Parses a block of code in the host language, looking for escape sequences
  * and replacement symbols.
  *
