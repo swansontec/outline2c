@@ -16,6 +16,7 @@
 
 #include "filter.h"
 #include <assert.h>
+#include <stdio.h>
 
 int test_filter_node(AstFilterNode test, AstOutlineItem *item);
 int test_filter_tag(AstFilterTag *test, AstOutlineItem *item);
@@ -82,7 +83,7 @@ int filter_builder_init(FilterBuilder *b)
 {
   b->stack_size = 32;
   b->stack = malloc(b->stack_size*sizeof(Dynamic));
-  if (!b->stack) return 0;
+  CHECK_MEM(b->stack);
   b->stack_top = 0;
   return 1;
 }
@@ -101,14 +102,13 @@ static int filter_builder_push(FilterBuilder *b, Type type, void *p)
   Dynamic node;
   node.p = p;
   node.type = type;
-
-  if (!p) return 0;
+  if (!node.p) return 0;
 
   /* Grow, if needed: */
   if (b->stack_size <= b->stack_top) {
     size_t new_size = 2*b->stack_size;
     Dynamic *new_stack = realloc(b->stack, new_size*sizeof(Dynamic));
-    if (!new_stack) return 0;
+    CHECK_MEM(new_stack);
     b->stack_size = new_size;
     b->stack = new_stack;
   }

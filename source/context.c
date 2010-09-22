@@ -45,7 +45,7 @@ struct Scope {
 int context_scope_push(Context *ctx)
 {
   Scope *s = pool_alloc(ctx->pool, sizeof(Scope));
-  if (!s) return 0;
+  CHECK_MEM(s);
   s->outer = ctx->scope;
   s->first = 0;
   ctx->scope = s;
@@ -65,9 +65,9 @@ void context_scope_pop(Context *ctx)
 int context_scope_add(Context *ctx, String name, Type type, void *p)
 {
   Symbol *sym = pool_alloc(ctx->pool, sizeof(Symbol));
-  if (!sym) return 0;
+  CHECK_MEM(sym);
   sym->name = pool_string_copy(ctx->pool, name);
-  if (!string_size(sym->name)) return 0;
+  CHECK_MEM(string_size(sym->name));
   sym->value.p = p;
   sym->value.type = type;
   sym->next = ctx->scope->first;

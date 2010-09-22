@@ -62,7 +62,7 @@ int generate(FILE *out, String filename, int debug)
 
   ctx.scope = 0;
   context_scope_push(&ctx);
-  CHECK_MEM(ctx.scope);
+  CHECK(ctx.scope);
 
   /* Parse the input file: */
   ctx.filename = filename;

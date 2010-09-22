@@ -73,7 +73,7 @@ int parse_code(Context *ctx, int scoped)
 
 #define WRITE_CODE \
   if (start_c != start) \
-    CHECK_MEM(list_builder_add(&nodes, ctx->pool, AST_CODE_TEXT, \
+    CHECK(list_builder_add(&nodes, ctx->pool, AST_CODE_TEXT, \
       ast_code_text_new(ctx->pool, string_init(start_c, start))));
 
   start_c = ctx->cursor;
@@ -112,7 +112,7 @@ escape:
   if (ctx->out.type != TYPE_END) {
     if (!ast_is_code_node(ctx->out.type))
       return context_error(ctx, "Wrong type - expecting a code node here.");
-    CHECK_MEM(list_builder_add2(&nodes, ctx->pool, ctx->out));
+    CHECK(list_builder_add2(&nodes, ctx->pool, ctx->out));
   }
 
   start_c = ctx->cursor;
@@ -136,19 +136,19 @@ symbol:
       if (context_scope_get(ctx, string_init(start, ctx->cursor))) {
         if (ctx->out.type != AST_MAP)
           return context_error(ctx, "Wrong type - expecting a map here.\n");
-        CHECK_MEM(list_builder_add(&nodes, ctx->pool, AST_CALL,
+        CHECK(list_builder_add(&nodes, ctx->pool, AST_CALL,
           ast_call_new(ctx->pool, variable, ast_to_map(ctx->out))));
       } else {
-        CHECK_MEM(list_builder_add(&nodes, ctx->pool, AST_LOOKUP,
+        CHECK(list_builder_add(&nodes, ctx->pool, AST_LOOKUP,
           ast_lookup_new(ctx->pool, variable, string_init(start, ctx->cursor))));
       }
       start_c = ctx->cursor;
       start = ctx->cursor; token = lex(&ctx->cursor, ctx->file.end);
     } else {
-      CHECK_MEM(list_builder_add(&nodes, ctx->pool, AST_VARIABLE, variable));
+      CHECK(list_builder_add(&nodes, ctx->pool, AST_VARIABLE, variable));
     }
   } else {
-    CHECK_MEM(list_builder_add(&nodes, ctx->pool, AST_VARIABLE, variable));
+    CHECK(list_builder_add(&nodes, ctx->pool, AST_VARIABLE, variable));
   }
   goto code;
 
@@ -158,7 +158,7 @@ done:
   /* End-of-code: */
   if (scoped && token == LEX_END)
     return context_error(ctx, "Unexpected end of input in code block.");
-  CHECK_MEM(out(ctx, AST_CODE,
+  CHECK(out(ctx, AST_CODE,
     ast_code_new(ctx->pool, nodes.first)));
   return 1;
 }
@@ -193,7 +193,7 @@ int parse_escape(Context *ctx)
         return context_error(ctx, "No idea what this keyword is.");
 
       CHECK(parse_escape(ctx));
-      CHECK_MEM(context_scope_add(ctx, temp, ctx->out.type, ctx->out.p));
+      CHECK(context_scope_add(ctx, temp, ctx->out.type, ctx->out.p));
 
       ctx->out.type = TYPE_END;
       return 1;
@@ -271,11 +271,11 @@ int parse_outline(Context *ctx)
   while (token != LEX_BRACE_R) {
     ctx->cursor = start;
     CHECK(parse_outline_item(ctx));
-    CHECK_MEM(list_builder_add2(&items, ctx->pool, ctx->out));
+    CHECK(list_builder_add2(&items, ctx->pool, ctx->out));
     token = lex_next(&start, &ctx->cursor, ctx->file.end);
   }
 
-  CHECK_MEM(out(ctx, AST_OUTLINE,
+  CHECK(out(ctx, AST_OUTLINE,
     ast_outline_new(ctx->pool, items.first)));
   return 1;
 }
@@ -296,7 +296,7 @@ int parse_outline_item(Context *ctx)
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   while (token == LEX_IDENTIFIER) {
     if (string_size(last)) {
-      CHECK_MEM(list_builder_add(&tags, ctx->pool, AST_OUTLINE_TAG,
+      CHECK(list_builder_add(&tags, ctx->pool, AST_OUTLINE_TAG,
         ast_outline_tag_new(ctx->pool, last, 0)));
     }
     last = string_init(start, ctx->cursor);
@@ -313,7 +313,7 @@ int parse_outline_item(Context *ctx)
       CHECK(parse_code(ctx, 1));
       code = ast_to_code(ctx->out);
 
-      CHECK_MEM(list_builder_add(&tags, ctx->pool, AST_OUTLINE_TAG,
+      CHECK(list_builder_add(&tags, ctx->pool, AST_OUTLINE_TAG,
         ast_outline_tag_new(ctx->pool, last, code)));
 
       last = string_null();
@@ -332,7 +332,7 @@ int parse_outline_item(Context *ctx)
     return context_error(ctx, "An outline can only end with a semicolon or an opening brace.");
   }
 
-  CHECK_MEM(out(ctx, AST_OUTLINE_ITEM,
+  CHECK(out(ctx, AST_OUTLINE_ITEM,
     ast_outline_item_new(ctx->pool, tags.first, last, children)));
   return 1;
 }
@@ -347,15 +347,14 @@ int parse_map(Context *ctx)
   AstVariable *item;
   ListBuilder lines = list_builder_init();
 
-  CHECK_MEM(context_scope_push(ctx));
+  CHECK(context_scope_push(ctx));
 
   /* Map name: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_IDENTIFIER)
     return context_error(ctx, "An map stament must begin with a name.");
-  item = ast_variable_new(ctx->pool, string_init(start, ctx->cursor));
-  CHECK_MEM(item);
-  CHECK_MEM(context_scope_add(ctx, item->name, AST_VARIABLE, item));
+  CHECK(item = ast_variable_new(ctx->pool, string_init(start, ctx->cursor)));
+  CHECK(context_scope_add(ctx, item->name, AST_VARIABLE, item));
 
   /* Opening brace: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -367,12 +366,12 @@ int parse_map(Context *ctx)
   while (token != LEX_BRACE_R) {
     ctx->cursor = start;
     CHECK(parse_map_line(ctx));
-    CHECK_MEM(list_builder_add2(&lines, ctx->pool, ctx->out));
+    CHECK(list_builder_add2(&lines, ctx->pool, ctx->out));
     token = lex_next(&start, &ctx->cursor, ctx->file.end);
   }
 
   context_scope_pop(ctx);
-  CHECK_MEM(out(ctx, AST_MAP,
+  CHECK(out(ctx, AST_MAP,
     ast_map_new(ctx->pool, item, lines.first)));
   return 1;
 }
@@ -400,7 +399,7 @@ int parse_map_line(Context *ctx)
   CHECK(parse_code(ctx, 1));
   code = ast_to_code(ctx->out);
 
-  CHECK_MEM(out(ctx, AST_MAP_LINE,
+  CHECK(out(ctx, AST_MAP_LINE,
     ast_map_line_new(ctx->pool, filter, code)));
   return 1;
 }
@@ -419,15 +418,14 @@ int parse_for(Context *ctx)
   int list = 0;
   AstCode *code;
 
-  CHECK_MEM(context_scope_push(ctx));
+  CHECK(context_scope_push(ctx));
 
   /* Variable name: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_IDENTIFIER)
     return context_error(ctx, "Expecting a new symbol name here.");
-  item = ast_variable_new(ctx->pool, string_init(start, ctx->cursor));
-  CHECK_MEM(item);
-  CHECK_MEM(context_scope_add(ctx, item->name, AST_VARIABLE, item));
+  CHECK(item = ast_variable_new(ctx->pool, string_init(start, ctx->cursor)));
+  CHECK(context_scope_add(ctx, item->name, AST_VARIABLE, item));
 
   /* "in" keyword: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -478,7 +476,7 @@ modifier:
   code = ast_to_code(ctx->out);
 
   context_scope_pop(ctx);
-  CHECK_MEM(out(ctx, AST_FOR,
+  CHECK(out(ctx, AST_FOR,
     ast_for_new(ctx->pool, item, outline, filter, reverse, list, code)));
   return 1;
 }
@@ -495,16 +493,16 @@ int parse_filter(Context *ctx)
   enum operators { NOT, AND, OR, LPAREN } stack[32];
   int top = 0;
 
-  CHECK_MEM(filter_builder_init(&fb));
+  CHECK(filter_builder_init(&fb));
 
 want_term:
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token == LEX_IDENTIFIER) {
-    CHECK_MEM(filter_build_tag(&fb, ctx->pool, string_init(start, ctx->cursor)));
+    CHECK(filter_build_tag(&fb, ctx->pool, string_init(start, ctx->cursor)));
     goto want_operator;
 
   } else if (token == LEX_STAR) {
-    CHECK_MEM(filter_build_any(&fb, ctx->pool));
+    CHECK(filter_build_any(&fb, ctx->pool));
     goto want_operator;
 
   } else if (token == LEX_BANG) {
@@ -524,9 +522,9 @@ want_operator:
   if (token == LEX_AMP) {
     for (; top && stack[top-1] <= AND; --top) {
       if (stack[top-1] == NOT) {
-        CHECK_MEM(filter_build_not(&fb, ctx->pool));
+        CHECK(filter_build_not(&fb, ctx->pool));
       } else if (stack[top-1] == AND) {
-        CHECK_MEM(filter_build_and(&fb, ctx->pool));
+        CHECK(filter_build_and(&fb, ctx->pool));
       }
     }
     stack[top++] = AND;
@@ -535,11 +533,11 @@ want_operator:
   } else if (token == LEX_PIPE) {
     for (; top && stack[top-1] <= OR; --top) {
       if (stack[top-1] == NOT) {
-        CHECK_MEM(filter_build_not(&fb, ctx->pool));
+        CHECK(filter_build_not(&fb, ctx->pool));
       } else if (stack[top-1] == AND) {
-        CHECK_MEM(filter_build_and(&fb, ctx->pool));
+        CHECK(filter_build_and(&fb, ctx->pool));
       } else if (stack[top-1] == OR) {
-        CHECK_MEM(filter_build_or(&fb, ctx->pool));
+        CHECK(filter_build_or(&fb, ctx->pool));
       }
     }
     stack[top++] = OR;
@@ -548,11 +546,11 @@ want_operator:
   } else if (token == LEX_PAREN_R) {
     for (; top && stack[top-1] < LPAREN; --top) {
       if (stack[top-1] == NOT) {
-        CHECK_MEM(filter_build_not(&fb, ctx->pool));
+        CHECK(filter_build_not(&fb, ctx->pool));
       } else if (stack[top-1] == AND) {
-        CHECK_MEM(filter_build_and(&fb, ctx->pool));
+        CHECK(filter_build_and(&fb, ctx->pool));
       } else if (stack[top-1] == OR) {
-        CHECK_MEM(filter_build_or(&fb, ctx->pool));
+        CHECK(filter_build_or(&fb, ctx->pool));
       }
     }
     if (!top)
@@ -571,17 +569,17 @@ want_operator:
 done:
   for (; top; --top) {
     if (stack[top-1] == NOT) {
-      CHECK_MEM(filter_build_not(&fb, ctx->pool));
+      CHECK(filter_build_not(&fb, ctx->pool));
     } else if (stack[top-1] == AND) {
-      CHECK_MEM(filter_build_and(&fb, ctx->pool));
+      CHECK(filter_build_and(&fb, ctx->pool));
     } else if (stack[top-1] == OR) {
-      CHECK_MEM(filter_build_or(&fb, ctx->pool));
+      CHECK(filter_build_or(&fb, ctx->pool));
     } else if (stack[top-1] == LPAREN) {
       return context_error(ctx, "No maching closing parenthesis.");
     }
   }
 
-  CHECK_MEM(out(ctx, AST_FILTER,
+  CHECK(out(ctx, AST_FILTER,
     ast_filter_new(ctx->pool, ast_to_filter_node(filter_builder_pop(&fb)))));
   filter_builder_free(&fb);
   return 1;

@@ -15,6 +15,7 @@
  */
 
 #include "list.h"
+#include <stdio.h>
 
 /**
  * Initializes a new ListBuilder structure.
@@ -33,7 +34,7 @@ ListBuilder list_builder_init()
 int list_builder_add(ListBuilder *b, Pool *pool, Type type, void *p)
 {
   ListNode *node = pool_alloc(pool, sizeof(ListNode));
-  if (!node) return 0;
+  CHECK_MEM(node);
   node->next = 0;
   node->p = p;
   node->type = type;
