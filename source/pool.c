@@ -52,12 +52,12 @@ struct align_test {
 /**
  * Helper function to add new blocks to the pool. This function does not modify
  * the pool if it fails.
- * @return 0 for success
+ * @return 0 for failure
  */
 static int pool_grow(Pool *p, size_t size)
 {
   char *block = malloc(size);
-  if (!block) return 1;
+  if (!block) return 0;
 
   /* The first element in each block is a pointer to previous block: */
   *(char**)block = p->block;
@@ -66,14 +66,14 @@ static int pool_grow(Pool *p, size_t size)
   p->block = block;
   p->next  = block + sizeof(char*);
   p->end   = block + size;
-  return 0;
+  return 1;
 }
 
 /**
  * Initializes a memory pool, allocating an initial block of the given size.
  * Each future block will have the same size as the initial block, so choose
  * wisely.
- * @return 0 for success
+ * @return 0 for failure
  */
 int pool_init(Pool *p, size_t size)
 {

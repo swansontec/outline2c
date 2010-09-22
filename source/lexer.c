@@ -13,45 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/*
- * This is a hand-written lexer. The lexer operates on a cursor structure,
- * which includes a pointer into the input as well as line number and column
- * information for the current location. The lexer keeps this information up-
- * to-date as it scans through the input.
- */
 
 #include "lexer.h"
 #include "string.h"
-
-/**
- * Prepares a fresh cursor, starting at the beginning of a file.
- */
-Cursor cursor_init(char const *start)
-{
-  Cursor cursor;
-  cursor.p = start;
-  cursor.line = 0;
-  cursor.column = 0;
-  return cursor;
-}
-
-/**
- * Advances the cursor to the next character, updating the line and column
- * information. Returns 0 if the cursor reaches the end marker.
- */
-static int advance(Cursor *cursor, char const *end)
-{
-  ++cursor->p;
-  if (end <= cursor->p)
-    return 0;
-  if (*cursor->p == '\n') {
-    cursor->column = 0;
-    ++cursor->line;
-  } else {
-    ++cursor->column;
-  }
-  return 1;
-}
 
 #define IS_SPACE(c) \
   c == ' '  || c == '\t' || \
@@ -74,121 +38,145 @@ static int advance(Cursor *cursor, char const *end)
  * the identified token's type. Since this function also identifies non-syntax
  * elements such as whitespace and comments, additional filtering may be useful.
  */
-Token lex(Cursor *cursor, char const *end)
+Token lex(char const **p, char const *end)
 {
-  if (end <= cursor->p) {
+  if (end <= *p) {
     return LEX_END;
   /* Whitespace: */
-  } else if (IS_SPACE(*cursor->p)) {
+  } else if (IS_SPACE(**p)) {
     do {
-      if (!advance(cursor, end)) break;
-    } while (IS_SPACE(*cursor->p));
+      ++*p;
+    } while (*p < end && IS_SPACE(**p));
     return LEX_WHITESPACE;
   /* Comments: */
-  } else if (*cursor->p == '/') {
-    if (!advance(cursor, end)) return LEX_SLASH;
+  } else if (**p == '/') {
+    ++*p;
+    if (end <= *p) return LEX_SLASH;
     /* C++ style comments: */
-    if (*cursor->p == '/') {
+    if (**p == '/') {
       do {
-        if (!advance(cursor, end)) return LEX_COMMENT;
-      } while (*cursor->p != '\n');
-      advance(cursor, end);
+        ++*p;
+        if (end <= *p) return LEX_COMMENT;
+      } while (**p != '\n');
+      ++*p;
       return LEX_COMMENT;
     /* C style comments: */
-    } else if (*cursor->p == '*') {
+    } else if (**p == '*') {
       do {
         do {
-          if (!advance(cursor, end)) return LEX_ERROR_END;
-        } while (*cursor->p != '*');
+          ++*p;
+          if (end <= *p) return LEX_ERROR_END;
+        } while (**p != '*');
         do {
-          if (!advance(cursor, end)) return LEX_ERROR_END;
-        } while (*cursor->p == '*');
-      } while (*cursor->p != '/');
-      advance(cursor, end);
+          ++*p;
+          if (end <= *p) return LEX_ERROR_END;
+        } while (**p == '*');
+      } while (**p != '/');
+      ++*p;
       return LEX_COMMENT;
     /* Lone slash: */
     } else {
       return LEX_SLASH;
     }
   /* Double-quoted string literal: */
-  } else if (*cursor->p == '\"') {
+  } else if (**p == '\"') {
     do {
-      if (!advance(cursor, end)) return LEX_ERROR_END;
-      if (*cursor->p == '\\') {
-        if (!advance(cursor, end)) return LEX_ERROR_END;
-        if (!advance(cursor, end)) return LEX_ERROR_END;
+      ++*p;
+      if (end <= *p) return LEX_ERROR_END;
+      if (**p == '\\') {
+        ++*p;
+        if (end <= *p) return LEX_ERROR_END;
+        ++*p;
+        if (end <= *p) return LEX_ERROR_END;
       }
-    } while (*cursor->p != '\"');
-    advance(cursor, end);
+    } while (**p != '\"');
+    ++*p;
     return LEX_STRING;
   /* Single-quoted character literal: */
-  } else if (*cursor->p == '\'') {
+  } else if (**p == '\'') {
     do {
-      if (!advance(cursor, end)) return LEX_ERROR_END;
-      if (*cursor->p == '\\') {
-        if (!advance(cursor, end)) return LEX_ERROR_END;
-        if (!advance(cursor, end)) return LEX_ERROR_END;
+      ++*p;
+      if (end <= *p) return LEX_ERROR_END;
+      if (**p == '\\') {
+        ++*p;
+        if (end <= *p) return LEX_ERROR_END;
+        ++*p;
+        if (end <= *p) return LEX_ERROR_END;
       }
-    } while (*cursor->p != '\'');
-    advance(cursor, end);
+    } while (**p != '\'');
+    ++*p;
     return LEX_CHAR;
   /* Numeric literals (including malformed ones, which are ignored): */
-  } else if ('0' <= *cursor->p && *cursor->p <= '9') {
+  } else if ('0' <= **p && **p <= '9') {
     do {
-      if (!advance(cursor, end)) break;
-    } while (IS_ALPHANUM(*cursor->p));
+      ++*p;
+    } while (*p < end && IS_ALPHANUM(**p));
     return LEX_NUMBER;
   /* Identifiers: */
-  } else if (IS_ALPHA(*cursor->p)) {
+  } else if (IS_ALPHA(**p)) {
     do {
-      if (!advance(cursor, end)) break;
-    } while (IS_ALPHANUM(*cursor->p));
+      ++*p;
+    } while (*p < end && IS_ALPHANUM(**p));
     return LEX_IDENTIFIER;
   /* Escape codes: */
-  } else if (*cursor->p == '@') {
+  } else if (**p == '@') {
     String token;
-    token.p = cursor->p;
+    token.p = *p;
     do {
-      if (!advance(cursor, end)) break;
-    } while (IS_ALPHANUM(*cursor->p));
-    token.end = cursor->p;
+      ++*p;
+    } while (*p < end && IS_ALPHANUM(**p));
+    token.end = *p;
     if (string_equal(token, string_init_l("@o2c", 4)))
       return LEX_ESCAPE_O2C;
     return LEX_ESCAPE;
   /* Token-pasting: */
-  } else if (*cursor->p == '\\') {
-    if (!advance(cursor, end)) return LEX_BACKSLASH;
-    if (*cursor->p == '\\') {
-      advance(cursor, end);
+  } else if (**p == '\\') {
+    ++*p;
+    if (end <= *p) return LEX_BACKSLASH;
+    if (**p == '\\') {
+      ++*p;
       return LEX_PASTE;
-    } else if (*cursor->p == 'o') {
-      if (!advance(cursor, end)) return LEX_ESCAPE;
-      if (*cursor->p == 'l') {
-        advance(cursor, end);
+    } else if (**p == 'o') {
+      ++*p;
+      if (end <= *p) return LEX_ESCAPE;
+      if (**p == 'l') {
+        ++*p;
         return LEX_ESCAPE_O2C;
       }
       return LEX_ESCAPE;
     }
     return LEX_BACKSLASH;
   /* Symbols: */
-  } else if (*cursor->p == '!') { advance(cursor, end); return LEX_BANG;
-  } else if (*cursor->p == '&') { advance(cursor, end); return LEX_AMP;
-  } else if (*cursor->p == '(') { advance(cursor, end); return LEX_PAREN_L;
-  } else if (*cursor->p == ')') { advance(cursor, end); return LEX_PAREN_R;
-  } else if (*cursor->p == '*') { advance(cursor, end); return LEX_STAR;
-  } else if (*cursor->p == '.') { advance(cursor, end); return LEX_DOT;
+  } else if (**p == '!') { ++*p; return LEX_BANG;
+  } else if (**p == '&') { ++*p; return LEX_AMP;
+  } else if (**p == '(') { ++*p; return LEX_PAREN_L;
+  } else if (**p == ')') { ++*p; return LEX_PAREN_R;
+  } else if (**p == '*') { ++*p; return LEX_STAR;
+  } else if (**p == '.') { ++*p; return LEX_DOT;
   /* LEX_SLASH was recognized earlier. */
-  } else if (*cursor->p == ';') { advance(cursor, end); return LEX_SEMICOLON;
-  } else if (*cursor->p == '<') { advance(cursor, end); return LEX_LT;
-  } else if (*cursor->p == '=') { advance(cursor, end); return LEX_EQUALS;
-  } else if (*cursor->p == '>') { advance(cursor, end); return LEX_GT;
+  } else if (**p == ';') { ++*p; return LEX_SEMICOLON;
+  } else if (**p == '<') { ++*p; return LEX_LT;
+  } else if (**p == '=') { ++*p; return LEX_EQUALS;
+  } else if (**p == '>') { ++*p; return LEX_GT;
   /* LEX_BACKSLASH was recognized earlier. */
-  } else if (*cursor->p == '{') { advance(cursor, end); return LEX_BRACE_L;
-  } else if (*cursor->p == '|') { advance(cursor, end); return LEX_PIPE;
-  } else if (*cursor->p == '}') { advance(cursor, end); return LEX_BRACE_R;
+  } else if (**p == '{') { ++*p; return LEX_BRACE_L;
+  } else if (**p == '|') { ++*p; return LEX_PIPE;
+  } else if (**p == '}') { ++*p; return LEX_BRACE_R;
   /* Any other character: */
   } else {
-    advance(cursor, end);
+    ++*p;
     return LEX_ERROR;
   }
+}
+
+/**
+ * Identifies the next token, filtering out whitespace & comments.
+ */
+Token lex_next(char const **start, char const **p, char const *end)
+{
+  Token token;
+  do {
+    *start = *p; token = lex(p, end);
+  } while (token == LEX_WHITESPACE || token == LEX_COMMENT);
+  return token;
 }

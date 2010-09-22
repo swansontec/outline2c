@@ -19,6 +19,27 @@
 
 #include "ast.h"
 
+typedef struct FilterBuilder FilterBuilder;
+
 int test_filter(AstFilter *test, AstOutlineItem *item);
+
+/**
+ * A stack for building filters using Dijkstra's shunting-yard algorithm
+ */
+struct FilterBuilder {
+  Dynamic *stack;
+  size_t stack_size;
+  size_t stack_top;
+};
+
+int filter_builder_init(FilterBuilder *b);
+void filter_builder_free(FilterBuilder *b);
+Dynamic filter_builder_pop(FilterBuilder *b);
+
+int filter_build_tag(FilterBuilder *b, Pool *pool, String tag);
+int filter_build_any(FilterBuilder *b, Pool *pool);
+int filter_build_not(FilterBuilder *b, Pool *pool);
+int filter_build_and(FilterBuilder *b, Pool *pool);
+int filter_build_or(FilterBuilder *b, Pool *pool);
 
 #endif

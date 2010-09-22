@@ -15,306 +15,223 @@
  */
 
 #include "generate.h"
-#include "parser.h"
 #include "filter.h"
-#include "debug.h"
-#include <stdio.h>
 #include <assert.h>
 
-int generate_code(FileW *out, AstCode *p);
-int generate_include(AstInclude *p);
-int generate_for(FileW *out, AstFor *p);
-int generate_set(AstSet *p);
-int generate_symbol_ref(FileW *out, AstSymbolRef *p);
-int generate_call(FileW *out, AstCall *p);
-int generate_lookup(FileW *out, AstLookup *p);
-int generate_lookup_tag(FileW *out, AstLookup *p);
-int generate_lookup_builtin(FileW *out, AstLookup *p);
-int generate_lookup_map(FileW *out, AstLookup *p);
+int generate_code_node(FILE *out, AstCodeNode node);
+int generate_for(FILE *out, AstFor *p);
+int generate_variable(FILE *out, AstVariable *p);
+int generate_call(FILE *out, AstCall *p);
+int generate_lookup(FILE *out, AstLookup *p);
+int generate_lookup_tag(FILE *out, AstLookup *p);
+int generate_lookup_builtin(FILE *out, AstLookup *p);
 
-int generate_lower(FileW *out, String s);
-int generate_upper(FileW *out, String s);
-int generate_camel(FileW *out, String s);
-int generate_mixed(FileW *out, String s);
+int generate_lower(FILE *out, String s);
+int generate_upper(FILE *out, String s);
+int generate_camel(FILE *out, String s);
+int generate_mixed(FILE *out, String s);
 
 String strip_symbol(String s);
 String scan_symbol(String s, char const *p);
-int write_leading(FileW *out, String s, String inner);
-int write_trailing(FileW *out, String s, String inner);
-int write_lower(FileW *out, String s);
-int write_upper(FileW *out, String s);
-int write_cap(FileW *out, String s);
+int write_leading(FILE *out, String s, String inner);
+int write_trailing(FILE *out, String s, String inner);
+int write_lower(FILE *out, String s);
+int write_upper(FILE *out, String s);
+int write_cap(FILE *out, String s);
 
-AstOutlineItem *symbol_as_item(Symbol *p)
-{
-  assert(p->type == AST_OUTLINE_ITEM);
-  return p->value;
-}
+/* Writes bytes to a file, and returns 0 for failure. */
+#define file_write(file, p, end) (fwrite(p, 1, end - p, file) == end - p)
+#define file_putc(file, c) (fputc(c, file) != EOF)
 
 /**
- * Opens the file given in filename, parses it, processes it, and writes the
- * results to the output file.
+ * Processes source code, writing the result to the output file.
  */
-int generate(FileW *out, String filename, int debug)
+int generate_code(FILE *out, AstCode *p)
 {
-  int rv;
-  AstBuilder b;
-  AstFile *file;
+  ListNode *node;
 
-  rv = ast_builder_init(&b);
-  if (rv) {
-    fprintf(stderr, "Out of memory!\n");
-    return 1;
-  }
-
-  rv = parse_file(filename, &b);
-  if (rv) return rv;
-  file = ast_to_file(ast_builder_pop(&b));
-
-  if (debug) {
-    printf("--- AST: ---\n");
-    dump_code(file->code, 0);
-  }
-
-  if (generate_code(out, file->code))
-    return 1;
-
-  ast_builder_free(&b);
-  return 0;
+  for (node = p->nodes; node; node = node->next)
+    CHECK(generate_code_node(out, ast_to_code_node(*node)));
+  return 1;
 }
 
 /**
  * Processes source code, writing the result to the output file.
  */
-int generate_code(FileW *out, AstCode *p)
+int generate_code_node(FILE *out, AstCodeNode node)
 {
-  int rv;
-  AstCodeNode *node;
-
-  for (node = p->nodes; node != p->nodes_end; ++node) {
-    if (node->type == AST_CODE_TEXT) {
-      AstCodeText *p = node->p;
-      rv = file_w_write(out, p->code.p, p->code.end);
-      if (rv) return rv;
-    } else if (node->type == AST_INCLUDE) {
-      rv = generate_include(node->p);
-      if (rv) return rv;
-    } else if (node->type == AST_OUTLINE) {
-    } else if (node->type == AST_MAP) {
-    } else if (node->type == AST_FOR) {
-      rv = generate_for(out, node->p);
-      if (rv) return rv;
-    } else if (node->type == AST_SET) {
-      rv = generate_set(node->p);
-      if (rv) return rv;
-    } else if (node->type == AST_SYMBOL_REF) {
-      rv = generate_symbol_ref(out, node->p);
-      if (rv) return rv;
-    } else if (node->type == AST_CALL) {
-      rv = generate_call(out, node->p);
-      if (rv) return rv;
-    } else if (node->type == AST_LOOKUP) {
-      rv = generate_lookup(out, node->p);
-      if (rv) return rv;
-    } else {
-      assert(0);
-    }
+  if (node.type == AST_CODE_TEXT) {
+    AstCodeText *p = node.p;
+    CHECK(file_write(out, p->code.p, p->code.end));
+  } else if (node.type == AST_FOR) {
+    CHECK(generate_for(out, node.p));
+  } else if (node.type == AST_VARIABLE) {
+    CHECK(generate_variable(out, node.p));
+  } else if (node.type == AST_CALL) {
+    CHECK(generate_call(out, node.p));
+  } else if (node.type == AST_LOOKUP) {
+    CHECK(generate_lookup(out, node.p));
+  } else {
+    assert(0);
   }
-  return 0;
-}
-
-/**
- * Evaluates the symbol definitions within an included file.
- */
-int generate_include(AstInclude *p)
-{
-  int rv;
-  AstCodeNode *node;
-
-  for (node = p->file->code->nodes; node != p->file->code->nodes_end; ++node) {
-    if (node->type == AST_SET) {
-      rv = generate_set(node->p);
-      if (rv) return rv;
-    } else if (node->type == AST_INCLUDE) {
-      rv = generate_include(node->p);
-      if (rv) return rv;
-    }
-  }
-  return 0;
+  return 1;
 }
 
 /**
  * Performs code-generation for a for statement node
  */
-int generate_for(FileW *out, AstFor *p)
+int generate_for(FILE *out, AstFor *p)
 {
-  AstOutline *items;
-  AstOutlineItem **item;
+  AstOutline *outline;
   int need_comma = 0;
 
   /* Find the outline list to process: */
-  if (p->outline->type == AST_OUTLINE) {
-    items = p->outline->value;
-  } else if (p->outline->type == AST_OUTLINE_ITEM) {
-    AstOutlineItem *item = p->outline->value;
-    items = item->children;
+  if (p->outline.type == AST_OUTLINE) {
+    outline = p->outline.p;
   } else {
-    assert(0);
+    AstVariable *v = p->outline.p;
+    outline = v->value->children;
   }
-  if (!items)
-    return 0;
+  if (!outline)
+    return 1;
 
   /* Process the list: */
   if (p->reverse) {
-    for (item = items->items_end - 1; item != items->items - 1; --item) {
-      if (!p->filter || test_filter(p->filter, *item)) {
-        p->item->value = *item;
-        if (p->list && need_comma) {
-          char c = ',';
-          file_w_write(out, &c, &c + 1);
-        }
-        if (generate_code(out, p->code))
-          return 1;
+    /* Warning: O(n^2) reversing algorithm */
+    ListNode *item, *last = 0;
+    while (outline->items != last) {
+      item = outline->items;
+      while (item->next != last)
+        item = item->next;
+      last = item;
+
+      p->item->value = ast_to_outline_item(*item);
+      if (!p->filter || test_filter(p->filter, p->item->value)) {
+        if (p->list && need_comma)
+          CHECK(file_putc(out, ','));
+        CHECK(generate_code(out, p->code));
         need_comma = 1;
       }
     }
   } else {
-    for (item = items->items; item != items->items_end; ++item) {
-      if (!p->filter || test_filter(p->filter, *item)) {
-        p->item->value = *item;
-        if (p->list && need_comma) {
-          char c = ',';
-          file_w_write(out, &c, &c + 1);
-        }
-        if (generate_code(out, p->code))
-          return 1;
+    ListNode *item;
+    for (item = outline->items; item; item = item->next) {
+      p->item->value = ast_to_outline_item(*item);
+      if (!p->filter || test_filter(p->filter, p->item->value)) {
+        if (p->list && need_comma)
+          CHECK(file_putc(out, ','));
+        CHECK(generate_code(out, p->code));
         need_comma = 1;
       }
     }
   }
 
-  return 0;
+  return 1;
 }
 
 /**
- * Evaluates a symbol definition
+ * Performs code-generation for a variable lookup
  */
-int generate_set(AstSet *p)
+int generate_variable(FILE *out, AstVariable *p)
 {
-  p->symbol->value = p->value.p;
-  return 0;
-}
+  AstOutlineItem *item = p->value;
 
-/**
- * Performs code-generation for a symbol node
- */
-int generate_symbol_ref(FileW *out, AstSymbolRef *p)
-{
-  AstOutlineItem *item = symbol_as_item(p->symbol);
-  file_w_write(out, item->name.p, item->name.end);
-  return 0;
+  CHECK(file_write(out, item->name.p, item->name.end));
+  return 1;
 }
 
 /**
  * Performs code-generation for a map call
  */
-int generate_call(FileW *out, AstCall *p)
+int generate_call(FILE *out, AstCall *p)
 {
-  AstOutlineItem *item;
-  AstMap *map;
-  AstMapLine **line;
+  AstOutlineItem *item = p->item->value;
+  ListNode *line;
   char *temp;
 
-  /* Symbol lookup: */
-  assert(p->data->type == AST_OUTLINE_ITEM);
-  assert(p->f->type == AST_MAP);
-  item = p->data->value;
-  map = p->f->value;
-  map->item->value = p->data->value;
-
   /* Match against the map: */
-  for (line = map->lines; line != map->lines_end; ++line) {
-    if (test_filter((*line)->filter, item)) {
-      if (generate_code(out, (*line)->code))
-        return 1;
-      return 0;
+  for (line = p->map->lines; line; line = line->next) {
+    AstMapLine *l = ast_to_map_line(*line);
+    if (test_filter(l->filter, item)) {
+      p->map->item->value = item;
+      CHECK(generate_code(out, l->code));
+      return 1;
     }
   }
 
   /* Nothing matched: */
-  temp = string_to_c(p->f->symbol);
-  fprintf(stderr, "Could not match against map \"%s\".\n", temp);
+  temp = string_to_c(p->item->value->name);
+  fprintf(stderr, "error: Could not match item \"%s\" against map.\n", temp);
   free(temp);
-  return 1;
+  return 0;
 }
 
 /**
  * Performs code-generation for a lookup node.
  */
-int generate_lookup(FileW *out, AstLookup *p)
+int generate_lookup(FILE *out, AstLookup *p)
 {
   int rv;
 
   /* If a tag satisfies the lookup, generate that: */
   rv = generate_lookup_tag(out, p);
-  if (rv == 1) return 0;
-  if (rv == -1) return 1;
+  if (rv == 1) return 1;
+  if (rv == 0) return 0;
 
   /* If that didn't work, try the built-in transforms: */
   if (generate_lookup_builtin(out, p))
-    return 0;
+    return 1;
 
   {
     char *temp = string_to_c(p->name);
     fprintf(stderr, "Could not find a transform named %s.\n", temp);
     free(temp);
   }
-  return 1;
+  return 0;
 }
 
 /**
  * Searches for a tag with the specified name in an outline item. If the tag
  * exists and has a value, the function emits the value and returns 1.
- * Otherwise, the function returns 0. Returns -1 for errors.
+ * Otherwise, the function returns -1. Returns 0 for errors.
  */
-int generate_lookup_tag(FileW *out, AstLookup *p)
+int generate_lookup_tag(FILE *out, AstLookup *p)
 {
-  AstOutlineItem *item = symbol_as_item(p->symbol);
-  AstOutlineTag **tag;
+  AstOutlineItem *item = p->item->value;
+  ListNode *tag;
 
-  for (tag = item->tags; tag != item->tags_end; ++tag) {
-    if ((*tag)->value && string_equal((*tag)->name, p->name)) {
-      if (generate_code(out, (*tag)->value))
-        return -1;
+  for (tag = item->tags; tag; tag = tag->next) {
+    AstOutlineTag *t = ast_to_outline_tag(*tag);
+    if (t->value && string_equal(t->name, p->name)) {
+      CHECK(generate_code(out, t->value));
       return 1;
     }
   }
 
-  return 0;
+  return -1;
 }
 
 /**
  * If the lookup name matches one of the built-in transformations, generate
  * that and return 1. Otherwise, return 0.
  */
-int generate_lookup_builtin(FileW *out, AstLookup *p)
+int generate_lookup_builtin(FILE *out, AstLookup *p)
 {
-  AstOutlineItem *item;
+  AstOutlineItem *item = p->item->value;
+
   if (string_equal(p->name, string_init_l("quote", 5))) {
-    char q = '"';
-    file_w_write(out, &q, &q + 1);
-    item = symbol_as_item(p->symbol);
-    file_w_write(out, item->name.p, item->name.end);
-    file_w_write(out, &q, &q + 1);
+    CHECK(file_putc(out, '"'));
+    CHECK(file_write(out, item->name.p, item->name.end));
+    CHECK(file_putc(out, '"'));
     return 1;
   } else if (string_equal(p->name, string_init_l("lower", 5))) {
-    return !generate_lower(out, symbol_as_item(p->symbol)->name);
+    return generate_lower(out, item->name);
   } else if (string_equal(p->name, string_init_l("upper", 5))) {
-    return !generate_upper(out, symbol_as_item(p->symbol)->name);
+    return generate_upper(out, item->name);
   } else if (string_equal(p->name, string_init_l("camel", 5))) {
-    return !generate_camel(out, symbol_as_item(p->symbol)->name);
+    return generate_camel(out, item->name);
   } else if (string_equal(p->name, string_init_l("mixed", 5))) {
-    return !generate_mixed(out, symbol_as_item(p->symbol)->name);
+    return generate_mixed(out, item->name);
   }
 
   return 0;
@@ -323,7 +240,7 @@ int generate_lookup_builtin(FileW *out, AstLookup *p)
 /**
  * Writes a string to the output file, converting it to lower_case
  */
-int generate_lower(FileW *out, String s)
+int generate_lower(FILE *out, String s)
 {
   String inner = strip_symbol(s);
   String word = scan_symbol(inner, inner.p);
@@ -332,20 +249,18 @@ int generate_lower(FileW *out, String s)
   while (string_size(word)) {
     write_lower(out, word);
     word = scan_symbol(inner, word.end);
-    if (string_size(word)) {
-      char c = '_';
-      file_w_write(out, &c, &c + 1);
-    }
+    if (string_size(word))
+      CHECK(file_putc(out, '_'));
   }
   write_trailing(out, s, inner);
 
-  return 0;
+  return 1;
 }
 
 /**
  * Writes a string to the output file, converting it to UPPER_CASE
  */
-int generate_upper(FileW *out, String s)
+int generate_upper(FILE *out, String s)
 {
   String inner = strip_symbol(s);
   String word = scan_symbol(inner, inner.p);
@@ -354,20 +269,18 @@ int generate_upper(FileW *out, String s)
   while (string_size(word)) {
     write_upper(out, word);
     word = scan_symbol(inner, word.end);
-    if (string_size(word)) {
-      char c = '_';
-      file_w_write(out, &c, &c + 1);
-    }
+    if (string_size(word))
+      CHECK(file_putc(out, '_'));
   }
   write_trailing(out, s, inner);
 
-  return 0;
+  return 1;
 }
 
 /**
  * Writes a string to the output file, converting it to CamelCase
  */
-int generate_camel(FileW *out, String s)
+int generate_camel(FILE *out, String s)
 {
   String inner = strip_symbol(s);
   String word = scan_symbol(inner, inner.p);
@@ -379,13 +292,13 @@ int generate_camel(FileW *out, String s)
   }
   write_trailing(out, s, inner);
 
-  return 0;
+  return 1;
 }
 
 /**
  * Writes a string to the output file, converting it to mixedCase
  */
-int generate_mixed(FileW *out, String s)
+int generate_mixed(FILE *out, String s)
 {
   String inner = strip_symbol(s);
   String word = scan_symbol(inner, inner.p);
@@ -401,7 +314,7 @@ int generate_mixed(FileW *out, String s)
   }
   write_trailing(out, s, inner);
 
-  return 0;
+  return 1;
 }
 
 /**
@@ -481,59 +394,59 @@ String scan_symbol(String s, char const *p)
  * @param s the entire string, including leading and trailing underscores.
  * @param inner the inner portion of the string after underscores have been
  * stripped.
- * @return 0 for success
+ * @return 0 for failure
  */
-int write_leading(FileW *out, String s, String inner)
+int write_leading(FILE *out, String s, String inner)
 {
   if (s.p != inner.p)
-    return file_w_write(out, s.p, inner.p);
-  return 0;
+    return file_write(out, s.p, inner.p);
+  return 1;
 }
 
-int write_trailing(FileW *out, String s, String inner)
+int write_trailing(FILE *out, String s, String inner)
 {
   if (inner.end != s.end)
-    return file_w_write(out, inner.end, s.end);
-  return 0;
+    return file_write(out, inner.end, s.end);
+  return 1;
 }
 
 /**
  * Writes a word to a file in lower case.
  */
-int write_lower(FileW *out, String s)
+int write_lower(FILE *out, String s)
 {
   char const *p;
   for (p = s.p; p != s.end; ++p) {
     char c = 'A' <= *p && *p <= 'Z' ? *p - 'A' + 'a' : *p;
-    if (file_w_write(out, &c, &c + 1)) return 1;
+    CHECK(file_putc(out, c));
   }
-  return 0;
+  return 1;
 }
 
 /**
  * Writes a word to a file in UPPER case.
  */
-int write_upper(FileW *out, String s)
+int write_upper(FILE *out, String s)
 {
   char const *p;
   for (p = s.p; p != s.end; ++p) {
     char c = 'a' <= *p && *p <= 'z' ? *p - 'a' + 'A' : *p;
-    if (file_w_write(out, &c, &c + 1)) return 1;
+    CHECK(file_putc(out, c));
   }
-  return 0;
+  return 1;
 }
 
 /**
  * Writes a word to a file in Capitalized case.
  */
-int write_cap(FileW *out, String s)
+int write_cap(FILE *out, String s)
 {
   char const *p;
   for (p = s.p; p != s.end; ++p) {
     char c = (p == s.p) ?
       ('a' <= *p && *p <= 'z' ? *p - 'a' + 'A' : *p) :
       ('A' <= *p && *p <= 'Z' ? *p - 'A' + 'a' : *p) ;
-    if (file_w_write(out, &c, &c + 1)) return 1;
+    CHECK(file_putc(out, c));
   }
-  return 0;
+  return 1;
 }

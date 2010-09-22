@@ -15,7 +15,6 @@
  */
 
 #include "debug.h"
-#include "scope.h"
 #include <stdio.h>
 
 void dump_code_node(AstCodeNode node, int indent);
@@ -37,12 +36,11 @@ void dump_filter_not(AstFilterNot *p);
 void dump_filter_and(AstFilterAnd *p);
 void dump_filter_or(AstFilterOr *p);
 
-void dump_set(AstSet *p);
-void dump_symbol_ref(AstSymbolRef *p);
+void dump_variable(AstVariable *p);
 void dump_call(AstCall *p);
 void dump_lookup(AstLookup *p);
 
-void dump_symbol(Symbol *p);
+void dump_text(String text);
 
 #define INDENT 2
 
@@ -58,35 +56,22 @@ static void space(int indent)
  */
 void dump_code(AstCode *p, int indent)
 {
-  AstCodeNode *node;
+  ListNode *node;
 
-  for (node = p->nodes; node != p->nodes_end; ++node)
-    dump_code_node(*node, indent);
+  for (node = p->nodes; node; node = node->next)
+    dump_code_node(ast_to_code_node(*node), indent);
 }
 
 void dump_code_node(AstCodeNode node, int indent)
 {
   if (node.type == AST_CODE_TEXT) {
     AstCodeText *p = node.p;
-    char *temp = string_to_c(p->code);
-    printf("%s", temp);
-    free(temp);
-  } else if (node.type == AST_INCLUDE) {
-    AstInclude *p = node.p;
-    printf("\\ol include {\n");
-    dump_code(p->file->code, indent+1);
-    printf("} /* end include */\n");
-  } else if (node.type == AST_OUTLINE) {
-    printf("outline ");
-    dump_outline(node.p, indent);
-  } else if (node.type == AST_MAP) {
-    dump_map(node.p);
+    dump_text(p->code);
   } else if (node.type == AST_FOR) {
+    printf("\\ol ");
     dump_for(node.p);
-  } else if (node.type == AST_SET) {
-    dump_set(node.p);
-  } else if (node.type == AST_SYMBOL_REF) {
-    dump_symbol_ref(node.p);
+  } else if (node.type == AST_VARIABLE) {
+    dump_variable(node.p);
   } else if (node.type == AST_CALL) {
     dump_call(node.p);
   } else if (node.type == AST_LOOKUP) {
@@ -101,11 +86,11 @@ void dump_code_node(AstCodeNode node, int indent)
  */
 void dump_outline(AstOutline *p, int indent)
 {
-  AstOutlineItem **item;
+  ListNode *item;
 
   printf(" {\n");
-  for (item = p->items; item != p->items_end; ++item) {
-    dump_outline_item(*item, indent + INDENT);
+  for (item = p->items; item; item = item->next) {
+    dump_outline_item(ast_to_outline_item(*item), indent + INDENT);
     printf("\n");
   }
   space(indent);
@@ -117,23 +102,20 @@ void dump_outline(AstOutline *p, int indent)
  */
 void dump_outline_item(AstOutlineItem *p, int indent)
 {
-  char *temp;
-  AstOutlineTag **tag;
+  ListNode *tag;
 
   /* Tags: */
   space(indent);
-  for (tag = p->tags; tag != p->tags_end; ++tag) {
-    dump_outline_tag(*tag, indent);
+  for (tag = p->tags; tag; tag = tag->next) {
+    dump_outline_tag(ast_to_outline_tag(*tag), indent);
     printf(" ");
   }
 
   /* Item name: */
-  temp = string_to_c(p->name);
-  printf("%s", temp);
-  free(temp);
+  dump_text(p->name);
 
   /* Children: */
-  if (p->children && p->children->items != p->children->items_end)
+  if (p->children && p->children->items)
     dump_outline(p->children, indent);
   else
     printf(";");
@@ -141,9 +123,7 @@ void dump_outline_item(AstOutlineItem *p, int indent)
 
 void dump_outline_tag(AstOutlineTag *p, int indent)
 {
-  char *temp = string_to_c(p->name);
-  printf("%s", temp);
-  free(temp);
+  dump_text(p->name);
   if (p->value) {
     printf("={");
     dump_code(p->value, indent);
@@ -156,14 +136,14 @@ void dump_outline_tag(AstOutlineTag *p, int indent)
  */
 void dump_map(AstMap *p)
 {
-  AstMapLine **line;
+  ListNode *line;
 
-  printf("\\ol map ");
-  dump_symbol(p->item);
+  printf("map ");
+  dump_text(p->item->name);
   printf(" {\n");
 
-  for (line = p->lines; line != p->lines_end; ++line)
-    dump_map_line(*line);
+  for (line = p->lines; line; line = line->next)
+    dump_map_line(ast_to_map_line(*line));
 
   printf("}");
 }
@@ -182,10 +162,17 @@ void dump_map_line(AstMapLine *p)
  */
 void dump_for(AstFor *p)
 {
-  printf("\\ol for ");
-  dump_symbol(p->item);
+  printf("for ");
+  dump_text(p->item->name);
   printf(" in ");
-  dump_symbol(p->outline);
+
+  if (p->outline.type == AST_OUTLINE) {
+    printf("outline");
+    dump_outline((AstOutline*)p->outline.p, 0);
+  } else {
+    AstVariable *v = p->outline.p;
+    dump_text(v->name);
+  }
 
   if (p->filter) {
     printf(" with ");
@@ -226,9 +213,7 @@ void dump_filter_node(AstFilterNode node)
 
 void dump_filter_tag(AstFilterTag *p)
 {
-  char *temp = string_to_c(p->tag);
-  printf("%s", temp);
-  free(temp);
+  dump_text(p->tag);
 }
 
 void dump_filter_any(AstFilterAny *p)
@@ -260,19 +245,12 @@ void dump_filter_or(AstFilterOr *p)
   printf(")");
 }
 
-void dump_set(AstSet *p)
-{
-  dump_symbol(p->symbol);
-  printf(" = ");
-  dump_code_node(p->value, 0);
-}
-
 /**
  * Prints a symbol in a debug-friendly manner.
  */
-void dump_symbol_ref(AstSymbolRef *p)
+void dump_variable(AstVariable *p)
 {
-  dump_symbol(p->symbol);
+  dump_text(p->name);
 }
 
 /**
@@ -280,10 +258,9 @@ void dump_symbol_ref(AstSymbolRef *p)
  */
 void dump_call(AstCall *p)
 {
-  dump_symbol(p->f);
-  printf("(");
-  dump_symbol(p->data);
-  printf(")");
+  dump_text(p->item->name);
+  printf("!");
+  dump_map(p->map);
 }
 
 /**
@@ -291,15 +268,12 @@ void dump_call(AstCall *p)
  */
 void dump_lookup(AstLookup *p)
 {
-  char *temp = string_to_c(p->name);
-  dump_symbol(p->symbol);
-  printf("!%s", temp);
-  free(temp);
+  dump_text(p->item->name);
+  printf("!");
+  dump_text(p->name);
 }
 
-void dump_symbol(Symbol *p)
+void dump_text(String text)
 {
-  char *symbol = string_to_c(p->symbol);
-  printf("%s", symbol);
-  free(symbol);
+  fwrite(text.p, 1, text.end - text.p, stdout);
 }

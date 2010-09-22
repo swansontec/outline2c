@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#include "string.h"
+#include "parser.h"
+#include "debug.h"
 #include "generate.h"
-#include <stdio.h>
 #include <string.h>
 
 typedef struct options Options;
@@ -41,6 +41,7 @@ void options_init(Options *self)
 /**
  * Processes the command-line options, filling in the members of the Options
  * structure corresponding to the switches.
+ * @return 0 for failure
  */
 int options_parse(Options *self, int argc, char *argv[])
 {
@@ -74,6 +75,49 @@ int options_parse(Options *self, int argc, char *argv[])
 }
 
 /**
+ * Opens the file given in filename, parses it, processes it, and writes the
+ * results to the output file.
+ * @return 0 for failure
+ */
+int generate(FILE *out, String filename, int debug)
+{
+  Pool pool;
+  Context ctx;
+  AstCode *code;
+
+  CHECK_MEM(pool_init(&pool, 0x10000)); /* 64K block size */
+  ctx.pool = &pool;
+
+  ctx.scope = 0;
+  context_scope_push(&ctx);
+  CHECK(ctx.scope);
+
+  /* Parse the input file: */
+  ctx.filename = filename;
+  ctx.file = string_load(filename);
+  if (!string_size(ctx.file)) {
+    char *s = string_to_c(filename);
+    fprintf(stderr, "error: Could not open source file \"%s\"\n", s);
+    free(s);
+    return 0;
+  }
+  ctx.cursor = ctx.file.p;
+  CHECK(parse_code(&ctx, 0));
+  code = ast_to_code(ctx.out);
+  string_free(ctx.file);
+
+  if (debug) {
+    printf("--- AST: ---\n");
+    dump_code(code, 0);
+  }
+
+  CHECK(generate_code(out, code));
+
+  pool_free(&pool);
+  return 1;
+}
+
+/**
  * Program entry point. Constructs and launches the main program object.
  */
 int main(int argc, char *argv[])
@@ -81,11 +125,10 @@ int main(int argc, char *argv[])
   int rv;
   Options opt;
   char *s;
-  FileW file_out;
+  FILE *file_out;
 
   options_init(&opt);
-  rv = options_parse(&opt, argc, argv);
-  if (!rv) {
+  if (!options_parse(&opt, argc, argv)) {
     fprintf(stderr, "Usage: %s [-d] [-o output-file] <input-file>\n", argv[0]);
     return 1;
   }
@@ -102,16 +145,16 @@ int main(int argc, char *argv[])
   }
 
   /* Open output file: */
-  rv = file_w_open(&file_out, s);
-  if (rv) {
-    fprintf(stderr, "Could not open file \"%s\"\n", s);
+  file_out = fopen(s, "wb");
+  if (!file_out) {
+    fprintf(stderr, "error: Could not open output file \"%s\"\n", s);
     free(s);
     return 1;
   }
   free(s);
 
   /* Munchify files: */
-  rv = generate(&file_out, opt.name_in, opt.debug);
-  file_w_close(&file_out);
-  return rv;
+  rv = generate(file_out, opt.name_in, opt.debug);
+  fclose(file_out);
+  return !rv;
 }

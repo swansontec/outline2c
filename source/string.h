@@ -43,4 +43,7 @@ int string_equal(String s1, String s2);
 size_t string_match(String s1, String s2);
 size_t string_rmatch(String s1, String s2);
 
+String string_load(String name);
+void string_free(String data);
+
 #endif

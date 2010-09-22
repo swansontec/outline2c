@@ -17,55 +17,52 @@
 CC = gcc
 CFLAGS = -g -std=c89 -pedantic
 
-objects = ast.o ast-builder.o debug.o file.o filter.o generate.o lexer.o main.o parser.o pool.o scope.o string.o
+objects = ast.o context.o debug.o filter.o generate.o lexer.o list.o main.o parser.o pool.o string.o
 
 # Inter-header dependencies:
-ast_h      = ../source/ast.h $(pool_h)
-ast_builder_h = ../source/ast-builder.h $(ast_h) $(scope_h)
+ast_h      = ../source/ast.h $(list_h)
+context_h  = ../source/context.h $(type_h) $(pool_h)
 debug_h    = ../source/debug.h $(ast_h)
-file_h     = ../source/file.h
 filter_h   = ../source/filter.h $(ast_h)
-generate_h = ../source/generate.h $(file_h) $(string_h)
+generate_h = ../source/generate.h $(ast_h)
 lexer_h    = ../source/lexer.h
-parser_h   = ../source/parser.h $(ast_builder_h)
+list_h     = ../source/list.h $(type_h) $(pool_h)
+parser_h   = ../source/parser.h $(context_h)
 pool_h     = ../source/pool.h $(string_h)
-scope_h    = ../source/scope.h $(ast_h)
 string_h   = ../source/string.h
+type_h     = ../source/type.h
 
 all: outline2c
 
 ast.o: ../source/ast.c $(ast_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/ast.c
 
-ast-builder.o: ../source/ast-builder.c $(ast_builder_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/ast-builder.c
+context.o: ../source/context.c $(context_h)
+	$(CC) $(CFLAGS) -o $@ -c ../source/context.c
 
-debug.o: ../source/debug.c $(debug_h) $(scope_h)
+debug.o: ../source/debug.c $(debug_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/debug.c
-
-file.o: ../source/file.c $(file_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/file.c
 
 filter.o: ../source/filter.c $(filter_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/filter.c
 
-generate.o: ../source/generate.c $(generate_h) $(parser_h) $(filter_h) $(debug_h)
+generate.o: ../source/generate.c $(generate_h) $(filter_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/generate.c
 
 lexer.o: ../source/lexer.c $(lexer_h) $(string_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/lexer.c
 
-main.o: ../source/main.c $(string_h) $(generate_h)
+list.o: ../source/list.c $(list_h)
+	$(CC) $(CFLAGS) -o $@ -c ../source/list.c
+
+main.o: ../source/main.c $(string_h) $(parser_h) $(debug_h) $(generate_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/main.c
 
-parser.o: ../source/parser.c $(parser_h) $(lexer_h) $(file_h)
+parser.o: ../source/parser.c $(parser_h) $(lexer_h) $(filter_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/parser.c
 
 pool.o: ../source/pool.c $(pool_h) $(string_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/pool.c
-
-scope.o: ../source/scope.c $(scope_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/scope.c
 
 string.o: ../source/string.c $(string_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/string.c
