@@ -17,20 +17,31 @@
 CC = gcc
 CFLAGS = -g -std=c89 -pedantic
 
-objects = ast.o context.o debug.o filter.o generate.o lexer.o list.o main.o parser.o pool.o string.o
+objects = \
+ ast.o \
+ context.o \
+ debug.o \
+ filter.o \
+ generate.o \
+ lexer.o \
+ list.o \
+ main.o \
+ parser.o \
+ pool.o \
+ string.o
 
 # Inter-header dependencies:
-ast_h      = ../source/ast.h $(list_h)
-context_h  = ../source/context.h $(type_h) $(pool_h)
-debug_h    = ../source/debug.h $(ast_h)
-filter_h   = ../source/filter.h $(ast_h)
-generate_h = ../source/generate.h $(ast_h)
-lexer_h    = ../source/lexer.h
-list_h     = ../source/list.h $(type_h) $(pool_h)
-parser_h   = ../source/parser.h $(context_h)
-pool_h     = ../source/pool.h $(string_h)
-string_h   = ../source/string.h
-type_h     = ../source/type.h
+ast_h           = ../source/ast.h $(list_h)
+context_h       = ../source/context.h $(type_h) $(pool_h)
+debug_h         = ../source/debug.h $(ast_h)
+filter_h        = ../source/filter.h $(ast_h)
+generate_h      = ../source/generate.h $(ast_h)
+lexer_h         = ../source/lexer.h
+list_h          = ../source/list.h $(type_h) $(pool_h)
+parser_h        = ../source/parser.h $(context_h)
+pool_h          = ../source/pool.h $(string_h)
+string_h        = ../source/string.h
+type_h          = ../source/type.h
 
 all: outline2c
 
@@ -55,7 +66,7 @@ lexer.o: ../source/lexer.c $(lexer_h) $(string_h)
 list.o: ../source/list.c $(list_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/list.c
 
-main.o: ../source/main.c $(string_h) $(parser_h) $(debug_h) $(generate_h)
+main.o: ../source/main.c $(parser_h) $(debug_h) $(generate_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/main.c
 
 parser.o: ../source/parser.c $(parser_h) $(lexer_h) $(filter_h)
@@ -76,6 +87,9 @@ clean:
 install:
 	cp outline2c /usr/bin/outline2c
 
-run: outline2c
+test: outline2c
 	./outline2c test.c.ol
 	diff test.c.ref test.c
+
+run: outline2c
+	./outline2c -d test.c.ol

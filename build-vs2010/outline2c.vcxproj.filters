@@ -6,8 +6,12 @@
     <ClCompile Include="..\source\debug.c" />
     <ClCompile Include="..\source\filter.c" />
     <ClCompile Include="..\source\generate.c" />
-    <ClCompile Include="..\source\lexer.c" />
-    <ClCompile Include="..\source\list.c" />
+    <ClCompile Include="..\source\lexer.c">
+      <Filter>utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\list.c">
+      <Filter>utility</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\main.c" />
     <ClCompile Include="..\source\parser.c" />
     <ClCompile Include="..\source\pool.c">
@@ -23,8 +27,12 @@
     <ClInclude Include="..\source\debug.h" />
     <ClInclude Include="..\source\filter.h" />
     <ClInclude Include="..\source\generate.h" />
-    <ClInclude Include="..\source\lexer.h" />
-    <ClInclude Include="..\source\list.h" />
+    <ClInclude Include="..\source\lexer.h">
+      <Filter>utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\list.h">
+      <Filter>utility</Filter>
+    </ClInclude>
     <ClInclude Include="..\source\parser.h" />
     <ClInclude Include="..\source\pool.h">
       <Filter>utility</Filter>
