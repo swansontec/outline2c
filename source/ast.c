@@ -228,58 +228,6 @@ AstFilter *ast_filter_new(Pool *p, AstFilterNode test)
   return self;
 }
 
-AstFilterTag *ast_filter_tag_new(Pool *p, String tag)
-{
-  AstFilterTag *self = pool_alloc(p, sizeof(AstFilterTag));
-  CHECK_MEM(self);
-  self->tag = pool_string_copy(p, tag);
-
-  CHECK_MEM(string_size(self->tag));
-  return self;
-}
-
-AstFilterAny *ast_filter_any_new(Pool *p)
-{
-  AstFilterAny *self = pool_alloc(p, sizeof(AstFilterAny));
-  CHECK_MEM(self);
-
-  return self;
-}
-
-AstFilterNot *ast_filter_not_new(Pool *p, AstFilterNode test)
-{
-  AstFilterNot *self = pool_alloc(p, sizeof(AstFilterNot));
-  CHECK_MEM(self);
-  self->test = test;
-
-  assert(self->test.p);
-  return self;
-}
-
-AstFilterAnd *ast_filter_and_new(Pool *p, AstFilterNode test_a, AstFilterNode test_b)
-{
-  AstFilterAnd *self = pool_alloc(p, sizeof(AstFilterAnd));
-  CHECK_MEM(self);
-  self->test_a = test_a;
-  self->test_b = test_b;
-
-  assert(self->test_a.p);
-  assert(self->test_b.p);
-  return self;
-}
-
-AstFilterOr *ast_filter_or_new(Pool *p, AstFilterNode test_a, AstFilterNode test_b)
-{
-  AstFilterOr *self = pool_alloc(p, sizeof(AstFilterOr));
-  CHECK_MEM(self);
-  self->test_a = test_a;
-  self->test_b = test_b;
-
-  assert(self->test_a.p);
-  assert(self->test_b.p);
-  return self;
-}
-
 AstVariable *ast_variable_new(Pool *p, String name)
 {
   AstVariable *self = pool_alloc(p, sizeof(AstVariable));

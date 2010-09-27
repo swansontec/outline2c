@@ -239,11 +239,6 @@ AstMap             *ast_map_new                 (Pool *p, AstVariable *item, Lis
 AstMapLine         *ast_map_line_new            (Pool *p, AstFilter *filter, AstCode *code);
 AstFor             *ast_for_new                 (Pool *p, AstVariable *item, AstForNode outline, AstFilter *filter, int reverse, int list, AstCode *code);
 AstFilter          *ast_filter_new              (Pool *p, AstFilterNode test);
-AstFilterTag       *ast_filter_tag_new          (Pool *p, String tag);
-AstFilterAny       *ast_filter_any_new          (Pool *p);
-AstFilterNot       *ast_filter_not_new          (Pool *p, AstFilterNode test);
-AstFilterAnd       *ast_filter_and_new          (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
-AstFilterOr        *ast_filter_or_new           (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
 AstVariable        *ast_variable_new            (Pool *p, String name);
 AstCall            *ast_call_new                (Pool *p, AstVariable *item, AstMap *map);
 AstLookup          *ast_lookup_new              (Pool *p, AstVariable *item, String name);
