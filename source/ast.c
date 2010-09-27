@@ -120,16 +120,6 @@ AstVariable *ast_to_variable(Dynamic node)
   return node.p;
 }
 
-AstCode *ast_code_new(Pool *p, ListNode *nodes)
-{
-  AstCode *self = pool_alloc(p, sizeof(AstCode));
-  CHECK_MEM(self);
-  self->nodes = nodes;
-
-  /* nodes may be NULL */
-  return self;
-}
-
 AstCodeText *ast_code_text_new(Pool *p, String code)
 {
   AstCodeText *self = pool_alloc(p, sizeof(AstCodeText));
@@ -137,30 +127,6 @@ AstCodeText *ast_code_text_new(Pool *p, String code)
   self->code = pool_string_copy(p, code);
 
   CHECK_MEM(string_size(self->code));
-  return self;
-}
-
-AstOutline *ast_outline_new(Pool *p, ListNode *items)
-{
-  AstOutline *self = pool_alloc(p, sizeof(AstOutline));
-  CHECK_MEM(self);
-  self->items = items;
-
-  /* items may be NULL */
-  return self;
-}
-
-AstOutlineItem *ast_outline_item_new(Pool *p, ListNode *tags, String name, AstOutline *children)
-{
-  AstOutlineItem *self = pool_alloc(p, sizeof(AstOutlineItem));
-  CHECK_MEM(self);
-  self->tags = tags;
-  self->name = pool_string_copy(p, name);
-  self->children = children;
-
-  /* tags may be NULL */
-  CHECK_MEM(string_size(self->name));
-  /* children may be NULL */
   return self;
 }
 
@@ -173,58 +139,6 @@ AstOutlineTag *ast_outline_tag_new(Pool *p, String name, AstCode *value)
 
   CHECK_MEM(string_size(self->name));
   /* value may be NULL */
-  return self;
-}
-
-AstMap *ast_map_new(Pool *p, AstVariable *item, ListNode *lines)
-{
-  AstMap *self = pool_alloc(p, sizeof(AstMap));
-  CHECK_MEM(self);
-  self->item = item;
-  self->lines = lines;
-
-  assert(self->item);
-  /* lines may be NULL */
-  return self;
-}
-
-AstMapLine *ast_map_line_new(Pool *p, AstFilter *filter, AstCode *code)
-{
-  AstMapLine *self = pool_alloc(p, sizeof(AstMapLine));
-  CHECK_MEM(self);
-  self->filter = filter;
-  self->code = code;
-
-  assert(self->filter);
-  assert(self->code);
-  return self;
-}
-
-AstFor *ast_for_new(Pool *p, AstVariable *item, AstForNode outline, AstFilter *filter, int reverse, int list, AstCode *code)
-{
-  AstFor *self = pool_alloc(p, sizeof(AstFor));
-  CHECK_MEM(self);
-  self->item = item;
-  self->outline = outline;
-  self->filter = filter;
-  self->reverse = reverse;
-  self->list = list;
-  self->code = code;
-
-  assert(self->item);
-  assert(self->outline.p);
-  /* filter may be NULL */
-  assert(self->code);
-  return self;
-}
-
-AstFilter *ast_filter_new(Pool *p, AstFilterNode test)
-{
-  AstFilter *self = pool_alloc(p, sizeof(AstFilter));
-  CHECK_MEM(self);
-  self->test = test;
-
-  assert(self->test.p);
   return self;
 }
 

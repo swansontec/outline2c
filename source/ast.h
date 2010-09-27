@@ -230,15 +230,8 @@ struct ast_lookup {
   String name;
 };
 
-AstCode            *ast_code_new                (Pool *p, ListNode *nodes);
 AstCodeText        *ast_code_text_new           (Pool *p, String code);
-AstOutline         *ast_outline_new             (Pool *p, ListNode *items);
-AstOutlineItem     *ast_outline_item_new        (Pool *p, ListNode *tags, String name, AstOutline *children);
 AstOutlineTag      *ast_outline_tag_new         (Pool *p, String name, AstCode *value);
-AstMap             *ast_map_new                 (Pool *p, AstVariable *item, ListNode *lines);
-AstMapLine         *ast_map_line_new            (Pool *p, AstFilter *filter, AstCode *code);
-AstFor             *ast_for_new                 (Pool *p, AstVariable *item, AstForNode outline, AstFilter *filter, int reverse, int list, AstCode *code);
-AstFilter          *ast_filter_new              (Pool *p, AstFilterNode test);
 AstVariable        *ast_variable_new            (Pool *p, String name);
 AstCall            *ast_call_new                (Pool *p, AstVariable *item, AstMap *map);
 AstLookup          *ast_lookup_new              (Pool *p, AstVariable *item, String name);

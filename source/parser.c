@@ -27,6 +27,7 @@
 #include "parser.h"
 #include "lexer.h"
 #include "filter.h"
+#include <assert.h>
 #include <stdio.h>
 
 int parse_escape(Context *ctx);
@@ -70,6 +71,8 @@ int parse_code(Context *ctx, int scoped)
   AstVariable *variable;
   int indent = 1;
   ListBuilder nodes = list_builder_init();
+  AstCode *self = pool_alloc(ctx->pool, sizeof(AstCode));
+  CHECK_MEM(self);
 
 #define WRITE_CODE \
   if (start_c != start) \
@@ -158,8 +161,9 @@ done:
   /* End-of-code: */
   if (scoped && token == LEX_END)
     return context_error(ctx, "Unexpected end of input in code block.");
-  CHECK(out(ctx, AST_CODE,
-    ast_code_new(ctx->pool, nodes.first)));
+  self->nodes = nodes.first;
+
+  CHECK(out(ctx, AST_CODE, self));
   return 1;
 }
 
@@ -260,6 +264,8 @@ int parse_outline(Context *ctx)
   char const *start;
   Token token;
   ListBuilder items = list_builder_init();
+  AstOutline *self = pool_alloc(ctx->pool, sizeof(AstOutline));
+  CHECK_MEM(self);
 
   /* Opening brace: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -274,9 +280,9 @@ int parse_outline(Context *ctx)
     CHECK(list_builder_add2(&items, ctx->pool, ctx->out));
     token = lex_next(&start, &ctx->cursor, ctx->file.end);
   }
+  self->items = items.first;
 
-  CHECK(out(ctx, AST_OUTLINE,
-    ast_outline_new(ctx->pool, items.first)));
+  CHECK(out(ctx, AST_OUTLINE, self));
   return 1;
 }
 
@@ -290,7 +296,8 @@ int parse_outline_item(Context *ctx)
   Token token;
   String last = string_null();
   ListBuilder tags = list_builder_init();
-  AstOutline *children = 0;
+  AstOutlineItem *self = pool_alloc(ctx->pool, sizeof(AstOutlineItem));
+  CHECK_MEM(self);
 
   /* Handle the words making up the item: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -322,18 +329,21 @@ int parse_outline_item(Context *ctx)
   }
   if (!string_size(last))
     return context_error(ctx, "An outline item must have a name.");
+  self->tags = tags.first;
+  self->name = pool_string_copy(ctx->pool, last);
+  CHECK_MEM(string_size(self->name));
 
   /* Is there a sub-outline? */
+  self->children = 0;
   if (token == LEX_BRACE_L) {
     ctx->cursor = start;
     CHECK(parse_outline(ctx));
-    children = ast_to_outline(ctx->out);
+    self->children = ast_to_outline(ctx->out);
   } else if (token != LEX_SEMICOLON) {
     return context_error(ctx, "An outline can only end with a semicolon or an opening brace.");
   }
 
-  CHECK(out(ctx, AST_OUTLINE_ITEM,
-    ast_outline_item_new(ctx->pool, tags.first, last, children)));
+  CHECK(out(ctx, AST_OUTLINE_ITEM, self));
   return 1;
 }
 
@@ -344,8 +354,9 @@ int parse_map(Context *ctx)
 {
   char const *start;
   Token token;
-  AstVariable *item;
   ListBuilder lines = list_builder_init();
+  AstMap *self = pool_alloc(ctx->pool, sizeof(AstMap));
+  CHECK_MEM(self);
 
   CHECK(context_scope_push(ctx));
 
@@ -353,8 +364,9 @@ int parse_map(Context *ctx)
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_IDENTIFIER)
     return context_error(ctx, "An map stament must begin with a name.");
-  CHECK(item = ast_variable_new(ctx->pool, string_init(start, ctx->cursor)));
-  CHECK(context_scope_add(ctx, item->name, AST_VARIABLE, item));
+  CHECK(self->item = ast_variable_new(ctx->pool, string_init(start, ctx->cursor)));
+  CHECK(context_scope_add(ctx, self->item->name, AST_VARIABLE, self->item));
+  assert(self->item);
 
   /* Opening brace: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -369,10 +381,10 @@ int parse_map(Context *ctx)
     CHECK(list_builder_add2(&lines, ctx->pool, ctx->out));
     token = lex_next(&start, &ctx->cursor, ctx->file.end);
   }
+  self->lines = lines.first;
 
   context_scope_pop(ctx);
-  CHECK(out(ctx, AST_MAP,
-    ast_map_new(ctx->pool, item, lines.first)));
+  CHECK(out(ctx, AST_MAP, self));
   return 1;
 }
 
@@ -383,12 +395,13 @@ int parse_map_line(Context *ctx)
 {
   char const *start;
   Token token;
-  AstFilter *filter;
-  AstCode *code;
+  AstMapLine *self = pool_alloc(ctx->pool, sizeof(AstMapLine));
+  CHECK_MEM(self);
 
   /* Filter: */
   CHECK(parse_filter(ctx));
-  filter = ast_to_filter(ctx->out);
+  self->filter = ast_to_filter(ctx->out);
+  assert(self->filter);
 
   /* Opening brace: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -397,10 +410,10 @@ int parse_map_line(Context *ctx)
 
   /* Code: */
   CHECK(parse_code(ctx, 1));
-  code = ast_to_code(ctx->out);
+  self->code = ast_to_code(ctx->out);
+  assert(self->code);
 
-  CHECK(out(ctx, AST_MAP_LINE,
-    ast_map_line_new(ctx->pool, filter, code)));
+  CHECK(out(ctx, AST_MAP_LINE, self));
   return 1;
 }
 
@@ -411,12 +424,8 @@ int parse_for(Context *ctx)
 {
   char const *start;
   Token token;
-  AstVariable *item;
-  AstForNode outline;
-  AstFilter *filter = 0;
-  int reverse = 0;
-  int list = 0;
-  AstCode *code;
+  AstFor *self = pool_alloc(ctx->pool, sizeof(AstFor));
+  CHECK_MEM(self);
 
   CHECK(context_scope_push(ctx));
 
@@ -424,8 +433,9 @@ int parse_for(Context *ctx)
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_IDENTIFIER)
     return context_error(ctx, "Expecting a new symbol name here.");
-  CHECK(item = ast_variable_new(ctx->pool, string_init(start, ctx->cursor)));
-  CHECK(context_scope_add(ctx, item->name, AST_VARIABLE, item));
+  CHECK(self->item = ast_variable_new(ctx->pool, string_init(start, ctx->cursor)));
+  CHECK(context_scope_add(ctx, self->item->name, AST_VARIABLE, self->item));
+  assert(self->item);
 
   /* "in" keyword: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -441,9 +451,13 @@ int parse_for(Context *ctx)
     return context_error(ctx, "Could not find an outline with this name.");
   if (!ast_is_for_node(ctx->out.type))
     return context_error(ctx, "Wrong type - the for statement expects an outline.\n");
-  outline = ast_to_for_node(ctx->out);
+  self->outline = ast_to_for_node(ctx->out);
+  assert(self->outline.p);
 
   /* Behavior modification keywords: */
+  self->filter = 0;
+  self->reverse = 0;
+  self->list = 0;
 modifier:
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token == LEX_IDENTIFIER) {
@@ -452,17 +466,17 @@ modifier:
     /* "with" modifier: */
     if (string_equal(s, string_init_l("with", 4))) {
       CHECK(parse_filter(ctx));
-      filter = ast_to_filter(ctx->out);
+      self->filter = ast_to_filter(ctx->out);
       goto modifier;
 
     /* "reverse" modifier: */
     } else if (string_equal(s, string_init_l("reverse", 7))) {
-      reverse = 1;
+      self->reverse = 1;
       goto modifier;
 
     /* "list" modifier: */
     } else if (string_equal(s, string_init_l("list", 4))) {
-      list = 1;
+      self->list = 1;
       goto modifier;
     } else {
       return context_error(ctx, "Invalid \"for\" statement modifier.");
@@ -473,11 +487,11 @@ modifier:
 
   /* Code: */
   CHECK(parse_code(ctx, 1));
-  code = ast_to_code(ctx->out);
+  self->code = ast_to_code(ctx->out);
+  assert(self->code);
 
   context_scope_pop(ctx);
-  CHECK(out(ctx, AST_FOR,
-    ast_for_new(ctx->pool, item, outline, filter, reverse, list, code)));
+  CHECK(out(ctx, AST_FOR, self));
   return 1;
 }
 
@@ -492,6 +506,8 @@ int parse_filter(Context *ctx)
   FilterBuilder fb;
   enum operators { NOT, AND, OR, LPAREN } stack[32];
   int top = 0;
+  AstFilter *self = pool_alloc(ctx->pool, sizeof(AstFilter));
+  CHECK_MEM(self);
 
   CHECK(filter_builder_init(&fb));
 
@@ -579,8 +595,10 @@ done:
     }
   }
 
-  CHECK(out(ctx, AST_FILTER,
-    ast_filter_new(ctx->pool, ast_to_filter_node(filter_builder_pop(&fb)))));
+  self->test = ast_to_filter_node(filter_builder_pop(&fb));
+  assert(self->test.p);
+
+  CHECK(out(ctx, AST_FILTER, self));
   filter_builder_free(&fb);
   return 1;
 }
