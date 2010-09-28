@@ -42,6 +42,7 @@ enum token {
   LEX_PAREN_L,          /* ( */
   LEX_PAREN_R,          /* ) */
   LEX_STAR,             /* * */
+  LEX_COMMA,            /* , */
   LEX_DOT,              /* . */
   LEX_SLASH,            /* / */
   LEX_SEMICOLON,        /* ; */

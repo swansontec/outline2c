@@ -188,3 +188,12 @@ This example produces:
     printf("%s is in %s.\\n", "sacramento", "california");
     printf("%s is in %s.\\n", "los_angeles", "california");
     printf("%s is in %s.\\n", "redmond", "washington");
+
+Outline unions
+--------------
+
+The "union" keyword gathers items from several outlines into one:
+
+    \ol both = union {outline_a, outline_b}
+
+This line creates a new outline, called `both`, which contains all the items in `outline_a` and `outline_b`.

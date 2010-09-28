@@ -265,6 +265,47 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 }
 
 /**
+ * Parses a union of outlines
+ */
+int parse_union(Pool *pool, Source *in, Scope *scope, OutRoutine or)
+{
+  char const *start;
+  Token token;
+  Dynamic out;
+  ListBuilder items = list_builder_init(pool);
+  ListNode *item;
+  AstOutline *self = pool_alloc(pool, sizeof(AstOutline));
+  CHECK_MEM(self);
+
+  /* Opening brace: */
+  token = lex_next(&start, &in->cursor, in->data.end);
+  if (token != LEX_BRACE_L)
+    return source_error(in, "Expecting an opening {.");
+
+outline:
+  /* Outline: */
+  CHECK(lwl_parse_value(pool, in, scope, dynamic_out(&out)));
+  if (out.type != AST_OUTLINE)
+    return source_error(in, "Wrong type - the union statement expects an outline.\n");
+
+  /* Process items: */
+  for (item = ast_to_outline(out)->items; item; item = item->next)
+    CHECK(list_builder_add(&items, item->type, item->p));
+
+  /* Another outline? */
+  token = lex_next(&start, &in->cursor, in->data.end);
+  if (token == LEX_COMMA) {
+    goto outline;
+  } else if (token != LEX_BRACE_R) {
+    return source_error(in, "The list of outlines must end with a closing }.");
+  }
+
+  self->items = items.first;
+  CHECK(or.code(or.data, AST_OUTLINE, self));
+  return 1;
+}
+
+/**
  * Parses a map statement.
  */
 int parse_map(Pool *pool, Source *in, Scope *scope, OutRoutine or)

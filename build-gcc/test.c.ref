@@ -40,3 +40,6 @@ foobar
  a , b , c , d 
  d  c  b  a 
  c , b , a 
+
+/* Test outline unions: */
+ haystacks  needles  last 

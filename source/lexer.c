@@ -152,6 +152,7 @@ Token lex(char const **p, char const *end)
   } else if (**p == '(') { ++*p; return LEX_PAREN_L;
   } else if (**p == ')') { ++*p; return LEX_PAREN_R;
   } else if (**p == '*') { ++*p; return LEX_STAR;
+  } else if (**p == ',') { ++*p; return LEX_COMMA;
   } else if (**p == '.') { ++*p; return LEX_DOT;
   /* LEX_SLASH was recognized earlier. */
   } else if (**p == ';') { ++*p; return LEX_SEMICOLON;

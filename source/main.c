@@ -125,6 +125,8 @@ int main_context_init(Pool *pool, Source *in, Scope *scope, Options *opt)
     keyword_new(pool, parse_include)));
   CHECK(scope_add(scope, pool, string_init_l("outline", 7), TYPE_KEYWORD,
     keyword_new(pool, parse_outline)));
+  CHECK(scope_add(scope, pool, string_init_l("union", 5), TYPE_KEYWORD,
+    keyword_new(pool, parse_union)));
   CHECK(scope_add(scope, pool, string_init_l("map", 3), TYPE_KEYWORD,
     keyword_new(pool, parse_map)));
   CHECK(scope_add(scope, pool, string_init_l("for", 3), TYPE_KEYWORD,
