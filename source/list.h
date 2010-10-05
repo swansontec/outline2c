@@ -17,8 +17,7 @@
 #ifndef LIST_H_INCLUDED
 #define LIST_H_INCLUDED
 
-#include "type.h"
-#include "pool.h"
+#include "context.h"
 
 typedef struct ListNode ListNode;
 typedef struct ListBuilder ListBuilder;
@@ -42,10 +41,11 @@ struct ListNode {
 struct ListBuilder {
   ListNode *first;
   ListNode *last;
+  Pool *pool;
 };
 
-ListBuilder list_builder_init();
-int list_builder_add(ListBuilder *b, Pool *pool, Type type, void *p);
-int list_builder_add2(ListBuilder *b, Pool *pool, Dynamic item);
+ListBuilder list_builder_init(Pool *pool);
+int list_builder_add(ListBuilder *b, Type type, void *p);
+OutRoutine list_builder_out(ListBuilder *b);
 
 #endif

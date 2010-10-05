@@ -63,13 +63,13 @@ int parse_code(Context *ctx, OutRoutine or, int scoped)
   Dynamic out;
   AstVariable *variable;
   int indent = 1;
-  ListBuilder nodes = list_builder_init();
+  ListBuilder nodes = list_builder_init(ctx->pool);
   AstCode *self = pool_alloc(ctx->pool, sizeof(AstCode));
   CHECK_MEM(self);
 
 #define WRITE_CODE \
   if (start_c != start) \
-    CHECK(list_builder_add(&nodes, ctx->pool, AST_CODE_TEXT, \
+    CHECK(list_builder_add(&nodes, AST_CODE_TEXT, \
       ast_code_text_new(ctx->pool, string_init(start_c, start))));
 
   start_c = ctx->cursor;
@@ -104,12 +104,8 @@ escape:
   WRITE_CODE
 
   /* "\ol" escape sequences: */
-  CHECK(parse_escape(ctx, dynamic_out(&out)));
-  if (out.type != TYPE_END) {
-    if (!ast_is_code_node(out.type))
-      return context_error(ctx, "Wrong type - expecting a code node here.");
-    CHECK(list_builder_add2(&nodes, ctx->pool, out));
-  }
+  out.type = TYPE_END;
+  CHECK(parse_escape(ctx, list_builder_out(&nodes)));
 
   start_c = ctx->cursor;
   start = ctx->cursor; token = lex(&ctx->cursor, ctx->file.end);
@@ -132,19 +128,19 @@ symbol:
       if (context_scope_get(ctx, &out, string_init(start, ctx->cursor))) {
         if (out.type != AST_MAP)
           return context_error(ctx, "Wrong type - expecting a map here.\n");
-        CHECK(list_builder_add(&nodes, ctx->pool, AST_CALL,
+        CHECK(list_builder_add(&nodes, AST_CALL,
           ast_call_new(ctx->pool, variable, ast_to_map(out))));
       } else {
-        CHECK(list_builder_add(&nodes, ctx->pool, AST_LOOKUP,
+        CHECK(list_builder_add(&nodes, AST_LOOKUP,
           ast_lookup_new(ctx->pool, variable, string_init(start, ctx->cursor))));
       }
       start_c = ctx->cursor;
       start = ctx->cursor; token = lex(&ctx->cursor, ctx->file.end);
     } else {
-      CHECK(list_builder_add(&nodes, ctx->pool, AST_VARIABLE, variable));
+      CHECK(list_builder_add(&nodes, AST_VARIABLE, variable));
     }
   } else {
-    CHECK(list_builder_add(&nodes, ctx->pool, AST_VARIABLE, variable));
+    CHECK(list_builder_add(&nodes, AST_VARIABLE, variable));
   }
   goto code;
 
@@ -256,8 +252,7 @@ int parse_outline(Context *ctx, OutRoutine or)
 {
   char const *start;
   Token token;
-  Dynamic out;
-  ListBuilder items = list_builder_init();
+  ListBuilder items = list_builder_init(ctx->pool);
   AstOutline *self = pool_alloc(ctx->pool, sizeof(AstOutline));
   CHECK_MEM(self);
 
@@ -270,8 +265,7 @@ int parse_outline(Context *ctx, OutRoutine or)
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   while (token != LEX_BRACE_R) {
     ctx->cursor = start;
-    CHECK(parse_outline_item(ctx, dynamic_out(&out)));
-    CHECK(list_builder_add2(&items, ctx->pool, out));
+    CHECK(parse_outline_item(ctx, list_builder_out(&items)));
     token = lex_next(&start, &ctx->cursor, ctx->file.end);
   }
   self->items = items.first;
@@ -290,7 +284,7 @@ int parse_outline_item(Context *ctx, OutRoutine or)
   Token token;
   Dynamic out;
   String last = string_null();
-  ListBuilder tags = list_builder_init();
+  ListBuilder tags = list_builder_init(ctx->pool);
   AstOutlineItem *self = pool_alloc(ctx->pool, sizeof(AstOutlineItem));
   CHECK_MEM(self);
 
@@ -298,7 +292,7 @@ int parse_outline_item(Context *ctx, OutRoutine or)
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   while (token == LEX_IDENTIFIER) {
     if (string_size(last)) {
-      CHECK(list_builder_add(&tags, ctx->pool, AST_OUTLINE_TAG,
+      CHECK(list_builder_add(&tags, AST_OUTLINE_TAG,
         ast_outline_tag_new(ctx->pool, last, 0)));
     }
     last = string_init(start, ctx->cursor);
@@ -315,7 +309,7 @@ int parse_outline_item(Context *ctx, OutRoutine or)
       CHECK(parse_code(ctx, dynamic_out(&out), 1));
       code = ast_to_code(out);
 
-      CHECK(list_builder_add(&tags, ctx->pool, AST_OUTLINE_TAG,
+      CHECK(list_builder_add(&tags, AST_OUTLINE_TAG,
         ast_outline_tag_new(ctx->pool, last, code)));
 
       last = string_null();
@@ -349,8 +343,7 @@ int parse_map(Context *ctx, OutRoutine or)
 {
   char const *start;
   Token token;
-  Dynamic out;
-  ListBuilder lines = list_builder_init();
+  ListBuilder lines = list_builder_init(ctx->pool);
   AstMap *self = pool_alloc(ctx->pool, sizeof(AstMap));
   CHECK_MEM(self);
 
@@ -373,8 +366,7 @@ int parse_map(Context *ctx, OutRoutine or)
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   while (token != LEX_BRACE_R) {
     ctx->cursor = start;
-    CHECK(parse_map_line(ctx, dynamic_out(&out)));
-    CHECK(list_builder_add2(&lines, ctx->pool, out));
+    CHECK(parse_map_line(ctx, list_builder_out(&lines)));
     token = lex_next(&start, &ctx->cursor, ctx->file.end);
   }
   self->lines = lines.first;
