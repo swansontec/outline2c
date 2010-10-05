@@ -16,84 +16,8 @@
 
 #include "context.h"
 #include <stdio.h>
-#include <assert.h>
 
-typedef struct Symbol Symbol;
 typedef struct Location Location;
-
-/**
- * A symbol definition.
- * TODO: These should be freed when the context pops to an outer scope, which
- * means that they need a different memory management strategy than the AST
- * stuff.
- */
-struct Symbol {
-  String name;
-  Dynamic value;
-  Symbol *next;
-};
-
-struct Scope {
-  Scope *outer;
-  Symbol *first;
-};
-
-/**
- * Constructs a new scope. The current scope becomes the outer scope.
- * @return 0 for failure.
- */
-int context_scope_push(Context *ctx)
-{
-  Scope *s = pool_alloc(ctx->pool, sizeof(Scope));
-  CHECK_MEM(s);
-  s->outer = ctx->scope;
-  s->first = 0;
-  ctx->scope = s;
-  return 1;
-}
-
-void context_scope_pop(Context *ctx)
-{
-  assert(ctx->scope->outer);
-  ctx->scope = ctx->scope->outer;
-}
-
-/**
- * Adds a symbol to the current scope.
- * @return 0 for failure.
- */
-int context_scope_add(Context *ctx, String name, Type type, void *p)
-{
-  Symbol *sym = pool_alloc(ctx->pool, sizeof(Symbol));
-  CHECK_MEM(sym);
-  sym->name = pool_string_copy(ctx->pool, name);
-  CHECK_MEM(string_size(sym->name));
-  sym->value.p = p;
-  sym->value.type = type;
-  sym->next = ctx->scope->first;
-  ctx->scope->first = sym;
-  return 1;
-}
-
-/**
- * Searches for a symbol to the current scope. Places the symbol's value, if
- * found, into ctx->out.
- * @return 0 if the symbol does not exist.
- */
-int context_scope_get(Context *ctx, Dynamic *out, String name)
-{
-  Scope *s = ctx->scope;
-  while (s) {
-    Symbol *sym;
-    for (sym = s->first; sym; sym = sym->next)
-      if (string_equal(sym->name, name)) {
-        *out = sym->value;
-        return 1;
-      }
-    s = s->outer;
-  }
-  return 0;
-}
 
 /**
  * Holds line and column information
@@ -139,6 +63,62 @@ int context_error(Context *ctx, char const *message)
   Location l = location_init(ctx->file, ctx->cursor);
   fprintf(stderr, "%s:%d:%d: error: %s\n", name, l.line + 1, l.column + 1, message);
   free(name);
+  return 0;
+}
+
+/**
+ * A symbol definition.
+ * TODO: These should be freed when the context pops to an outer scope, which
+ * means that they need a different memory management strategy than the AST
+ * stuff.
+ */
+struct Symbol {
+  String name;
+  Dynamic value;
+  Symbol *next;
+};
+
+Scope scope_init(Scope *outer)
+{
+  Scope self;
+  self.outer = outer;
+  self.first = 0;
+  return self;
+}
+
+/**
+ * Adds a symbol to the current scope.
+ * @return 0 for failure.
+ */
+int scope_add(Scope *scope, Pool *pool, String name, Type type, void *p)
+{
+  Symbol *sym = pool_alloc(pool, sizeof(Symbol));
+  CHECK_MEM(sym);
+  sym->name = pool_string_copy(pool, name);
+  CHECK_MEM(string_size(sym->name));
+  sym->value.p = p;
+  sym->value.type = type;
+  sym->next = scope->first;
+  scope->first = sym;
+  return 1;
+}
+
+/**
+ * Searches for a symbol to the current scope. Places the symbol's value, if
+ * found, into ctx->out.
+ * @return 0 if the symbol does not exist.
+ */
+int scope_get(Scope *s, Dynamic *out, String name)
+{
+  while (s) {
+    Symbol *sym;
+    for (sym = s->first; sym; sym = sym->next)
+      if (string_equal(sym->name, name)) {
+        *out = sym->value;
+        return 1;
+      }
+    s = s->outer;
+  }
   return 0;
 }
 

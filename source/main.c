@@ -101,16 +101,11 @@ int generate(ListNode *code, Options *opt)
   return 1;
 }
 
-int main_context_init(Context *ctx, Pool *pool, Options *opt)
+int main_context_init(Context *ctx, Scope *scope, Pool *pool, Options *opt)
 {
   /* Pool: */
   CHECK_MEM(pool_init(pool, 0x10000)); /* 64K block size */
   ctx->pool = pool;
-
-  /* Scope: */
-  ctx->scope = 0;
-  context_scope_push(ctx);
-  CHECK(ctx->scope);
 
   /* Input stream: */
   ctx->filename = opt->name_in;
@@ -123,14 +118,17 @@ int main_context_init(Context *ctx, Pool *pool, Options *opt)
   }
   ctx->cursor = ctx->file.p;
 
+  /* Scope: */
+  *scope = scope_init(0);
+
   /* Keywords: */
-  CHECK(context_scope_add(ctx, string_init_l("include", 7), TYPE_KEYWORD,
+  CHECK(scope_add(scope, pool, string_init_l("include", 7), TYPE_KEYWORD,
     keyword_new(ctx->pool, parse_include)));
-  CHECK(context_scope_add(ctx, string_init_l("outline", 7), TYPE_KEYWORD,
+  CHECK(scope_add(scope, pool, string_init_l("outline", 7), TYPE_KEYWORD,
     keyword_new(ctx->pool, parse_outline)));
-  CHECK(context_scope_add(ctx, string_init_l("map", 3), TYPE_KEYWORD,
+  CHECK(scope_add(scope, pool, string_init_l("map", 3), TYPE_KEYWORD,
     keyword_new(ctx->pool, parse_map)));
-  CHECK(context_scope_add(ctx, string_init_l("for", 3), TYPE_KEYWORD,
+  CHECK(scope_add(scope, pool, string_init_l("for", 3), TYPE_KEYWORD,
     keyword_new(ctx->pool, parse_for)));
 
   return 1;
@@ -150,6 +148,7 @@ int main(int argc, char *argv[])
   Options opt = options_init();
   Context ctx = {0};
   Pool pool;
+  Scope scope;
   ListBuilder code = list_builder_init(&pool);
 
   /* Read the options: */
@@ -168,8 +167,8 @@ int main(int argc, char *argv[])
   }
 
   /* Do outline2c stuff: */
-  if (!main_context_init(&ctx, &pool, &opt)) goto error;
-  if (!parse_code(&ctx, list_builder_out(&code), 0)) goto error;
+  if (!main_context_init(&ctx, &scope, &pool, &opt)) goto error;
+  if (!parse_code(&ctx, &scope, list_builder_out(&code), 0)) goto error;
   if (opt.debug) {
     printf("--- AST: ---\n");
     dump_code(code.first, 0);

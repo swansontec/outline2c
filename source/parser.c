@@ -31,9 +31,9 @@
 #include <assert.h>
 #include <stdio.h>
 
-int parse_outline_item(Context *ctx, OutRoutine or);
-int parse_map_line(Context *ctx, OutRoutine or);
-int parse_filter(Context *ctx, OutRoutine or);
+int parse_outline_item(Context *ctx, Scope *scope, OutRoutine or);
+int parse_map_line(Context *ctx, Scope *scope, OutRoutine or);
+int parse_filter(Context *ctx, Scope *scope, OutRoutine or);
 
 /**
  * Parses a block of code in the host language, looking for escape sequences
@@ -47,7 +47,7 @@ int parse_filter(Context *ctx, OutRoutine or);
  * @param scoped If this parameter is non-zero, the parser will stop at the
  * first unbalanced }. Otherwise, the parser will stop at the end of the file.
  */
-int parse_code(Context *ctx, OutRoutine or, int scoped)
+int parse_code(Context *ctx, Scope *scope, OutRoutine or, int scoped)
 {
   char const *start_c, *start;
   Token token;
@@ -69,7 +69,7 @@ code:
   if (token == LEX_PASTE) goto paste;
   if (token == LEX_ESCAPE_O2C) goto escape;
   if (scoped && token == LEX_IDENTIFIER) {
-    if (context_scope_get(ctx, &out, string_init(start, ctx->cursor)))
+    if (scope_get(scope, &out, string_init(start, ctx->cursor)))
       goto symbol;
   } else if (scoped && token == LEX_BRACE_R) {
     if (!--indent)
@@ -93,7 +93,7 @@ escape:
 
   /* "\ol" escape sequences: */
   out.type = TYPE_END;
-  CHECK(lwl_parse_line(ctx, or));
+  CHECK(lwl_parse_line(ctx, scope, or));
 
   start_c = ctx->cursor;
   start = ctx->cursor; token = lex(&ctx->cursor, ctx->file.end);
@@ -113,7 +113,7 @@ symbol:
   if (token == LEX_BANG) {
     start = ctx->cursor; token = lex(&ctx->cursor, ctx->file.end);
     if (token == LEX_IDENTIFIER) {
-      if (context_scope_get(ctx, &out, string_init(start, ctx->cursor))) {
+      if (scope_get(scope, &out, string_init(start, ctx->cursor))) {
         if (out.type != AST_MAP)
           return context_error(ctx, "Wrong type - expecting a map here.\n");
         CHECK(or.code(or.data, AST_CALL,
@@ -145,7 +145,7 @@ done:
 /**
  * Parses the "include" directive
  */
-int parse_include(Context *ctx, OutRoutine or)
+int parse_include(Context *ctx, Scope *scope, OutRoutine or)
 {
   char const *start;
   Token token;
@@ -173,7 +173,7 @@ int parse_include(Context *ctx, OutRoutine or)
     return context_error(ctx, "Could not open the included file.");
   }
   ctx->cursor = ctx->file.p;
-  CHECK(parse_code(ctx, list_builder_out(&code), 0));
+  CHECK(parse_code(ctx, scope, list_builder_out(&code), 0));
   string_free(ctx->file);
 
   /* Restore the context: */
@@ -192,7 +192,7 @@ int parse_include(Context *ctx, OutRoutine or)
 /**
  * Parses a list of outline items.
  */
-int parse_outline(Context *ctx, OutRoutine or)
+int parse_outline(Context *ctx, Scope *scope, OutRoutine or)
 {
   char const *start;
   Token token;
@@ -209,7 +209,7 @@ int parse_outline(Context *ctx, OutRoutine or)
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   while (token != LEX_BRACE_R) {
     ctx->cursor = start;
-    CHECK(parse_outline_item(ctx, list_builder_out(&items)));
+    CHECK(parse_outline_item(ctx, scope, list_builder_out(&items)));
     token = lex_next(&start, &ctx->cursor, ctx->file.end);
   }
   self->items = items.first;
@@ -222,7 +222,7 @@ int parse_outline(Context *ctx, OutRoutine or)
  * Parses an individual item within an outline, including its tags and
  * children.
  */
-int parse_outline_item(Context *ctx, OutRoutine or)
+int parse_outline_item(Context *ctx, Scope *scope, OutRoutine or)
 {
   char const *start;
   Token token;
@@ -250,7 +250,7 @@ int parse_outline_item(Context *ctx, OutRoutine or)
         return context_error(ctx, "A tag's value must be a code block.");
 
       /* Value: */
-      CHECK(parse_code(ctx, list_builder_out(&code), 1));
+      CHECK(parse_code(ctx, scope, list_builder_out(&code), 1));
 
       CHECK(list_builder_add(&tags, AST_OUTLINE_TAG,
         ast_outline_tag_new(ctx->pool, last, code.first)));
@@ -269,7 +269,7 @@ int parse_outline_item(Context *ctx, OutRoutine or)
   self->children = 0;
   if (token == LEX_BRACE_L) {
     ctx->cursor = start;
-    CHECK(parse_outline(ctx, dynamic_out(&out)));
+    CHECK(parse_outline(ctx, scope, dynamic_out(&out)));
     self->children = ast_to_outline(out);
   } else if (token != LEX_SEMICOLON) {
     return context_error(ctx, "An outline can only end with a semicolon or an opening brace.");
@@ -282,22 +282,21 @@ int parse_outline_item(Context *ctx, OutRoutine or)
 /**
  * Parses a map statement.
  */
-int parse_map(Context *ctx, OutRoutine or)
+int parse_map(Context *ctx, Scope *scope, OutRoutine or)
 {
   char const *start;
   Token token;
   ListBuilder lines = list_builder_init(ctx->pool);
+  Scope inner = scope_init(scope);
   AstMap *self = pool_alloc(ctx->pool, sizeof(AstMap));
   CHECK_MEM(self);
-
-  CHECK(context_scope_push(ctx));
 
   /* Map name: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_IDENTIFIER)
     return context_error(ctx, "An map stament must begin with a name.");
   CHECK(self->item = ast_variable_new(ctx->pool, string_init(start, ctx->cursor)));
-  CHECK(context_scope_add(ctx, self->item->name, AST_VARIABLE, self->item));
+  CHECK(scope_add(&inner, ctx->pool, self->item->name, AST_VARIABLE, self->item));
   assert(self->item);
 
   /* Opening brace: */
@@ -309,12 +308,11 @@ int parse_map(Context *ctx, OutRoutine or)
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   while (token != LEX_BRACE_R) {
     ctx->cursor = start;
-    CHECK(parse_map_line(ctx, list_builder_out(&lines)));
+    CHECK(parse_map_line(ctx, &inner, list_builder_out(&lines)));
     token = lex_next(&start, &ctx->cursor, ctx->file.end);
   }
   self->lines = lines.first;
 
-  context_scope_pop(ctx);
   CHECK(or.code(or.data, AST_MAP, self));
   return 1;
 }
@@ -322,7 +320,7 @@ int parse_map(Context *ctx, OutRoutine or)
 /**
  * Parses an individual line within a map statement.
  */
-int parse_map_line(Context *ctx, OutRoutine or)
+int parse_map_line(Context *ctx, Scope *scope, OutRoutine or)
 {
   char const *start;
   Token token;
@@ -332,7 +330,7 @@ int parse_map_line(Context *ctx, OutRoutine or)
   CHECK_MEM(self);
 
   /* Filter: */
-  CHECK(parse_filter(ctx, dynamic_out(&out)));
+  CHECK(parse_filter(ctx, scope, dynamic_out(&out)));
   self->filter = ast_to_filter(out);
   assert(self->filter);
 
@@ -342,7 +340,7 @@ int parse_map_line(Context *ctx, OutRoutine or)
     return context_error(ctx, "A line within a \"map\" staement must end with a code block.");
 
   /* Code: */
-  CHECK(parse_code(ctx, list_builder_out(&code), 1));
+  CHECK(parse_code(ctx, scope, list_builder_out(&code), 1));
   self->code = code.first;
   assert(self->code);
 
@@ -353,23 +351,22 @@ int parse_map_line(Context *ctx, OutRoutine or)
 /**
  * Parses a for ... in ... construction.
  */
-int parse_for(Context *ctx, OutRoutine or)
+int parse_for(Context *ctx, Scope *scope, OutRoutine or)
 {
   char const *start;
   Token token;
   Dynamic out;
   ListBuilder code = list_builder_init(ctx->pool);
+  Scope inner = scope_init(scope);
   AstFor *self = pool_alloc(ctx->pool, sizeof(AstFor));
   CHECK_MEM(self);
-
-  CHECK(context_scope_push(ctx));
 
   /* Variable name: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
   if (token != LEX_IDENTIFIER)
     return context_error(ctx, "Expecting a new symbol name here.");
   CHECK(self->item = ast_variable_new(ctx->pool, string_init(start, ctx->cursor)));
-  CHECK(context_scope_add(ctx, self->item->name, AST_VARIABLE, self->item));
+  CHECK(scope_add(&inner, ctx->pool, self->item->name, AST_VARIABLE, self->item));
   assert(self->item);
 
   /* "in" keyword: */
@@ -379,7 +376,7 @@ int parse_for(Context *ctx, OutRoutine or)
     return context_error(ctx, "Expecting the \"in\" keyword here.");
 
   /* Outline name: */
-  CHECK(lwl_parse_value(ctx, dynamic_out(&out)));
+  CHECK(lwl_parse_value(ctx, scope, dynamic_out(&out)));
   if (!ast_is_for_node(out.type))
     return context_error(ctx, "Wrong type - the for statement expects an outline.\n");
   self->outline = ast_to_for_node(out);
@@ -396,7 +393,7 @@ modifier:
 
     /* "with" modifier: */
     if (string_equal(s, string_init_l("with", 4))) {
-      CHECK(parse_filter(ctx, dynamic_out(&out)));
+      CHECK(parse_filter(ctx, scope, dynamic_out(&out)));
       self->filter = ast_to_filter(out);
       goto modifier;
 
@@ -417,11 +414,10 @@ modifier:
   }
 
   /* Code: */
-  CHECK(parse_code(ctx, list_builder_out(&code), 1));
+  CHECK(parse_code(ctx, &inner, list_builder_out(&code), 1));
   self->code = code.first;
   assert(self->code);
 
-  context_scope_pop(ctx);
   CHECK(or.code(or.data, AST_FOR, self));
   return 1;
 }
@@ -430,7 +426,7 @@ modifier:
  * Parses a filter definition. Uses the standard shunting-yard algorithm with
  * the following order of precedence: () ! & |
  */
-int parse_filter(Context *ctx, OutRoutine or)
+int parse_filter(Context *ctx, Scope *scope, OutRoutine or)
 {
   char const *start;
   Token token;

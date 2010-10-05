@@ -18,7 +18,7 @@
 #include "lexer.h"
 #include <stdio.h>
 
-Keyword *keyword_new(Pool *p, int (*code)(Context *ctx, OutRoutine or))
+Keyword *keyword_new(Pool *p, int (*code)(Context *ctx, Scope *scope, OutRoutine or))
 {
   Keyword *self = pool_alloc(p, sizeof(Keyword));
   CHECK_MEM(self);
@@ -28,7 +28,7 @@ Keyword *keyword_new(Pool *p, int (*code)(Context *ctx, OutRoutine or))
   return self;
 }
 
-static int parse_statement(Context *ctx, OutRoutine or, int allow_assign)
+static int parse_statement(Context *ctx, Scope *scope, OutRoutine or, int allow_assign)
 {
   char const *start;
   Token token;
@@ -45,19 +45,19 @@ static int parse_statement(Context *ctx, OutRoutine or, int allow_assign)
   if (allow_assign) {
     token = lex_next(&start, &ctx->cursor, ctx->file.end);
     if (token == LEX_EQUALS) {
-      CHECK(lwl_parse_value(ctx, dynamic_out(&out)));
+      CHECK(lwl_parse_value(ctx, scope, dynamic_out(&out)));
       if (out.type == TYPE_END)
         return context_error(ctx, "Wrong type - this must be a value.");
-      CHECK(context_scope_add(ctx, name, out.type, out.p));
+      CHECK(scope_add(scope, ctx->pool, name, out.type, out.p));
       return 1;
     }
     ctx->cursor = start;
   }
 
-  if (!context_scope_get(ctx, &out, name))
+  if (!scope_get(scope, &out, name))
     return context_error(ctx, "Unknown variable or keyword.");
   if (out.type == TYPE_KEYWORD)
-    CHECK(((Keyword*)out.p)->code(ctx, or));
+    CHECK(((Keyword*)out.p)->code(ctx, scope, or));
   else
     CHECK(or.code(or.data, out.type, out.p));
   return 1;
@@ -66,15 +66,15 @@ static int parse_statement(Context *ctx, OutRoutine or, int allow_assign)
 /**
  * Parses an LWL value. Assignment statements are not permitted.
  */
-int lwl_parse_value(Context *ctx, OutRoutine or)
+int lwl_parse_value(Context *ctx, Scope *scope, OutRoutine or)
 {
-  return parse_statement(ctx, or, 0);
+  return parse_statement(ctx, scope, or, 0);
 }
 
 /**
  * Parses a line of LWL code, which could be either an assignment or a value.
  */
-int lwl_parse_line(Context *ctx, OutRoutine or)
+int lwl_parse_line(Context *ctx, Scope *scope, OutRoutine or)
 {
-  return parse_statement(ctx, or, 1);
+  return parse_statement(ctx, scope, or, 1);
 }
