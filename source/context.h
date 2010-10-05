@@ -22,6 +22,7 @@
 
 typedef struct Context Context;
 typedef struct Scope Scope;
+typedef struct OutRoutine OutRoutine;
 
 /**
  * Different parts of the compiler communicate in several ways:
@@ -44,16 +45,27 @@ struct Context {
   String file;
   String filename;
   char const *cursor;
-
-  /* Return value: */
-  Dynamic out;
 };
 
 int context_scope_push(Context *ctx);
 void context_scope_pop(Context *ctx);
 int context_scope_add(Context *ctx, String name, Type type, void *p);
-int context_scope_get(Context *ctx, String name);
+int context_scope_get(Context *ctx, Dynamic *out, String name);
 
 int context_error(Context *ctx, char const *message);
+
+/**
+ * Accepts an output value. Parser functions only use their return value to
+ * indicate success or failure. To output data, such as AST nodes, they call
+ * the current output routine. Calling the routine multiple times allows a
+ * parser function to produce multiple output items, which is not possible
+ * with ordinary return values.
+ */
+struct OutRoutine {
+  int (*code)(void *data, Type type, void *p);
+  void *data;
+};
+
+OutRoutine dynamic_out(Dynamic *out);
 
 #endif

@@ -19,6 +19,6 @@
 
 #include "context.h"
 
-int parse_code(Context *ctx, int scoped);
+int parse_code(Context *ctx, OutRoutine or, int scoped);
 
 #endif

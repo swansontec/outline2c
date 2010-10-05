@@ -80,14 +80,14 @@ int context_scope_add(Context *ctx, String name, Type type, void *p)
  * found, into ctx->out.
  * @return 0 if the symbol does not exist.
  */
-int context_scope_get(Context *ctx, String name)
+int context_scope_get(Context *ctx, Dynamic *out, String name)
 {
   Scope *s = ctx->scope;
   while (s) {
     Symbol *sym;
     for (sym = s->first; sym; sym = sym->next)
       if (string_equal(sym->name, name)) {
-        ctx->out = sym->value;
+        *out = sym->value;
         return 1;
       }
     s = s->outer;
@@ -140,4 +140,27 @@ int context_error(Context *ctx, char const *message)
   fprintf(stderr, "%s:%d:%d: error: %s\n", name, l.line + 1, l.column + 1, message);
   free(name);
   return 0;
+}
+
+static int dynamic_out_fn(void *data, Type type, void *p)
+{
+  Dynamic *out = data;
+  if (out->type != TYPE_END) return 0;
+  out->p = p;
+  out->type = type;
+  return 1;
+}
+
+/**
+ * Produces an output routine which captures a single return value in a
+ * Dynamic variable. Attempting to return more than one value will produce
+ * an error in the output routine.
+ */
+OutRoutine dynamic_out(Dynamic *out)
+{
+  OutRoutine self;
+  self.code = dynamic_out_fn;
+  self.data = out;
+  out->type = TYPE_END;
+  return self;
 }

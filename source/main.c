@@ -139,6 +139,7 @@ int main(int argc, char *argv[])
   Options opt = options_init();
   Context ctx = {0};
   Pool pool;
+  Dynamic out;
 
   /* Read the options: */
   if (!options_parse(&opt, argc, argv)) {
@@ -157,12 +158,12 @@ int main(int argc, char *argv[])
 
   /* Do outline2c stuff: */
   if (!main_context_init(&ctx, &pool, &opt)) goto error;
-  if (!parse_code(&ctx, 0)) goto error;
+  if (!parse_code(&ctx, dynamic_out(&out), 0)) goto error;
   if (opt.debug) {
     printf("--- AST: ---\n");
-    dump_code(ast_to_code(ctx.out), 0);
+    dump_code(ast_to_code(out), 0);
   }
-  if (!generate(ast_to_code(ctx.out), &opt)) goto error;
+  if (!generate(ast_to_code(out), &opt)) goto error;
 
   main_context_free(&ctx);
   return 0;
