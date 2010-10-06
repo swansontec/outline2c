@@ -20,6 +20,6 @@
 #include "ast.h"
 #include <stdio.h>
 
-int generate_code(FILE *out, AstCode *p);
+int generate_code(FILE *out, ListNode *node);
 
 #endif

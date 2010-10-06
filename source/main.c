@@ -79,7 +79,7 @@ int options_parse(Options *self, int argc, char *argv[])
 /**
  * Performs code-generation into the output file given in the options.
  */
-int generate(AstCode *code, Options *opt)
+int generate(ListNode *code, Options *opt)
 {
   char *s;
   FILE *file_out;
@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
   Options opt = options_init();
   Context ctx = {0};
   Pool pool;
-  Dynamic out;
+  ListBuilder code = list_builder_init(&pool);
 
   /* Read the options: */
   if (!options_parse(&opt, argc, argv)) {
@@ -158,12 +158,12 @@ int main(int argc, char *argv[])
 
   /* Do outline2c stuff: */
   if (!main_context_init(&ctx, &pool, &opt)) goto error;
-  if (!parse_code(&ctx, dynamic_out(&out), 0)) goto error;
+  if (!parse_code(&ctx, list_builder_out(&code), 0)) goto error;
   if (opt.debug) {
     printf("--- AST: ---\n");
-    dump_code(ast_to_code(out), 0);
+    dump_code(code.first, 0);
   }
-  if (!generate(ast_to_code(out), &opt)) goto error;
+  if (!generate(code.first, &opt)) goto error;
 
   main_context_free(&ctx);
   return 0;

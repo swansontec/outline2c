@@ -54,11 +54,9 @@ static void space(int indent)
 /**
  * Prints a block of code
  */
-void dump_code(AstCode *p, int indent)
+void dump_code(ListNode *node, int indent)
 {
-  ListNode *node;
-
-  for (node = p->nodes; node; node = node->next)
+  for (; node; node = node->next)
     dump_code_node(ast_to_code_node(*node), indent);
 }
 

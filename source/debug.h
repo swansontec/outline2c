@@ -23,6 +23,6 @@
 
 #include "ast.h"
 
-void dump_code(AstCode *p, int indent);
+void dump_code(ListNode *node, int indent);
 
 #endif

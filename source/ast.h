@@ -19,7 +19,6 @@
 
 #include "list.h"
 
-typedef struct ast_code                 AstCode;
 typedef struct ast_code_text            AstCodeText;
 typedef struct ast_outline              AstOutline;
 typedef struct ast_outline_item         AstOutlineItem;
@@ -87,7 +86,6 @@ AstCodeNode         ast_to_code_node(ListNode node);
 AstForNode          ast_to_for_node(Dynamic node);
 AstFilterNode       ast_to_filter_node(Dynamic node);
 
-AstCode            *ast_to_code(Dynamic node);
 AstOutline         *ast_to_outline(Dynamic node);
 AstOutlineItem     *ast_to_outline_item(ListNode node);
 AstOutlineTag      *ast_to_outline_tag(ListNode node);
@@ -95,14 +93,6 @@ AstMap             *ast_to_map(Dynamic node);
 AstMapLine         *ast_to_map_line(ListNode node);
 AstFilter          *ast_to_filter(Dynamic node);
 AstVariable        *ast_to_variable(Dynamic node);
-
-/**
- * A block of code in the host language, possibly interspersed with o2c escape
- * sequences and replacement symbols.
- */
-struct ast_code {
-  ListNode *nodes;
-};
 
 /**
  * A run of text in the host language.
@@ -132,7 +122,7 @@ struct ast_outline_item {
  */
 struct ast_outline_tag {
   String name;
-  AstCode *value;
+  ListNode *value;
 };
 
 /**
@@ -147,7 +137,7 @@ struct ast_map
 struct ast_map_line
 {
   AstFilter *filter;
-  AstCode *code;
+  ListNode *code;
 };
 
 /**
@@ -159,7 +149,7 @@ struct ast_for {
   AstFilter *filter;
   int reverse;
   int list;
-  AstCode *code;
+  ListNode *code;
 };
 
 /**
@@ -231,7 +221,7 @@ struct ast_lookup {
 };
 
 AstCodeText        *ast_code_text_new           (Pool *p, String code);
-AstOutlineTag      *ast_outline_tag_new         (Pool *p, String name, AstCode *value);
+AstOutlineTag      *ast_outline_tag_new         (Pool *p, String name, ListNode *value);
 AstVariable        *ast_variable_new            (Pool *p, String name);
 AstCall            *ast_call_new                (Pool *p, AstVariable *item, AstMap *map);
 AstLookup          *ast_lookup_new              (Pool *p, AstVariable *item, String name);

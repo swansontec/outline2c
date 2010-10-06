@@ -46,11 +46,9 @@ int write_cap(FILE *out, String s);
 /**
  * Processes source code, writing the result to the output file.
  */
-int generate_code(FILE *out, AstCode *p)
+int generate_code(FILE *out, ListNode *node)
 {
-  ListNode *node;
-
-  for (node = p->nodes; node; node = node->next)
+  for (; node; node = node->next)
     CHECK(generate_code_node(out, ast_to_code_node(*node)));
   return 1;
 }

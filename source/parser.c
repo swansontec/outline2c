@@ -63,13 +63,10 @@ int parse_code(Context *ctx, OutRoutine or, int scoped)
   Dynamic out;
   AstVariable *variable;
   int indent = 1;
-  ListBuilder nodes = list_builder_init(ctx->pool);
-  AstCode *self = pool_alloc(ctx->pool, sizeof(AstCode));
-  CHECK_MEM(self);
 
 #define WRITE_CODE \
   if (start_c != start) \
-    CHECK(list_builder_add(&nodes, AST_CODE_TEXT, \
+    CHECK(or.code(or.data, AST_CODE_TEXT, \
       ast_code_text_new(ctx->pool, string_init(start_c, start))));
 
   start_c = ctx->cursor;
@@ -105,7 +102,7 @@ escape:
 
   /* "\ol" escape sequences: */
   out.type = TYPE_END;
-  CHECK(parse_escape(ctx, list_builder_out(&nodes)));
+  CHECK(parse_escape(ctx, or));
 
   start_c = ctx->cursor;
   start = ctx->cursor; token = lex(&ctx->cursor, ctx->file.end);
@@ -128,19 +125,19 @@ symbol:
       if (context_scope_get(ctx, &out, string_init(start, ctx->cursor))) {
         if (out.type != AST_MAP)
           return context_error(ctx, "Wrong type - expecting a map here.\n");
-        CHECK(list_builder_add(&nodes, AST_CALL,
+        CHECK(or.code(or.data, AST_CALL,
           ast_call_new(ctx->pool, variable, ast_to_map(out))));
       } else {
-        CHECK(list_builder_add(&nodes, AST_LOOKUP,
+        CHECK(or.code(or.data, AST_LOOKUP,
           ast_lookup_new(ctx->pool, variable, string_init(start, ctx->cursor))));
       }
       start_c = ctx->cursor;
       start = ctx->cursor; token = lex(&ctx->cursor, ctx->file.end);
     } else {
-      CHECK(list_builder_add(&nodes, AST_VARIABLE, variable));
+      CHECK(or.code(or.data, AST_VARIABLE, variable));
     }
   } else {
-    CHECK(list_builder_add(&nodes, AST_VARIABLE, variable));
+    CHECK(or.code(or.data, AST_VARIABLE, variable));
   }
   goto code;
 
@@ -150,9 +147,7 @@ done:
   /* End-of-code: */
   if (scoped && token == LEX_END)
     return context_error(ctx, "Unexpected end of input in code block.");
-  self->nodes = nodes.first;
 
-  CHECK(or.code(or.data, AST_CODE, self));
   return 1;
 }
 
@@ -203,11 +198,10 @@ int parse_include(Context *ctx, OutRoutine or)
 {
   char const *start;
   Token token;
-  Dynamic out;
   String old_file;
   String old_filename;
   char const *old_cursor;
-  AstCode *code;
+  ListBuilder code = list_builder_init(ctx->pool);
 
   /* File name: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -228,8 +222,7 @@ int parse_include(Context *ctx, OutRoutine or)
     return context_error(ctx, "Could not open the included file.");
   }
   ctx->cursor = ctx->file.p;
-  CHECK(parse_code(ctx, dynamic_out(&out), 0));
-  code = ast_to_code(out);
+  CHECK(parse_code(ctx, list_builder_out(&code), 0));
   string_free(ctx->file);
 
   /* Restore the context: */
@@ -298,7 +291,7 @@ int parse_outline_item(Context *ctx, OutRoutine or)
     last = string_init(start, ctx->cursor);
     token = lex_next(&start, &ctx->cursor, ctx->file.end);
     if (token == LEX_EQUALS) {
-      AstCode *code;
+      ListBuilder code = list_builder_init(ctx->pool);
 
       /* Opening brace: */
       token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -306,11 +299,10 @@ int parse_outline_item(Context *ctx, OutRoutine or)
         return context_error(ctx, "A tag's value must be a code block.");
 
       /* Value: */
-      CHECK(parse_code(ctx, dynamic_out(&out), 1));
-      code = ast_to_code(out);
+      CHECK(parse_code(ctx, list_builder_out(&code), 1));
 
       CHECK(list_builder_add(&tags, AST_OUTLINE_TAG,
-        ast_outline_tag_new(ctx->pool, last, code)));
+        ast_outline_tag_new(ctx->pool, last, code.first)));
 
       last = string_null();
       token = lex_next(&start, &ctx->cursor, ctx->file.end);
@@ -384,6 +376,7 @@ int parse_map_line(Context *ctx, OutRoutine or)
   char const *start;
   Token token;
   Dynamic out;
+  ListBuilder code = list_builder_init(ctx->pool);
   AstMapLine *self = pool_alloc(ctx->pool, sizeof(AstMapLine));
   CHECK_MEM(self);
 
@@ -398,8 +391,8 @@ int parse_map_line(Context *ctx, OutRoutine or)
     return context_error(ctx, "A line within a \"map\" staement must end with a code block.");
 
   /* Code: */
-  CHECK(parse_code(ctx, dynamic_out(&out), 1));
-  self->code = ast_to_code(out);
+  CHECK(parse_code(ctx, list_builder_out(&code), 1));
+  self->code = code.first;
   assert(self->code);
 
   CHECK(or.code(or.data, AST_MAP_LINE, self));
@@ -414,6 +407,7 @@ int parse_for(Context *ctx, OutRoutine or)
   char const *start;
   Token token;
   Dynamic out;
+  ListBuilder code = list_builder_init(ctx->pool);
   AstFor *self = pool_alloc(ctx->pool, sizeof(AstFor));
   CHECK_MEM(self);
 
@@ -476,8 +470,8 @@ modifier:
   }
 
   /* Code: */
-  CHECK(parse_code(ctx, dynamic_out(&out), 1));
-  self->code = ast_to_code(out);
+  CHECK(parse_code(ctx, list_builder_out(&code), 1));
+  self->code = code.first;
   assert(self->code);
 
   context_scope_pop(ctx);

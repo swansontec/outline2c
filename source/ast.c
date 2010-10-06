@@ -72,12 +72,6 @@ AstFilterNode ast_to_filter_node(Dynamic node)
   return temp;
 }
 
-AstCode *ast_to_code(Dynamic node)
-{
-  assert(node.type == AST_CODE);
-  return node.p;
-}
-
 AstOutline *ast_to_outline(Dynamic node)
 {
   assert(node.type == AST_OUTLINE);
@@ -130,7 +124,7 @@ AstCodeText *ast_code_text_new(Pool *p, String code)
   return self;
 }
 
-AstOutlineTag *ast_outline_tag_new(Pool *p, String name, AstCode *value)
+AstOutlineTag *ast_outline_tag_new(Pool *p, String name, ListNode *value)
 {
   AstOutlineTag *self = pool_alloc(p, sizeof(AstOutlineTag));
   CHECK_MEM(self);
