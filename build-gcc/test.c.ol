@@ -24,13 +24,11 @@
 }
 
 /* Test pasting: */
-\ol test_paste = outline { thing; }
-\ol for i in test_paste { some\\i\\_test }
+\ol for i in outline { thing; } { some\\i\\_test }
 foo\\bar
 
 /* Test case transformations: */
-\ol test_case = outline { _SetCPUSpeed23_FOO; _; }
-\ol for i in test_case {
+\ol for i in outline { _SetCPUSpeed23_FOO; _; } {
   lower: i!lower
   upper: i!upper
   camel: i!camel

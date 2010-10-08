@@ -14,15 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef PARSER_H_INCLUDED
-#define PARSER_H_INCLUDED
+#ifndef LWL_H_INCLUDED
+#define LWL_H_INCLUDED
 
 #include "context.h"
 
-int parse_code(Context *ctx, OutRoutine or, int scoped);
-int parse_include(Context *ctx, OutRoutine or);
-int parse_outline(Context *ctx, OutRoutine or);
-int parse_map(Context *ctx, OutRoutine or);
-int parse_for(Context *ctx, OutRoutine or);
+typedef struct Keyword Keyword;
+
+/**
+ * Represents an LWL keyword implemented in C
+ */
+struct Keyword {
+  int (*code)(Context *ctx, OutRoutine or);
+};
+Keyword *keyword_new(Pool *p, int (*code)(Context *ctx, OutRoutine or));
+
+int lwl_parse_value(Context *ctx, OutRoutine or);
+int lwl_parse_line(Context *ctx, OutRoutine or);
 
 #endif

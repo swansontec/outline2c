@@ -24,6 +24,8 @@
 #define TYPE_H_INCLUDED
 
 enum Type {
+  TYPE_KEYWORD,
+
   AST_CODE,
   AST_CODE_TEXT,
   AST_OUTLINE,

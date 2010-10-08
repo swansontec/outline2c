@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "lwl.h"
 #include "parser.h"
 #include "debug.h"
 #include "generate.h"
@@ -121,6 +122,16 @@ int main_context_init(Context *ctx, Pool *pool, Options *opt)
     return 0;
   }
   ctx->cursor = ctx->file.p;
+
+  /* Keywords: */
+  CHECK(context_scope_add(ctx, string_init_l("include", 7), TYPE_KEYWORD,
+    keyword_new(ctx->pool, parse_include)));
+  CHECK(context_scope_add(ctx, string_init_l("outline", 7), TYPE_KEYWORD,
+    keyword_new(ctx->pool, parse_outline)));
+  CHECK(context_scope_add(ctx, string_init_l("map", 3), TYPE_KEYWORD,
+    keyword_new(ctx->pool, parse_map)));
+  CHECK(context_scope_add(ctx, string_init_l("for", 3), TYPE_KEYWORD,
+    keyword_new(ctx->pool, parse_for)));
 
   return 1;
 }

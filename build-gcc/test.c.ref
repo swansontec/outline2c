@@ -18,12 +18,10 @@
 
 
 /* Test pasting: */
-
  something_test 
 foobar
 
 /* Test case transformations: */
-
 
   lower: _set_cpu_speed_23_foo
   upper: _SET_CPU_SPEED_23_FOO

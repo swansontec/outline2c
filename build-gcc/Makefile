@@ -25,6 +25,7 @@ objects = \
  generate.o \
  lexer.o \
  list.o \
+ lwl.o \
  main.o \
  parser.o \
  pool.o \
@@ -38,6 +39,7 @@ filter_h        = ../source/filter.h $(ast_h)
 generate_h      = ../source/generate.h $(ast_h)
 lexer_h         = ../source/lexer.h
 list_h          = ../source/list.h $(context_h)
+lwl_h           = ../source/lwl.h $(context_h)
 parser_h        = ../source/parser.h $(context_h)
 pool_h          = ../source/pool.h $(string_h)
 string_h        = ../source/string.h
@@ -66,10 +68,13 @@ lexer.o: ../source/lexer.c $(lexer_h) $(string_h)
 list.o: ../source/list.c $(list_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/list.c
 
-main.o: ../source/main.c $(parser_h) $(debug_h) $(generate_h)
+lwl.o: ../source/lwl.c $(lwl_h) $(lexer_h)
+	$(CC) $(CFLAGS) -o $@ -c ../source/lwl.c
+
+main.o: ../source/main.c $(lwl_h) $(parser_h) $(debug_h) $(generate_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/main.c
 
-parser.o: ../source/parser.c $(parser_h) $(lexer_h) $(filter_h)
+parser.o: ../source/parser.c $(parser_h) $(filter_h) $(lwl_h) $(lexer_h)
 	$(CC) $(CFLAGS) -o $@ -c ../source/parser.c
 
 pool.o: ../source/pool.c $(pool_h) $(string_h)

@@ -25,23 +25,14 @@
  */
 
 #include "parser.h"
-#include "lexer.h"
 #include "filter.h"
+#include "lwl.h"
+#include "lexer.h"
 #include <assert.h>
 #include <stdio.h>
 
-int parse_escape(Context *ctx, OutRoutine or);
-
-int parse_include(Context *ctx, OutRoutine or);
-
-int parse_outline(Context *ctx, OutRoutine or);
 int parse_outline_item(Context *ctx, OutRoutine or);
-
-int parse_map(Context *ctx, OutRoutine or);
 int parse_map_line(Context *ctx, OutRoutine or);
-
-int parse_for(Context *ctx, OutRoutine or);
-
 int parse_filter(Context *ctx, OutRoutine or);
 
 /**
@@ -102,7 +93,7 @@ escape:
 
   /* "\ol" escape sequences: */
   out.type = TYPE_END;
-  CHECK(parse_escape(ctx, or));
+  CHECK(lwl_parse_line(ctx, or));
 
   start_c = ctx->cursor;
   start = ctx->cursor; token = lex(&ctx->cursor, ctx->file.end);
@@ -149,46 +140,6 @@ done:
     return context_error(ctx, "Unexpected end of input in code block.");
 
   return 1;
-}
-
-/**
- * Handles the bit right after an \ol escape code.
- */
-int parse_escape(Context *ctx, OutRoutine or)
-{
-  char const *start;
-  Token token;
-  Dynamic out;
-
-  /* Unexpected end of input: */
-  token = lex_next(&start, &ctx->cursor, ctx->file.end);
-  if (token == LEX_END) {
-    return context_error(ctx, "Unexpected end of input.");
-  /* Keywords: */
-  } else if (token == LEX_IDENTIFIER) {
-    String temp = string_init(start, ctx->cursor);
-    if (string_equal(temp, string_init_l("include", 7))) {
-      return parse_include(ctx, or);
-    } else if (string_equal(temp, string_init_l("outline", 7))) {
-      return parse_outline(ctx, or);
-    } else if (string_equal(temp, string_init_l("map", 3))) {
-      return parse_map(ctx, or);
-    } else if (string_equal(temp, string_init_l("for", 3))) {
-      return parse_for(ctx, or);
-    } else {
-      /* Assignment? */
-      token = lex_next(&start, &ctx->cursor, ctx->file.end);
-      if (token != LEX_EQUALS)
-        return context_error(ctx, "No idea what this keyword is.");
-
-      CHECK(parse_escape(ctx, dynamic_out(&out)));
-      CHECK(context_scope_add(ctx, temp, out.type, out.p));
-
-      return 1;
-    }
-  } else {
-    return context_error(ctx, "No idea what token this is.");
-  }
 }
 
 /**
@@ -428,11 +379,7 @@ int parse_for(Context *ctx, OutRoutine or)
     return context_error(ctx, "Expecting the \"in\" keyword here.");
 
   /* Outline name: */
-  token = lex_next(&start, &ctx->cursor, ctx->file.end);
-  if (token != LEX_IDENTIFIER)
-    return context_error(ctx, "An outline name must come after the \"in\" keyword.");
-  if (!context_scope_get(ctx, &out, string_init(start, ctx->cursor)))
-    return context_error(ctx, "Could not find an outline with this name.");
+  CHECK(lwl_parse_value(ctx, dynamic_out(&out)));
   if (!ast_is_for_node(out.type))
     return context_error(ctx, "Wrong type - the for statement expects an outline.\n");
   self->outline = ast_to_for_node(out);
