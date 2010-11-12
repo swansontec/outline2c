@@ -25,11 +25,11 @@ typedef struct Keyword Keyword;
  * Represents an LWL keyword implemented in C
  */
 struct Keyword {
-  int (*code)(Pool *pool, Context *ctx, Scope *scope, OutRoutine or);
+  int (*code)(Pool *pool, Source *in, Scope *scope, OutRoutine or);
 };
-Keyword *keyword_new(Pool *p, int (*code)(Pool *pool, Context *ctx, Scope *scope, OutRoutine or));
+Keyword *keyword_new(Pool *p, int (*code)(Pool *pool, Source *in, Scope *scope, OutRoutine or));
 
-int lwl_parse_value(Pool *pool, Context *ctx, Scope *scope, OutRoutine or);
-int lwl_parse_line(Pool *pool, Context *ctx, Scope *scope, OutRoutine or);
+int lwl_parse_value(Pool *pool, Source *in, Scope *scope, OutRoutine or);
+int lwl_parse_line(Pool *pool, Source *in, Scope *scope, OutRoutine or);
 
 #endif

@@ -57,10 +57,10 @@ Location location_init(String file, char const *position)
 /**
  * Prints an error message.
  */
-int context_error(Context *ctx, char const *message)
+int source_error(Source *in, char const *message)
 {
-  char *name = string_to_c(ctx->filename);
-  Location l = location_init(ctx->file, ctx->cursor);
+  char *name = string_to_c(in->filename);
+  Location l = location_init(in->data, in->cursor);
   fprintf(stderr, "%s:%d:%d: error: %s\n", name, l.line + 1, l.column + 1, message);
   free(name);
   return 0;

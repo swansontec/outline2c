@@ -20,28 +20,21 @@
 #include "type.h"
 #include "pool.h"
 
-typedef struct Context Context;
+typedef struct Source Source;
 typedef struct Scope Scope;
 typedef struct Symbol Symbol;
 typedef struct OutRoutine OutRoutine;
 
 /**
- * Different parts of the compiler communicate in several ways:
- *
- * - Allocating data from a common memory pool
- * - Reading from a common input stream
- * - Sending errors to a common output
- *
- * The Context object provides these common facilities.
+ * A stream of input text feeding the parser
  */
-struct Context {
-  /* Input stream: */
-  String file;
+struct Source {
   String filename;
+  String data;
   char const *cursor;
 };
 
-int context_error(Context *ctx, char const *message);
+int source_error(Source *in, char const *message);
 
 /**
  * One level in the symbol table. This implmentation uses a linked list for

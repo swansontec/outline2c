@@ -101,21 +101,21 @@ int generate(ListNode *code, Options *opt)
   return 1;
 }
 
-int main_context_init(Pool *pool, Context *ctx, Scope *scope, Options *opt)
+int main_context_init(Pool *pool, Source *in, Scope *scope, Options *opt)
 {
   /* Pool: */
   CHECK_MEM(pool_init(pool, 0x10000)); /* 64K block size */
 
   /* Input stream: */
-  ctx->filename = opt->name_in;
-  ctx->file = string_load(ctx->filename);
-  if (!string_size(ctx->file)) {
+  in->filename = opt->name_in;
+  in->data = string_load(in->filename);
+  if (!string_size(in->data)) {
     fprintf(stderr, "error: Could not open source file \"");
-    fwrite(ctx->filename.p, string_size(ctx->filename), 1, stderr);
+    fwrite(in->filename.p, string_size(in->filename), 1, stderr);
     fprintf(stderr, "\"\n");
     return 0;
   }
-  ctx->cursor = ctx->file.p;
+  in->cursor = in->data.p;
 
   /* Scope: */
   *scope = scope_init(0);
@@ -133,9 +133,9 @@ int main_context_init(Pool *pool, Context *ctx, Scope *scope, Options *opt)
   return 1;
 }
 
-void main_context_free(Context *ctx, Pool *pool)
+void main_context_free(Source *in, Pool *pool)
 {
-  string_free(ctx->file);
+  string_free(in->data);
   pool_free(pool);
 }
 
@@ -145,7 +145,7 @@ void main_context_free(Context *ctx, Pool *pool)
 int main(int argc, char *argv[])
 {
   Options opt = options_init();
-  Context ctx = {0};
+  Source in = {0};
   Pool pool = {0};
   Scope scope;
   ListBuilder code = list_builder_init(&pool);
@@ -166,18 +166,18 @@ int main(int argc, char *argv[])
   }
 
   /* Do outline2c stuff: */
-  if (!main_context_init(&pool, &ctx, &scope, &opt)) goto error;
-  if (!parse_code(&pool, &ctx, &scope, list_builder_out(&code), 0)) goto error;
+  if (!main_context_init(&pool, &in, &scope, &opt)) goto error;
+  if (!parse_code(&pool, &in, &scope, list_builder_out(&code), 0)) goto error;
   if (opt.debug) {
     printf("--- AST: ---\n");
     dump_code(code.first, 0);
   }
   if (!generate(code.first, &opt)) goto error;
 
-  main_context_free(&ctx, &pool);
+  main_context_free(&in, &pool);
   return 0;
 
 error:
-  main_context_free(&ctx, &pool);
+  main_context_free(&in, &pool);
   return 1;
 }
