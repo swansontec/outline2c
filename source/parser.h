@@ -19,10 +19,10 @@
 
 #include "context.h"
 
-int parse_code(Context *ctx, Scope *scope, OutRoutine or, int scoped);
-int parse_include(Context *ctx, Scope *scope, OutRoutine or);
-int parse_outline(Context *ctx, Scope *scope, OutRoutine or);
-int parse_map(Context *ctx, Scope *scope, OutRoutine or);
-int parse_for(Context *ctx, Scope *scope, OutRoutine or);
+int parse_code(Pool *pool, Context *ctx, Scope *scope, OutRoutine or, int scoped);
+int parse_include(Pool *pool, Context *ctx, Scope *scope, OutRoutine or);
+int parse_outline(Pool *pool, Context *ctx, Scope *scope, OutRoutine or);
+int parse_map(Pool *pool, Context *ctx, Scope *scope, OutRoutine or);
+int parse_for(Pool *pool, Context *ctx, Scope *scope, OutRoutine or);
 
 #endif

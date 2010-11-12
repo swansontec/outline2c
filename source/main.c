@@ -101,11 +101,10 @@ int generate(ListNode *code, Options *opt)
   return 1;
 }
 
-int main_context_init(Context *ctx, Scope *scope, Pool *pool, Options *opt)
+int main_context_init(Pool *pool, Context *ctx, Scope *scope, Options *opt)
 {
   /* Pool: */
   CHECK_MEM(pool_init(pool, 0x10000)); /* 64K block size */
-  ctx->pool = pool;
 
   /* Input stream: */
   ctx->filename = opt->name_in;
@@ -123,21 +122,21 @@ int main_context_init(Context *ctx, Scope *scope, Pool *pool, Options *opt)
 
   /* Keywords: */
   CHECK(scope_add(scope, pool, string_init_l("include", 7), TYPE_KEYWORD,
-    keyword_new(ctx->pool, parse_include)));
+    keyword_new(pool, parse_include)));
   CHECK(scope_add(scope, pool, string_init_l("outline", 7), TYPE_KEYWORD,
-    keyword_new(ctx->pool, parse_outline)));
+    keyword_new(pool, parse_outline)));
   CHECK(scope_add(scope, pool, string_init_l("map", 3), TYPE_KEYWORD,
-    keyword_new(ctx->pool, parse_map)));
+    keyword_new(pool, parse_map)));
   CHECK(scope_add(scope, pool, string_init_l("for", 3), TYPE_KEYWORD,
-    keyword_new(ctx->pool, parse_for)));
+    keyword_new(pool, parse_for)));
 
   return 1;
 }
 
-void main_context_free(Context *ctx)
+void main_context_free(Context *ctx, Pool *pool)
 {
   string_free(ctx->file);
-  if(ctx->pool) pool_free(ctx->pool);
+  pool_free(pool);
 }
 
 /**
@@ -147,7 +146,7 @@ int main(int argc, char *argv[])
 {
   Options opt = options_init();
   Context ctx = {0};
-  Pool pool;
+  Pool pool = {0};
   Scope scope;
   ListBuilder code = list_builder_init(&pool);
 
@@ -167,18 +166,18 @@ int main(int argc, char *argv[])
   }
 
   /* Do outline2c stuff: */
-  if (!main_context_init(&ctx, &scope, &pool, &opt)) goto error;
-  if (!parse_code(&ctx, &scope, list_builder_out(&code), 0)) goto error;
+  if (!main_context_init(&pool, &ctx, &scope, &opt)) goto error;
+  if (!parse_code(&pool, &ctx, &scope, list_builder_out(&code), 0)) goto error;
   if (opt.debug) {
     printf("--- AST: ---\n");
     dump_code(code.first, 0);
   }
   if (!generate(code.first, &opt)) goto error;
 
-  main_context_free(&ctx);
+  main_context_free(&ctx, &pool);
   return 0;
 
 error:
-  main_context_free(&ctx);
+  main_context_free(&ctx, &pool);
   return 1;
 }

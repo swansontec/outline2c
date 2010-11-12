@@ -35,9 +35,6 @@ typedef struct OutRoutine OutRoutine;
  * The Context object provides these common facilities.
  */
 struct Context {
-  /* Memory allocation: */
-  Pool *pool;
-
   /* Input stream: */
   String file;
   String filename;
