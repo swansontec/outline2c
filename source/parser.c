@@ -149,9 +149,7 @@ int parse_include(Pool *pool, Context *ctx, Scope *scope, OutRoutine or)
 {
   char const *start;
   Token token;
-  String old_file;
-  String old_filename;
-  char const *old_cursor;
+  Context source;
   ListBuilder code = list_builder_init(pool);
 
   /* File name: */
@@ -159,27 +157,15 @@ int parse_include(Pool *pool, Context *ctx, Scope *scope, OutRoutine or)
   if (token != LEX_STRING)
     return context_error(ctx, "An include statment expects a quoted filename.");
 
-  /* Save the context: */
-  old_file = ctx->file;
-  old_filename = ctx->filename;
-  old_cursor = ctx->cursor;
-
   /* Process the file's contents: */
-  ctx->filename = string_init(start + 1, ctx->cursor - 1);
-  ctx->file = string_load(ctx->filename);
-  if (!string_size(ctx->file)) {
-    ctx->file = old_file;
-    ctx->filename = old_filename;
+  source.filename = string_init(start + 1, ctx->cursor - 1);
+  source.file = string_load(source.filename);
+  if (!string_size(source.file)) {
     return context_error(ctx, "Could not open the included file.");
   }
-  ctx->cursor = ctx->file.p;
-  CHECK(parse_code(pool, ctx, scope, list_builder_out(&code), 0));
-  string_free(ctx->file);
-
-  /* Restore the context: */
-  ctx->file = old_file;
-  ctx->filename = old_filename;
-  ctx->cursor = old_cursor;
+  source.cursor = source.file.p;
+  CHECK(parse_code(pool, &source, scope, list_builder_out(&code), 0));
+  string_free(source.file);
 
   /* Closing semicolon: */
   token = lex_next(&start, &ctx->cursor, ctx->file.end);
