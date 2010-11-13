@@ -196,4 +196,9 @@ The "union" keyword gathers items from several outlines into one:
 
     \ol both = union {outline_a, outline_b}
 
-This line creates a new outline, called `both`, which contains all the items in `outline_a` and `outline_b`.
+This line creates a new outline, called `both`, which contains all the items in `outline_a` and `outline_b`. Unions also understand the `with` modifier:
+
+    \ol some = union {outline_a, outline_b with foo}
+
+The resulting union contains all the items from `outline_a` and any items from
+`outline_b` that thave the tag `foo`.

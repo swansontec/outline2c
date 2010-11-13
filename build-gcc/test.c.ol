@@ -43,4 +43,4 @@ foo\\bar
 \ol for i in test_for reverse with !x list { i }
 
 /* Test outline unions: */
-\ol for i in union{included, outline{last;}} { i }
+\ol for i in union{included, test_map_ol with a, outline{last;}} { i }

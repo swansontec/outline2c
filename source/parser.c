@@ -272,6 +272,8 @@ int parse_union(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   char const *start;
   Token token;
   Dynamic out;
+  AstOutline *outline;
+  AstFilter *filter;
   ListBuilder items = list_builder_init(pool);
   ListNode *item;
   AstOutline *self = pool_alloc(pool, sizeof(AstOutline));
@@ -287,13 +289,28 @@ outline:
   CHECK(lwl_parse_value(pool, in, scope, dynamic_out(&out)));
   if (out.type != AST_OUTLINE)
     return source_error(in, "Wrong type - the union statement expects an outline.\n");
+  outline = ast_to_outline(out);
+
+  /* Map? */
+  token = lex_next(&start, &in->cursor, in->data.end);
+  if (token == LEX_IDENTIFIER) {
+    if (!string_equal(string_init(start, in->cursor), string_init_l("with", 4)))
+      return source_error(in, "Only the \"with\" modifier is allowed here.");
+
+    /* Filter: */
+    CHECK(parse_filter(pool, in, scope, dynamic_out(&out)));
+    filter = ast_to_filter(out);
+    token = lex_next(&start, &in->cursor, in->data.end);
+  } else {
+    filter = 0;
+  }
 
   /* Process items: */
-  for (item = ast_to_outline(out)->items; item; item = item->next)
-    CHECK(list_builder_add(&items, item->type, item->p));
+  for (item = outline->items; item; item = item->next)
+    if (!filter || test_filter(filter, ast_to_outline_item(*item)))
+      CHECK(list_builder_add(&items, item->type, item->p));
 
   /* Another outline? */
-  token = lex_next(&start, &in->cursor, in->data.end);
   if (token == LEX_COMMA) {
     goto outline;
   } else if (token != LEX_BRACE_R) {
