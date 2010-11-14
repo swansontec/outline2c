@@ -21,7 +21,7 @@
 int generate_code_node(FILE *out, AstCodeNode node);
 int generate_for(FILE *out, AstFor *p);
 int generate_variable(FILE *out, AstVariable *p);
-int generate_call(FILE *out, AstCall *p);
+int generate_map_call(FILE *out, AstMapCall *p);
 int generate_lookup(FILE *out, AstLookup *p);
 int generate_lookup_tag(FILE *out, AstLookup *p);
 int generate_lookup_builtin(FILE *out, AstLookup *p);
@@ -65,8 +65,8 @@ int generate_code_node(FILE *out, AstCodeNode node)
     CHECK(generate_for(out, node.p));
   } else if (node.type == AST_VARIABLE) {
     CHECK(generate_variable(out, node.p));
-  } else if (node.type == AST_CALL) {
-    CHECK(generate_call(out, node.p));
+  } else if (node.type == AST_MAP_CALL) {
+    CHECK(generate_map_call(out, node.p));
   } else if (node.type == AST_LOOKUP) {
     CHECK(generate_lookup(out, node.p));
   } else {
@@ -141,7 +141,7 @@ int generate_variable(FILE *out, AstVariable *p)
 /**
  * Performs code-generation for a map call
  */
-int generate_call(FILE *out, AstCall *p)
+int generate_map_call(FILE *out, AstMapCall *p)
 {
   AstOutlineItem *item = p->item->value;
   ListNode *line;

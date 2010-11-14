@@ -115,8 +115,8 @@ symbol:
       if (scope_get(scope, &out, string_init(start, in->cursor))) {
         if (out.type != AST_MAP)
           return source_error(in, "Wrong type - expecting a map here.\n");
-        CHECK(or.code(or.data, AST_CALL,
-          ast_call_new(pool, variable, ast_to_map(out))));
+        CHECK(or.code(or.data, AST_MAP_CALL,
+          ast_map_call_new(pool, variable, ast_to_map(out))));
       } else {
         CHECK(or.code(or.data, AST_LOOKUP,
           ast_lookup_new(pool, variable, string_init(start, in->cursor))));
