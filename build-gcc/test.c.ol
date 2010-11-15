@@ -24,13 +24,11 @@
 }
 
 /* Test pasting: */
-\ol test_paste = outline { thing; }
-\ol for i in test_paste { some\\i\\_test }
+\ol for i in outline { thing; } { some\\i\\_test }
 foo\\bar
 
 /* Test case transformations: */
-\ol test_case = outline { _SetCPUSpeed23_FOO; _; }
-\ol for i in test_case {
+\ol for i in outline { _SetCPUSpeed23_FOO; _; } {
   lower: i!lower
   upper: i!upper
   camel: i!camel
@@ -43,3 +41,10 @@ foo\\bar
 \ol for i in test_for list { i }
 \ol for i in test_for reverse { i }
 \ol for i in test_for reverse with !x list { i }
+
+/* Test outline unions: */
+\ol for i in union{included, test_map_ol with a, outline{last;}} { i }
+
+/* Test macros: */
+\ol test_macro = macro(a, b) {a: \ol for i in b {i }}
+\ol for i in test_nesting {test_macro(i, included)}

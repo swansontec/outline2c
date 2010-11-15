@@ -19,7 +19,6 @@
 
 #include "list.h"
 
-typedef struct ast_code                 AstCode;
 typedef struct ast_code_text            AstCodeText;
 typedef struct ast_outline              AstOutline;
 typedef struct ast_outline_item         AstOutlineItem;
@@ -33,8 +32,10 @@ typedef struct ast_filter_any           AstFilterAny;
 typedef struct ast_filter_not           AstFilterNot;
 typedef struct ast_filter_and           AstFilterAnd;
 typedef struct ast_filter_or            AstFilterOr;
+typedef struct ast_macro                AstMacro;
+typedef struct ast_macro_call           AstMacroCall;
 typedef struct ast_variable             AstVariable;
-typedef struct ast_call                 AstCall;
+typedef struct ast_map_call             AstMapCall;
 typedef struct ast_lookup               AstLookup;
 
 typedef struct ast_code_node            AstCodeNode;
@@ -45,8 +46,9 @@ typedef struct ast_filter_node          AstFilterNode;
  * Points to one of:
  *  AstCodeText
  *  AstFor
+ *  AstMacroCall
  *  AstVariable
- *  AstCall
+ *  AstMapCall
  *  AstLookup
  */
 struct ast_code_node {
@@ -87,22 +89,13 @@ AstCodeNode         ast_to_code_node(ListNode node);
 AstForNode          ast_to_for_node(Dynamic node);
 AstFilterNode       ast_to_filter_node(Dynamic node);
 
-AstCode            *ast_to_code(Dynamic node);
 AstOutline         *ast_to_outline(Dynamic node);
 AstOutlineItem     *ast_to_outline_item(ListNode node);
 AstOutlineTag      *ast_to_outline_tag(ListNode node);
 AstMap             *ast_to_map(Dynamic node);
 AstMapLine         *ast_to_map_line(ListNode node);
 AstFilter          *ast_to_filter(Dynamic node);
-AstVariable        *ast_to_variable(Dynamic node);
-
-/**
- * A block of code in the host language, possibly interspersed with o2c escape
- * sequences and replacement symbols.
- */
-struct ast_code {
-  ListNode *nodes;
-};
+AstVariable        *ast_to_variable(ListNode node);
 
 /**
  * A run of text in the host language.
@@ -132,7 +125,7 @@ struct ast_outline_item {
  */
 struct ast_outline_tag {
   String name;
-  AstCode *value;
+  ListNode *value;
 };
 
 /**
@@ -147,7 +140,7 @@ struct ast_map
 struct ast_map_line
 {
   AstFilter *filter;
-  AstCode *code;
+  ListNode *code;
 };
 
 /**
@@ -159,7 +152,7 @@ struct ast_for {
   AstFilter *filter;
   int reverse;
   int list;
-  AstCode *code;
+  ListNode *code;
 };
 
 /**
@@ -207,6 +200,22 @@ struct ast_filter_or {
 };
 
 /**
+ * A macro definition
+ */
+struct ast_macro {
+  ListNode *inputs; /* Real type is AstVariable */
+  ListNode *code;
+};
+
+/**
+ * A macro invocation
+ */
+struct ast_macro_call {
+  AstMacro *macro;
+  ListNode *inputs; /* Real type is AstForNode */
+};
+
+/**
  * A changing value
  */
 struct ast_variable {
@@ -217,7 +226,7 @@ struct ast_variable {
 /**
  * A call to a map
  */
-struct ast_call {
+struct ast_map_call {
   AstVariable *item;
   AstMap *map;
 };
@@ -230,22 +239,10 @@ struct ast_lookup {
   String name;
 };
 
-AstCode            *ast_code_new                (Pool *p, ListNode *nodes);
 AstCodeText        *ast_code_text_new           (Pool *p, String code);
-AstOutline         *ast_outline_new             (Pool *p, ListNode *items);
-AstOutlineItem     *ast_outline_item_new        (Pool *p, ListNode *tags, String name, AstOutline *children);
-AstOutlineTag      *ast_outline_tag_new         (Pool *p, String name, AstCode *value);
-AstMap             *ast_map_new                 (Pool *p, AstVariable *item, ListNode *lines);
-AstMapLine         *ast_map_line_new            (Pool *p, AstFilter *filter, AstCode *code);
-AstFor             *ast_for_new                 (Pool *p, AstVariable *item, AstForNode outline, AstFilter *filter, int reverse, int list, AstCode *code);
-AstFilter          *ast_filter_new              (Pool *p, AstFilterNode test);
-AstFilterTag       *ast_filter_tag_new          (Pool *p, String tag);
-AstFilterAny       *ast_filter_any_new          (Pool *p);
-AstFilterNot       *ast_filter_not_new          (Pool *p, AstFilterNode test);
-AstFilterAnd       *ast_filter_and_new          (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
-AstFilterOr        *ast_filter_or_new           (Pool *p, AstFilterNode test_a, AstFilterNode test_b);
+AstOutlineTag      *ast_outline_tag_new         (Pool *p, String name, ListNode *value);
 AstVariable        *ast_variable_new            (Pool *p, String name);
-AstCall            *ast_call_new                (Pool *p, AstVariable *item, AstMap *map);
+AstMapCall         *ast_map_call_new            (Pool *p, AstVariable *item, AstMap *map);
 AstLookup          *ast_lookup_new              (Pool *p, AstVariable *item, String name);
 
 #endif

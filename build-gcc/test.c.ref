@@ -18,12 +18,10 @@
 
 
 /* Test pasting: */
-
  something_test 
 foobar
 
 /* Test case transformations: */
-
 
   lower: _set_cpu_speed_23_foo
   upper: _SET_CPU_SPEED_23_FOO
@@ -42,3 +40,10 @@ foobar
  a , b , c , d 
  d  c  b  a 
  c , b , a 
+
+/* Test outline unions: */
+ haystacks  needles  one  last 
+
+/* Test macros: */
+
+item0: haystacks needles item1: haystacks needles item2: haystacks needles 

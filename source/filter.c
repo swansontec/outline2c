@@ -128,38 +128,52 @@ Dynamic filter_builder_pop(FilterBuilder *b)
  */
 int filter_build_tag(FilterBuilder *b, Pool *pool, String tag)
 {
-  return filter_builder_push(b, AST_FILTER_TAG,
-    ast_filter_tag_new(pool, tag));
-}
+  AstFilterTag *self = pool_alloc(pool, sizeof(AstFilterTag));
+  CHECK_MEM(self);
+  self->tag = pool_string_copy(pool, tag);
+  CHECK_MEM(string_size(self->tag));
 
-int filter_build_not(FilterBuilder *b, Pool *pool)
-{
-  AstFilterNode test = ast_to_filter_node(filter_builder_pop(b));
-
-  return filter_builder_push(b, AST_FILTER_NOT,
-    ast_filter_not_new(pool, test));
+  return filter_builder_push(b, AST_FILTER_TAG, self);
 }
 
 int filter_build_any(FilterBuilder *b, Pool *pool)
 {
-  return filter_builder_push(b, AST_FILTER_ANY,
-    ast_filter_any_new(pool));
+  AstFilterAny *self = pool_alloc(pool, sizeof(AstFilterAny));
+  CHECK_MEM(self);
+
+  return filter_builder_push(b, AST_FILTER_ANY, self);
+}
+
+int filter_build_not(FilterBuilder *b, Pool *pool)
+{
+  AstFilterNot *self = pool_alloc(pool, sizeof(AstFilterNot));
+  CHECK_MEM(self);
+  self->test = ast_to_filter_node(filter_builder_pop(b));
+  assert(self->test.p);
+
+  return filter_builder_push(b, AST_FILTER_NOT, self);
 }
 
 int filter_build_and(FilterBuilder *b, Pool *pool)
 {
-  AstFilterNode test_a = ast_to_filter_node(filter_builder_pop(b));
-  AstFilterNode test_b = ast_to_filter_node(filter_builder_pop(b));
+  AstFilterAnd *self = pool_alloc(pool, sizeof(AstFilterAnd));
+  CHECK_MEM(self);
+  self->test_a = ast_to_filter_node(filter_builder_pop(b));
+  assert(self->test_a.p);
+  self->test_b = ast_to_filter_node(filter_builder_pop(b));
+  assert(self->test_b.p);
 
-  return filter_builder_push(b, AST_FILTER_AND,
-    ast_filter_and_new(pool, test_a, test_b));
+  return filter_builder_push(b, AST_FILTER_AND, self);
 }
 
 int filter_build_or(FilterBuilder *b, Pool *pool)
 {
-  AstFilterNode test_a = ast_to_filter_node(filter_builder_pop(b));
-  AstFilterNode test_b = ast_to_filter_node(filter_builder_pop(b));
+  AstFilterOr *self = pool_alloc(pool, sizeof(AstFilterOr));
+  CHECK_MEM(self);
+  self->test_a = ast_to_filter_node(filter_builder_pop(b));
+  assert(self->test_a.p);
+  self->test_b = ast_to_filter_node(filter_builder_pop(b));
+  assert(self->test_b.p);
 
-  return filter_builder_push(b, AST_FILTER_OR,
-    ast_filter_or_new(pool, test_a, test_b));
+  return filter_builder_push(b, AST_FILTER_OR, self);
 }

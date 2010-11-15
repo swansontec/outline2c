@@ -18,22 +18,34 @@
 #include <stdio.h>
 
 /**
+ * Counts the nodes in a list.
+ */
+int list_length(ListNode *first)
+{
+  int i;
+  for (i = 0; first; first = first->next)
+    ++i;
+  return i;
+}
+
+/**
  * Initializes a new ListBuilder structure.
  */
-ListBuilder list_builder_init()
+ListBuilder list_builder_init(Pool *pool)
 {
   ListBuilder self;
   self.first = 0;
   self.last = 0;
+  self.pool = pool;
   return self;
 }
 
 /**
  * Adds an item to the end of a list.
  */
-int list_builder_add(ListBuilder *b, Pool *pool, Type type, void *p)
+int list_builder_add(ListBuilder *b, Type type, void *p)
 {
-  ListNode *node = pool_alloc(pool, sizeof(ListNode));
+  ListNode *node = pool_alloc(b->pool, sizeof(ListNode));
   CHECK_MEM(node);
   node->next = 0;
   node->p = p;
@@ -51,7 +63,15 @@ int list_builder_add(ListBuilder *b, Pool *pool, Type type, void *p)
   return 1;
 }
 
-int list_builder_add2(ListBuilder *b, Pool *pool, Dynamic item)
+static int list_out_fn(void *data, Type type, void *p)
 {
-  return list_builder_add(b, pool, item.type, item.p);
+  return list_builder_add(data, type, p);
+}
+
+OutRoutine list_builder_out(ListBuilder *b)
+{
+  OutRoutine self;
+  self.code = list_out_fn;
+  self.data = b;
+  return self;
 }
