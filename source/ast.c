@@ -23,6 +23,7 @@ int ast_is_code_node(Type type)
   return
     type == AST_CODE_TEXT ||
     type == AST_FOR ||
+    type == AST_MACRO_CALL ||
     type == AST_VARIABLE ||
     type == AST_MAP_CALL ||
     type == AST_LOOKUP;
@@ -108,7 +109,7 @@ AstFilter *ast_to_filter(Dynamic node)
   return node.p;
 }
 
-AstVariable *ast_to_variable(Dynamic node)
+AstVariable *ast_to_variable(ListNode node)
 {
   assert(node.type == AST_VARIABLE);
   return node.p;

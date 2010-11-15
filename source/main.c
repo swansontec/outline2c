@@ -131,6 +131,8 @@ int main_context_init(Pool *pool, Source *in, Scope *scope, Options *opt)
     keyword_new(pool, parse_map)));
   CHECK(scope_add(scope, pool, string_init_l("for", 3), TYPE_KEYWORD,
     keyword_new(pool, parse_for)));
+  CHECK(scope_add(scope, pool, string_init_l("macro", 5), TYPE_KEYWORD,
+    keyword_new(pool, parse_macro)));
 
   return 1;
 }

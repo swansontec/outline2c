@@ -44,3 +44,7 @@ foo\\bar
 
 /* Test outline unions: */
 \ol for i in union{included, test_map_ol with a, outline{last;}} { i }
+
+/* Test macros: */
+\ol test_macro = macro(a, b) {a: \ol for i in b {i }}
+\ol for i in test_nesting {test_macro(i, included)}

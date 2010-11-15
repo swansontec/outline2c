@@ -43,3 +43,7 @@ foobar
 
 /* Test outline unions: */
  haystacks  needles  one  last 
+
+/* Test macros: */
+
+item0: haystacks needles item1: haystacks needles item2: haystacks needles 

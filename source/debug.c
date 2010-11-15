@@ -27,6 +27,7 @@ void dump_map(AstMap *p);
 void dump_map_line(AstMapLine *p);
 
 void dump_for(AstFor *p);
+void dump_for_node(AstForNode node);
 
 void dump_filter(AstFilter *p);
 void dump_filter_node(AstFilterNode node);
@@ -35,6 +36,8 @@ void dump_filter_any(AstFilterAny *p);
 void dump_filter_not(AstFilterNot *p);
 void dump_filter_and(AstFilterAnd *p);
 void dump_filter_or(AstFilterOr *p);
+
+void dump_macro_call(AstMacroCall *p);
 
 void dump_variable(AstVariable *p);
 void dump_map_call(AstMapCall *p);
@@ -68,6 +71,8 @@ void dump_code_node(AstCodeNode node, int indent)
   } else if (node.type == AST_FOR) {
     printf("\\ol ");
     dump_for(node.p);
+  } else if (node.type == AST_MACRO_CALL) {
+    dump_macro_call(node.p);
   } else if (node.type == AST_VARIABLE) {
     dump_variable(node.p);
   } else if (node.type == AST_MAP_CALL) {
@@ -164,13 +169,7 @@ void dump_for(AstFor *p)
   dump_text(p->item->name);
   printf(" in ");
 
-  if (p->outline.type == AST_OUTLINE) {
-    printf("outline");
-    dump_outline((AstOutline*)p->outline.p, 0);
-  } else {
-    AstVariable *v = p->outline.p;
-    dump_text(v->name);
-  }
+  dump_for_node(p->outline);
 
   if (p->filter) {
     printf(" with ");
@@ -184,6 +183,17 @@ void dump_for(AstFor *p)
   printf(" {");
   dump_code(p->code, 0);
   printf("}");
+}
+
+void dump_for_node(AstForNode node)
+{
+  if (node.type == AST_OUTLINE) {
+    printf("outline");
+    dump_outline((AstOutline*)node.p, 0);
+  } else {
+    AstVariable *v = node.p;
+    dump_text(v->name);
+  }
 }
 
 /**
@@ -241,6 +251,34 @@ void dump_filter_or(AstFilterOr *p)
   printf(" | ");
   dump_filter_node(p->test_b);
   printf(")");
+}
+
+void dump_macro_call(AstMacroCall *p)
+{
+  ListNode *macro_input;
+  ListNode *call_input;
+
+  printf("macro(");
+
+  macro_input = p->macro->inputs;
+  call_input = p->inputs;
+  while (macro_input && call_input) {
+    Dynamic temp;
+    if (call_input != p->inputs)
+      printf(", ");
+
+    dump_variable(ast_to_variable(*macro_input));
+    printf("=");
+    temp.p = call_input->p; temp.type = call_input->type;
+    dump_for_node(ast_to_for_node(temp));
+
+    macro_input = macro_input->next;
+    call_input = call_input->next;
+  }
+
+  printf(") {");
+  dump_code(p->macro->code, 0);
+  printf("}");
 }
 
 /**

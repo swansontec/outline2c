@@ -32,6 +32,7 @@
 
 int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or);
 int parse_map_line(Pool *pool, Source *in, Scope *scope, OutRoutine or);
+int parse_macro_call(Pool *pool, Source *in, Scope *scope, OutRoutine or, AstMacro *macro);
 int parse_filter(Pool *pool, Source *in, Scope *scope, OutRoutine or);
 
 /**
@@ -67,9 +68,15 @@ code:
   if (token == LEX_END) goto done;
   if (token == LEX_PASTE) goto paste;
   if (token == LEX_ESCAPE_O2C) goto escape;
-  if (scoped && token == LEX_IDENTIFIER) {
-    if (scope_get(scope, &out, string_init(start, in->cursor)))
-      goto symbol;
+  if (token == LEX_IDENTIFIER) {
+    if (scope_get(scope, &out, string_init(start, in->cursor))) {
+      if (out.type == AST_MACRO) {
+        goto macro;
+      } else if (out.type == AST_VARIABLE) {
+        variable = out.p;
+        goto variable;
+      }
+    }
   } else if (scoped && token == LEX_BRACE_R) {
     if (!--indent)
       goto done;
@@ -98,13 +105,18 @@ escape:
   start = in->cursor; token = lex(&in->cursor, in->data.end);
   goto code;
 
-symbol:
+macro:
   WRITE_CODE
 
-  /* Variable lookup: */
-  if (out.type != AST_VARIABLE)
-    return source_error(in, "Wrong type - only outline items may be embedded in C code.\n");
-  variable = ast_to_variable(out);
+  /* Macro invocation: */
+  CHECK(parse_macro_call(pool, in, scope, or, out.p));
+
+  start_c = in->cursor;
+  start = in->cursor; token = lex(&in->cursor, in->data.end);
+  goto code;
+
+variable:
+  WRITE_CODE
 
   /* Is there a lookup modifier? */
   start_c = in->cursor;
@@ -380,7 +392,7 @@ int parse_map_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   /* Opening brace: */
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token != LEX_BRACE_L)
-    return source_error(in, "A line within a \"map\" staement must end with a code block.");
+    return source_error(in, "A line within a \"map\" statement must end with a code block.");
 
   /* Code: */
   CHECK(parse_code(pool, in, scope, list_builder_out(&code), 1));
@@ -453,15 +465,109 @@ modifier:
       return source_error(in, "Invalid \"for\" statement modifier.");
     }
   } else if (token != LEX_BRACE_L) {
-    return source_error(in, "A \"for\" staement must end with a code block.");
+    return source_error(in, "A \"for\" statement must end with a code block.");
   }
+
+  /* Code: */
+  CHECK(parse_code(pool, in, &inner, list_builder_out(&code), 1));
+  self->code = code.first;
+
+  CHECK(or.code(or.data, AST_FOR, self));
+  return 1;
+}
+
+/**
+ * Parses a macro definition.
+ */
+int parse_macro(Pool *pool, Source *in, Scope *scope, OutRoutine or)
+{
+  char const *start;
+  Token token;
+  Scope inner = scope_init(scope);
+  ListBuilder inputs = list_builder_init(pool);
+  ListBuilder code = list_builder_init(pool);
+  AstMacro *self = pool_alloc(pool, sizeof(AstMacro));
+  CHECK_MEM(self);
+
+  /* Opening parenthesis: */
+  token = lex_next(&start, &in->cursor, in->data.end);
+  if (token != LEX_PAREN_L)
+    return source_error(in, "A macro definition must begin with an argument list.");
+
+input:
+  /* Argument? */
+  token = lex_next(&start, &in->cursor, in->data.end);
+  if (token == LEX_IDENTIFIER) {
+    AstVariable *v;
+    CHECK(v = ast_variable_new(pool, string_init(start, in->cursor)));
+    CHECK(list_builder_add(&inputs, AST_VARIABLE, v));
+    CHECK(scope_add(&inner, pool, v->name, AST_VARIABLE, v));
+
+    /* Comma or closing parenthesis: */
+    token = lex_next(&start, &in->cursor, in->data.end);
+    if (token == LEX_COMMA)
+      goto input;
+    else if (token != LEX_PAREN_R)
+      return source_error(in, "Expecting a closing ) or another argument.");
+  }
+  self->inputs = inputs.first;
+
+  /* Opening brace: */
+  token = lex_next(&start, &in->cursor, in->data.end);
+  if (token != LEX_BRACE_L)
+    return source_error(in, "A macro definition must end with a code block.");
 
   /* Code: */
   CHECK(parse_code(pool, in, &inner, list_builder_out(&code), 1));
   self->code = code.first;
   assert(self->code);
 
-  CHECK(or.code(or.data, AST_FOR, self));
+  CHECK(or.code(or.data, AST_MACRO, self));
+  return 1;
+}
+
+/**
+ * Parses a macro invocation.
+ */
+int parse_macro_call(Pool *pool, Source *in, Scope *scope, OutRoutine or, AstMacro *macro)
+{
+  char const *start;
+  Token token;
+  Dynamic out;
+  ListBuilder inputs = list_builder_init(pool);
+  AstMacroCall *self = pool_alloc(pool, sizeof(AstMacroCall));
+  CHECK_MEM(self);
+
+  self->macro = macro;
+
+  /* Opening parenthesis: */
+  token = lex_next(&start, &in->cursor, in->data.end);
+  if (token != LEX_PAREN_L)
+    return source_error(in, "A macro invocation must have an argument list.");
+
+input:
+  /* Argument? */
+  token = lex_next(&start, &in->cursor, in->data.end);
+  if (token == LEX_IDENTIFIER) {
+    in->cursor = start;
+    CHECK(lwl_parse_value(pool, in, scope, dynamic_out(&out)));
+    if (!ast_is_for_node(out.type))
+      return source_error(in, "Wrong type - macro parameters must be outlines.\n");
+    CHECK(list_builder_add(&inputs, out.type, out.p));
+
+    /* Comma or closing parenthesis: */
+    token = lex_next(&start, &in->cursor, in->data.end);
+    if (token == LEX_COMMA)
+      goto input;
+    else if (token != LEX_PAREN_R)
+      return source_error(in, "Expecting a closing ) or another argument.");
+  }
+  self->inputs = inputs.first;
+
+  if (list_length(self->inputs) != list_length(macro->inputs))
+    return source_error(in, "Wrong number of arguments.");
+
+  CHECK(or.code(or.data, AST_MACRO_CALL, self));
   return 1;
 }
 

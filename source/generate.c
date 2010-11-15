@@ -20,6 +20,7 @@
 
 int generate_code_node(FILE *out, AstCodeNode node);
 int generate_for(FILE *out, AstFor *p);
+int generate_macro_call(FILE *out, AstMacroCall *p);
 int generate_variable(FILE *out, AstVariable *p);
 int generate_map_call(FILE *out, AstMapCall *p);
 int generate_lookup(FILE *out, AstLookup *p);
@@ -63,6 +64,8 @@ int generate_code_node(FILE *out, AstCodeNode node)
     CHECK(file_write(out, p->code.p, p->code.end));
   } else if (node.type == AST_FOR) {
     CHECK(generate_for(out, node.p));
+  } else if (node.type == AST_MACRO_CALL) {
+    CHECK(generate_macro_call(out, node.p));
   } else if (node.type == AST_VARIABLE) {
     CHECK(generate_variable(out, node.p));
   } else if (node.type == AST_MAP_CALL) {
@@ -124,6 +127,41 @@ int generate_for(FILE *out, AstFor *p)
     }
   }
 
+  return 1;
+}
+
+int generate_macro_call(FILE *out, AstMacroCall *p)
+{
+  ListNode *call_input;
+  ListNode *macro_input;
+  Pool pool;
+  CHECK_MEM(pool_init(&pool, 0x100));
+
+  /* Assign values to all inputs: */
+  macro_input = p->macro->inputs;
+  call_input = p->inputs;
+  while (macro_input && call_input) {
+    AstVariable *input = ast_to_variable(*macro_input);
+
+    if (call_input->type == AST_VARIABLE) {
+      AstVariable *value = call_input->p;
+      input->value = value->value;
+    } else if (call_input->type == AST_OUTLINE) {
+      AstOutlineItem *temp = pool_alloc(&pool, sizeof(AstOutlineItem));
+      temp->children = call_input->p;
+      temp->name = input->name;
+      temp->tags = 0;
+      input->value = temp;
+    } else {
+      assert(0);
+    }
+
+    macro_input = macro_input->next;
+    call_input = call_input->next;
+  }
+
+  CHECK(generate_code(out, p->macro->code));
+  pool_free(&pool);
   return 1;
 }
 

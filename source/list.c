@@ -18,6 +18,17 @@
 #include <stdio.h>
 
 /**
+ * Counts the nodes in a list.
+ */
+int list_length(ListNode *first)
+{
+  int i;
+  for (i = 0; first; first = first->next)
+    ++i;
+  return i;
+}
+
+/**
  * Initializes a new ListBuilder structure.
  */
 ListBuilder list_builder_init(Pool *pool)

@@ -33,6 +33,8 @@ struct ListNode {
   Type type;
 };
 
+int list_length(ListNode *first);
+
 /**
  * This structure automates the process of building a linked list. The `first`
  * element remembers the first element in the list, and the `last` element

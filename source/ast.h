@@ -32,6 +32,8 @@ typedef struct ast_filter_any           AstFilterAny;
 typedef struct ast_filter_not           AstFilterNot;
 typedef struct ast_filter_and           AstFilterAnd;
 typedef struct ast_filter_or            AstFilterOr;
+typedef struct ast_macro                AstMacro;
+typedef struct ast_macro_call           AstMacroCall;
 typedef struct ast_variable             AstVariable;
 typedef struct ast_map_call             AstMapCall;
 typedef struct ast_lookup               AstLookup;
@@ -44,6 +46,7 @@ typedef struct ast_filter_node          AstFilterNode;
  * Points to one of:
  *  AstCodeText
  *  AstFor
+ *  AstMacroCall
  *  AstVariable
  *  AstMapCall
  *  AstLookup
@@ -92,7 +95,7 @@ AstOutlineTag      *ast_to_outline_tag(ListNode node);
 AstMap             *ast_to_map(Dynamic node);
 AstMapLine         *ast_to_map_line(ListNode node);
 AstFilter          *ast_to_filter(Dynamic node);
-AstVariable        *ast_to_variable(Dynamic node);
+AstVariable        *ast_to_variable(ListNode node);
 
 /**
  * A run of text in the host language.
@@ -194,6 +197,22 @@ struct ast_filter_and {
 struct ast_filter_or {
   AstFilterNode test_a;
   AstFilterNode test_b;
+};
+
+/**
+ * A macro definition
+ */
+struct ast_macro {
+  ListNode *inputs; /* Real type is AstVariable */
+  ListNode *code;
+};
+
+/**
+ * A macro invocation
+ */
+struct ast_macro_call {
+  AstMacro *macro;
+  ListNode *inputs; /* Real type is AstForNode */
 };
 
 /**

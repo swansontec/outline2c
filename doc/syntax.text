@@ -202,3 +202,21 @@ This line creates a new outline, called `both`, which contains all the items in 
 
 The resulting union contains all the items from `outline_a` and any items from
 `outline_b` that thave the tag `foo`.
+
+Macros
+------
+
+The "macro" keyword defines a macro:
+
+    \ol do_stuff = macro(a, b) { \ol for i in a { b } }
+
+Invoking a macro is pretty straightforward:
+
+    do_stuff(outline_a, item_b)
+
+This is equivalent to entering the following code directly:
+
+    \ol for i in outline_a { item_b }
+
+Macros can only take outlines and outline items as parameters. Macro parameters
+cannot be maps or other macros, for example.

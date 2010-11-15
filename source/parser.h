@@ -25,5 +25,6 @@ int parse_outline(Pool *pool, Source *in, Scope *scope, OutRoutine or);
 int parse_union(Pool *pool, Source *in, Scope *scope, OutRoutine or);
 int parse_map(Pool *pool, Source *in, Scope *scope, OutRoutine or);
 int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or);
+int parse_macro(Pool *pool, Source *in, Scope *scope, OutRoutine or);
 
 #endif
