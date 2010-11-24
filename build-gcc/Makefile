@@ -93,7 +93,7 @@ install: outline2c
 	cp outline2c /usr/bin/outline2c
 
 test: outline2c
-	./outline2c test.c.ol
+	./outline2c  ../build-gcc/test.c.ol
 	diff test.c.ref test.c
 
 run: outline2c
