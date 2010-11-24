@@ -407,7 +407,6 @@ int parse_map_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   /* Code: */
   CHECK(parse_code(pool, in, scope, list_builder_out(&code), 1));
   self->code = code.first;
-  assert(self->code);
 
   CHECK(or.code(or.data, AST_MAP_LINE, self));
   return 1;
@@ -530,7 +529,6 @@ input:
   /* Code: */
   CHECK(parse_code(pool, in, &inner, list_builder_out(&code), 1));
   self->code = code.first;
-  assert(self->code);
 
   CHECK(or.code(or.data, AST_MACRO, self));
   return 1;
