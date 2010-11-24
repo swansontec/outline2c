@@ -22,10 +22,10 @@ int ast_is_code_node(Type type)
 {
   return
     type == AST_CODE_TEXT ||
+    type == AST_MAP ||
     type == AST_FOR ||
     type == AST_MACRO_CALL ||
     type == AST_VARIABLE ||
-    type == AST_MAP_CALL ||
     type == AST_LOOKUP;
 }
 
@@ -145,18 +145,6 @@ AstVariable *ast_variable_new(Pool *p, String name)
   self->value = 0;
 
   CHECK_MEM(string_size(self->name));
-  return self;
-}
-
-AstMapCall *ast_map_call_new(Pool *p, AstVariable *item, AstMap *map)
-{
-  AstMapCall *self = pool_alloc(p, sizeof(AstMapCall));
-  CHECK_MEM(self);
-  self->item = item;
-  self->map = map;
-
-  assert(self->item);
-  assert(self->map);
   return self;
 }
 

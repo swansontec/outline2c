@@ -4,8 +4,7 @@
 
 /* Test maps: */
 
-
-  "one": type_a    "two": type_b    "three": other  
+ "one": type_a  "two": type_b  "three": other 
 
 /* Test nested outlines: */
 

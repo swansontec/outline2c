@@ -19,10 +19,10 @@
 #include <assert.h>
 
 int generate_code_node(FILE *out, AstCodeNode node);
+int generate_map(FILE *out, AstMap *p);
 int generate_for(FILE *out, AstFor *p);
 int generate_macro_call(FILE *out, AstMacroCall *p);
 int generate_variable(FILE *out, AstVariable *p);
-int generate_map_call(FILE *out, AstMapCall *p);
 int generate_lookup(FILE *out, AstLookup *p);
 int generate_lookup_tag(FILE *out, AstLookup *p);
 int generate_lookup_builtin(FILE *out, AstLookup *p);
@@ -62,20 +62,45 @@ int generate_code_node(FILE *out, AstCodeNode node)
   if (node.type == AST_CODE_TEXT) {
     AstCodeText *p = node.p;
     CHECK(file_write(out, p->code.p, p->code.end));
+  } else if (node.type == AST_MAP) {
+    CHECK(generate_map(out, node.p));
   } else if (node.type == AST_FOR) {
     CHECK(generate_for(out, node.p));
   } else if (node.type == AST_MACRO_CALL) {
     CHECK(generate_macro_call(out, node.p));
   } else if (node.type == AST_VARIABLE) {
     CHECK(generate_variable(out, node.p));
-  } else if (node.type == AST_MAP_CALL) {
-    CHECK(generate_map_call(out, node.p));
   } else if (node.type == AST_LOOKUP) {
     CHECK(generate_lookup(out, node.p));
   } else {
     assert(0);
   }
   return 1;
+}
+
+/**
+ * Performs code-generation for a map statement.
+ */
+int generate_map(FILE *out, AstMap *p)
+{
+  AstOutlineItem *item = p->item->value;
+  ListNode *line;
+  char *temp;
+
+  /* Match against the map: */
+ for (line = p->lines; line; line = line->next) {
+   AstMapLine *l = ast_to_map_line(*line);
+   if (test_filter(l->filter, item)) {
+     CHECK(generate_code(out, l->code));
+     return 1;
+   }
+ }
+
+ /* Nothing matched: */
+ temp = string_to_c(p->item->value->name);
+ fprintf(stderr, "error: Could not match item \"%s\" against map.\n", temp);
+ free(temp);
+ return 0;
 }
 
 /**
@@ -174,32 +199,6 @@ int generate_variable(FILE *out, AstVariable *p)
 
   CHECK(file_write(out, item->name.p, item->name.end));
   return 1;
-}
-
-/**
- * Performs code-generation for a map call
- */
-int generate_map_call(FILE *out, AstMapCall *p)
-{
-  AstOutlineItem *item = p->item->value;
-  ListNode *line;
-  char *temp;
-
-  /* Match against the map: */
-  for (line = p->map->lines; line; line = line->next) {
-    AstMapLine *l = ast_to_map_line(*line);
-    if (test_filter(l->filter, item)) {
-      p->map->item->value = item;
-      CHECK(generate_code(out, l->code));
-      return 1;
-    }
-  }
-
-  /* Nothing matched: */
-  temp = string_to_c(p->item->value->name);
-  fprintf(stderr, "error: Could not match item \"%s\" against map.\n", temp);
-  free(temp);
-  return 0;
 }
 
 /**
