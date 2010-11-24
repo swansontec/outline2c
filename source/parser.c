@@ -160,6 +160,7 @@ int parse_include(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 {
   char const *start;
   Token token;
+  char const *p, *base_end;
   Source source;
   ListBuilder code = list_builder_init(pool);
 
@@ -168,14 +169,23 @@ int parse_include(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   if (token != LEX_STRING)
     return source_error(in, "An include statment expects a quoted filename.");
 
+  /* Resolve relative paths: */
+  base_end = in->filename.p;
+  for (p = in->filename.p; p < in->filename.end; ++p)
+    if (*p == '\\' || *p == '/')
+      base_end = p + 1;
+  source.filename = string_merge(
+    string_init(in->filename.p, base_end),
+    string_init(start + 1, in->cursor - 1));
+
   /* Process the file's contents: */
-  source.filename = string_init(start + 1, in->cursor - 1);
   source.data = string_load(source.filename);
   if (!string_size(source.data)) {
     return source_error(in, "Could not open the included file.");
   }
   source.cursor = source.data.p;
   CHECK(parse_code(pool, &source, scope, list_builder_out(&code), 0));
+  string_free(source.filename);
   string_free(source.data);
 
   /* Closing semicolon: */

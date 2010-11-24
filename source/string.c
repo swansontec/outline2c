@@ -101,6 +101,29 @@ size_t string_rmatch(String s1, String s2)
 }
 
 /**
+ * Concatenates one string onto another
+ */
+String string_merge(String a, String b)
+{
+  String s;
+  char const *in;
+  char *out;
+
+  out = malloc(string_size(a) + string_size(b));
+  if (!out)
+    return string_null();
+
+  s = string_init_l(out, string_size(a) + string_size(b));
+
+  for (in = a.p; in < a.end; ++in)
+    *out++ = *in;
+  for (in = b.p; in < b.end; ++in)
+    *out++ = *in;
+
+  return s;
+}
+
+/**
  * Opens a file, storing cleanup data and content pointers in the File
  * structure. The content pointers will be NULL if the function fails.
  * @return 0 for failure
@@ -146,7 +169,7 @@ error:
 }
 
 /**
- * Frees the memory allocated by string_load.
+ * Frees the memory allocated by string_merge or string_load
  */
 void string_free(String data)
 {
