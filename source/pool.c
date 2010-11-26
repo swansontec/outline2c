@@ -141,7 +141,7 @@ void *pool_aligned_alloc(Pool *p, size_t size, size_t align)
       return pool_aligned_alloc_sys(p, size, align);
 
     /* Grow the pool: */
-    if (pool_grow(p, block_size)) return 0;
+    if (!pool_grow(p, block_size)) return 0;
     start = ALIGN(p->next, p->block, align);
     end = start + size;
   }
