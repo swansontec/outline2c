@@ -4,12 +4,12 @@ Outline to C Documentation
 Escaping
 --------
 
-By default, the outline2c compiler treats its input as pain C code, and simply writes it to the output file. Statements intended for outline2c must begin with the special `\ol` escape code. Outline2c ignores escape codes that occur inside C-style comments (`/**/`), C++-style comments (`//`), and strings.
+By default, the outline2c compiler treats its input as pain C code and simply writes it to the output file. Statements intended for outline2c must begin with the special `\ol` escape code. Outline2c ignores escape codes that occur inside C-style comments (`/**/`), C++-style comments (`//`), and strings.
 
 Basic usage
 -----------
 
-The `outline` keyword creates an outline. All outlines have a name, and can contain any number of items. Here is an example:
+The `outline` keyword creates an outline. Outlines can contain any number of items. Here is an example:
 
     \ol breakfast = outline {
       eggs;
@@ -17,20 +17,20 @@ The `outline` keyword creates an outline. All outlines have a name, and can cont
       toast;
     }
 
-This example creates an outline named "breakfast" which contains three items named "eggs", "bacon", and "toast".
+This example creates an outline named "breakfast" with three items named "eggs", "bacon", and "toast".
 
-The `for` statement provides a way to generate code based on an outline. The for statement loops over the items in an outline and writes a block of code for each one:
+The `for` statement generates code based on an outline. The `for` statement loops over the items in an outline and writes a block of code for each one:
 
     \ol for food in breakfast { int food; }
 
-This example loops over the items in the outline named "breakfast". On each iteration, the variable named "food" is set to the name of the current item. So, "food" would be "eggs" on the first iteration, "bacon" on the second iteration and "toast" on the last iteration. The code between the `{}` brackets is written to the output on each iteration, so the complete output from this example would be:
+This example loops over the items in the outline named "breakfast". On each iteration, the variable named "food" is set to the current item's name. So, "food" would be "eggs" on the first iteration, "bacon" on the second iteration and "toast" on the last iteration. The code between the `{}` brackets is written to the output on each iteration, so the complete output from this example would be:
 
     int eggs;  int bacon;  int toast;
 
 Renaming items
 --------------
 
-It often makes sense to modify the name of an outline item before writing it to the output. For example, the generated code might be defining a C variable for each item in an outline. The variable's name should be based on the item name, but might need a prefix or a different capitalization. Outline2c provides some tools for dealing with these situations.
+It often makes sense to modify an item's name before writing it to the output. Outline2c provides a few ways to do this.
 
 The `\\\\` operator concatenates text onto the beginning or end of an item name:
 
@@ -40,7 +40,7 @@ This example places the prefix "have_" on the beginning of each item name, produ
 
     int have_eggs;  int have_bacon;  int have_toast;
 
-Outline2c also provides several transformations that modify the name itself:
+Outline2c provides several transformations that modify the item name itself:
 
 * `upper` - Converts the name to `UPPER_CASE`
 * `lower` - Converts the name to `lower_case`
@@ -48,7 +48,7 @@ Outline2c also provides several transformations that modify the name itself:
 * `mixed` - Converst the name to `mixedCase`
 * `quote` - Surrounds the name in "quotes"
 
-The `!` operator appies one of these transformations to the item name:
+The `!` operator appies one of these transformations to the item:
 
     \ol for food in breakfast { printf(food!quote); }
 
@@ -67,10 +67,12 @@ Generates:
     #define WANT_BACON
     #define WANT_TOAST
 
+The case transformers handle multi-word item names intelligently. They are smart enough to transform "FrenchToast" into "FRENCH_TOAST", for example.
+
 Advanced options
 ----------------
 
-Outline2c provides a few options which modify the behavior of the `for` statment. The `list` option inserts a comma between each block of code. This is useful when generating function parameter lists, enum definitions, and so forth:
+Outline2c provides a few options that modify the `for` statment's behavior. The `list` option inserts a comma between each block of code. This is useful for generating function parameter lists, enum definitions, and so forth:
 
     int place_order(\ol for food in breakfast list { int food });
 
@@ -92,22 +94,22 @@ Tags
 Items within an outline can have "tags." Tags, if present, always come before the item's name:
 
     \ol club = outline {
-      active tim;
-      joe;
-      active president bob;
+      active Tim;
+      Joe;
+      active president Bob;
     }
 
-In this example, the item named "tim" has one tag, "active". The item named "joe" has no tags, and the item named "bob" has two tags, "active" and "president".
+The item named "Bob" has two tags in this example, "active" and "president".
 
-Tags are mainly used to filter items by type. One way to do this is by restricting the `for` statement to only process items that match a certain filter. This is done using the `with` option:
+The `for` statement can filter items based on tags. This is done using the `with` option:
 
     \ol for member in club with active { member; }
 
 The example above only processes items in the "club" outline that have an "active" tag:
 
-    tim;  bob;
+    Tim;  Bob;
 
-The `with` option can be freely combined with the `list` and `reverse` options. Tag filters support several operators:
+The `with` option can be freely combined with the `list` and `reverse` options. Filters support several operators:
 
 * `tag` - matches any item that has `tag`
 * `!tag` - matches any item that does not have `tag`
@@ -120,21 +122,22 @@ Operators can be combined to form arbitrary expressions such as `(active | honor
 Maps
 ----
 
-Maps provide another method of filtering items based on tags. A map contains a list of code blocks guarded by tag filters. The map finds the first filter that matches the passed-in item and writes the corresponding code block:
+Maps offer another way to filter items based on tags. A map contains a set of filters and code blocks. The map finds the first matching filter and emits the corresponding code block:
 
-    \ol for member in club {\ol map member {
-      president {printf("Hello, Sir %s!\\n", member!quote);}
-      active    {printf("Hello, %s.\\n", member!quote);}
-      !active   {printf("Welcome back, %s.\\n", member!quote);}
-    }}
+    \ol for member in club {
+      \ol map member {
+        president {printf("Hello, Master %s!\\n", member!quote);}
+        active    {printf("Hello, %s.\\n", member!quote);}
+        !active   {printf("Welcome back, %s.\\n", member!quote);}
+      }}
 
-In this example, the input to the map is the `member` item from the for loop. The map selects an appropriate greeting based on the member's tags, producing the following output:
+In this example, the map selects an appropriate greeting based on the "member" item's tags, producing the following output:
 
-    printf("Hello, %s.\\n", "tim"}
-    printf("Welcome back, %s.\\n", "joe");
-    printf("Hello, Sir %s!\\n", "bob");
+    printf("Hello, %s.\\n", "Tim");
+    printf("Welcome back, %s.\\n", "Joe");
+    printf("Hello, Master %s!\\n", "Bob");
 
-Each element within a map begins with a filter and ends with a block of code. The map returns the code attached to the first matching filter. If no filters match, outline2c quits with an error.
+Outline2c generates an error message if none of the options match.
 
 Tag values
 ----------
@@ -170,7 +173,7 @@ Each item within an outline can contain another outline inside it. For example:
       washington_dc;
     }
 
-In this example, the items named "california" and "washington" each contain nested outlines.
+In this example, the "california" and "washington" items each contain nested outlines.
 
 To generate code for nested outlines, simply place one `for` statement inside another, using the current item as the outline name:
 
@@ -187,21 +190,21 @@ This example produces:
 Outline unions
 --------------
 
-The "union" keyword gathers items from several outlines into one:
+The `union` keyword gathers items from several outlines into one:
 
     \ol both = union {outline_a, outline_b}
 
-This line creates a new outline, called `both`, which contains all the items in `outline_a` and `outline_b`. Unions also understand the `with` modifier:
+This line creates a new outline, called "both", which contains all the items in "outline_a" and "outline_b". Unions also understand the `with` modifier:
 
     \ol some = union {outline_a, outline_b with foo}
 
-The resulting union contains all the items from `outline_a` and any items from
-`outline_b` that thave the tag `foo`.
+The resulting union contains all the items from "outline_a" and any items from
+"outline_b" that have the tag "foo".
 
 Macros
 ------
 
-The "macro" keyword defines a macro:
+The `macro` keyword defines a macro:
 
     \ol do_stuff = macro(a, b) { \ol for i in a { b } }
 
@@ -213,5 +216,4 @@ This is equivalent to entering the following code directly:
 
     \ol for i in outline_a { item_b }
 
-Macros can only take outlines and outline items as parameters. Macro parameters
-cannot be maps or other macros, for example.
+Macros only accept outlines and outline items as parameters.
