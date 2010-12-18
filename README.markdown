@@ -1,45 +1,50 @@
-The outline2c utility runs before the regular C or C++ preprocessor. It generates related blocks of code from a common outline, eliminating redundancy and improving maintainability.
+About outline2c
+===============
 
-For example, a program with several settings might need to store its settings in memory, load the settings from disk, save the settings back to disk, and show a settings dialog. Adding a setting to the program would normally involve editing all these locations, but outline2c makes it possible to define all the settings in one place:
+The outline2c utility runs before the regular C or C++ preprocessor. It provides a simple code-generation language based on outlines and code templates. Outlines give a list of items to generate, while code templates describe how to generate each item.
+
+Outline2c helps eliminate redundancy. For example, a program with several settings could list them all in one place:
 
     \ol settings = outline {
       number width;
       number height;
-      number threads;
+      number speed;
       string username;
       string save_dir;
     }
 
-Using simple templates, outline2c can convert this outline into the appropriate C code. Here is an example:
+Templates transform outlines into running code:
 
     struct settings {
-      \ol type = map x { number {int} string {char *} }
-      \ol for setting in settings { setting!type setting; }
-    };
-
-    void save_settings(struct settings *s, FILE *f)
-    {
-      \ol format = map x { number {"%s=%d\n"} string {"%s=%s\n"} }
-      \ol for setting in settings {
-        fprintf(f, setting!format, setting!quote, s->setting);
+      \ol for i in settings {
+        \ol map i {
+          number {int i;}
+          string {char *i;}
+        }
       }
-    }
-
-The output from this example would look something like this:
-
-    struct settings {
-      int width; 
-      int height; 
-      int threads; 
-      char *username; 
-      char *save_dir; 
     };
 
-    void save_settings(struct settings *s, FILE *f)
-    {
-      fprintf(f, "%s=%d\n", "width", s->width); 
-      fprintf(f, "%s=%d\n", "height", s->height); 
-      fprintf(f, "%s=%d\n", "threads", s->threads); 
-      fprintf(f, "%s=%s\n", "username", s->username); 
-      fprintf(f, "%s=%s\n", "save_dir", s->save_dir); 
-    }
+This example produces something like:
+
+    struct settings {
+      int width;
+      int height;
+      int speed;
+      char *username;
+      char *save_dir;
+    };
+
+The same outline could be again and again to generate the settings GUI, command-line options parser, config-file reader, and so forth. Adding a setting would normally involve editing all these locations, but with outline2c it only involves a one-line change.
+
+Full documentation is in the `doc/syntax.markdown` file.
+
+Building outline2c
+==================
+
+For Linux:
+
+    cd build-gcc
+    make
+    sudo make install
+
+Windows users can find Visual Studio 2010 project files in the build-vs2010 folder.
