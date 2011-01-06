@@ -1,52 +1,28 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="..\source\ast.c" />
-    <ClCompile Include="..\source\context.c" />
-    <ClCompile Include="..\source\debug.c" />
-    <ClCompile Include="..\source\filter.c" />
-    <ClCompile Include="..\source\generate.c" />
-    <ClCompile Include="..\source\lexer.c">
-      <Filter>utility</Filter>
-    </ClCompile>
-    <ClCompile Include="..\source\list.c">
-      <Filter>utility</Filter>
-    </ClCompile>
-    <ClCompile Include="..\source\lwl.c" />
-    <ClCompile Include="..\source\main.c" />
-    <ClCompile Include="..\source\parser.c" />
-    <ClCompile Include="..\source\pool.c">
-      <Filter>utility</Filter>
-    </ClCompile>
-    <ClCompile Include="..\source\string.c">
-      <Filter>utility</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\source\ast.h" />
-    <ClInclude Include="..\source\context.h" />
-    <ClInclude Include="..\source\debug.h" />
-    <ClInclude Include="..\source\filter.h" />
-    <ClInclude Include="..\source\generate.h" />
-    <ClInclude Include="..\source\lexer.h">
-      <Filter>utility</Filter>
-    </ClInclude>
-    <ClInclude Include="..\source\list.h">
-      <Filter>utility</Filter>
-    </ClInclude>
-    <ClInclude Include="..\source\lwl.h" />
-    <ClInclude Include="..\source\parser.h" />
-    <ClInclude Include="..\source\pool.h">
-      <Filter>utility</Filter>
-    </ClInclude>
-    <ClInclude Include="..\source\string.h">
-      <Filter>utility</Filter>
-    </ClInclude>
-    <ClInclude Include="..\source\type.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Filter Include="utility">
-      <UniqueIdentifier>{4d2d6bcf-76d9-4bfe-a108-352fac47e068}</UniqueIdentifier>
+    <Filter Include="build">
+      <UniqueIdentifier>{c4d8692c-fb05-4b73-8eae-5ab16ce4aa50}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\source\outline2c.c">
+      <Filter>build</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\source\ast.c" />
+    <ClInclude Include="..\source\context.c" />
+    <ClInclude Include="..\source\debug.c" />
+    <ClInclude Include="..\source\filter.c" />
+    <ClInclude Include="..\source\generate.c" />
+    <ClInclude Include="..\source\lexer.c" />
+    <ClInclude Include="..\source\list.c" />
+    <ClInclude Include="..\source\lwl.c" />
+    <ClInclude Include="..\source\main.c" />
+    <ClInclude Include="..\source\parser.c" />
+    <ClInclude Include="..\source\pool.c" />
+    <ClInclude Include="..\source\string.c" />
+    <ClInclude Include="..\source\type.c" />
   </ItemGroup>
 </Project>

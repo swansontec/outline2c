@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-#include "filter.h"
-#include <assert.h>
-#include <stdio.h>
-
 int test_filter_node(AstFilterNode test, AstOutlineItem *item);
 int test_filter_tag(AstFilterTag *test, AstOutlineItem *item);
 int test_filter_not(AstFilterNot *test, AstOutlineItem *item);
@@ -76,9 +72,14 @@ int test_filter_or(AstFilterOr *test, AstOutlineItem *item)
 }
 
 /**
- * Initializes the AST-building stack.
- * @return 0 for failure
+ * A stack for building filters using Dijkstra's shunting-yard algorithm
  */
+typedef struct {
+  Dynamic *stack;
+  size_t stack_size;
+  size_t stack_top;
+} FilterBuilder;
+
 int filter_builder_init(FilterBuilder *b)
 {
   b->stack_size = 32;

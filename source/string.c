@@ -14,10 +14,19 @@
  * limitations under the License.
  */
 
-#include "string.h"
-#include <string.h>
-#include <malloc.h>
-#include <stdio.h>
+/**
+ * A string without a null terminator. The structure consists of a pointer to
+ * the beginning of the string, p, and a pointer one-past the end of the
+ * string, end. This scheme makes it possible divide a longer string into
+ * smaller pieces without making copies. It also makes it trivial to find a
+ * string's length.
+ */
+typedef struct {
+  char const *p;
+  char const *end;
+} String;
+
+#define string_size(s) ((s).end - (s).p)
 
 String string_init(char const *p, char const *end)
 {

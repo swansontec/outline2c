@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-#include "generate.h"
-#include "filter.h"
-#include <assert.h>
-
 int generate_code_node(FILE *out, AstCodeNode node);
 int generate_map(FILE *out, AstMap *p);
 int generate_for(FILE *out, AstFor *p);

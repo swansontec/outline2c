@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 
-#include "debug.h"
-#include <stdio.h>
-
 void dump_code_node(AstCodeNode node, int indent);
 
 void dump_outline(AstOutline *p, int indent);

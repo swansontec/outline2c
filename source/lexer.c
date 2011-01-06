@@ -14,8 +14,43 @@
  * limitations under the License.
  */
 
-#include "lexer.h"
-#include "string.h"
+/**
+ * Possible token types.
+ */
+typedef enum {
+  LEX_ERROR_END = -100, /* Unexpected end-of-file */
+  LEX_ERROR,            /* Unrecognized character sequence */
+
+  LEX_START,            /* Start of file */
+  LEX_END = 0,          /* Normal end-of-file */
+
+  LEX_WHITESPACE,       /* Newlines, spaces, & tabs */
+  LEX_COMMENT,          /* Both types of comment */
+  LEX_STRING,           /* C-style double-quoted string */
+  LEX_CHAR,             /* C-style single-quoted character */
+  LEX_NUMBER,           /* C-style integer */
+  LEX_IDENTIFIER,       /* [_a-zA-Z][_a-zA-Z0-9]* */
+  LEX_ESCAPE,           /* @[_a-zA-Z0-9]+ */
+  LEX_ESCAPE_O2C,       /* @o2c */
+  LEX_PASTE,            /* \\ */
+
+  LEX_BANG,             /* ! */
+  LEX_AMP,              /* & */
+  LEX_PAREN_L,          /* ( */
+  LEX_PAREN_R,          /* ) */
+  LEX_STAR,             /* * */
+  LEX_COMMA,            /* , */
+  LEX_DOT,              /* . */
+  LEX_SLASH,            /* / */
+  LEX_SEMICOLON,        /* ; */
+  LEX_LT,               /* < */
+  LEX_EQUALS,           /* = */
+  LEX_GT,               /* > */
+  LEX_BACKSLASH,        /* \ */
+  LEX_BRACE_L,          /* { */
+  LEX_PIPE,             /* | */
+  LEX_BRACE_R           /* } */
+} Token;
 
 #define IS_SPACE(c) \
   c == ' '  || c == '\t' || \

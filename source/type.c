@@ -20,10 +20,7 @@
  * types within the system and provides a typed-pointer structure.
  */
 
-#ifndef TYPE_H_INCLUDED
-#define TYPE_H_INCLUDED
-
-enum Type {
+typedef enum {
   TYPE_KEYWORD,
 
   AST_CODE,
@@ -46,14 +43,12 @@ enum Type {
   AST_LOOKUP,
 
   TYPE_END
-};
-typedef enum Type Type;
+} Type;
 
-struct Dynamic {
+typedef struct {
   void *p;
   Type type;
-};
-typedef struct Dynamic Dynamic;
+} Dynamic;
 
 /**
  * All functions return 1 for success and 0 for failure. This macro checks a
@@ -70,5 +65,3 @@ typedef struct Dynamic Dynamic;
     fprintf(stderr, "error: Out of memory at %s:%d\n", __FILE__, __LINE__); \
     return 0; \
   } } while(0)
-
-#endif

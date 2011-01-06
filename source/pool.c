@@ -14,10 +14,43 @@
  * limitations under the License.
  */
 
-#include "pool.h"
-#include "string.h"
-#include <stdlib.h>
-#include <string.h>
+/**
+ * A memory pool. The memory pool provides efficient allocation, but does not
+ * offer any way to free individual elements. Instead, the entire pool must be
+ * freed at once.
+ *
+ * The memory pool works by allocating a large block of memory up-front. Then,
+ * each time it recieves an allocation request, it returns a portion of the
+ * block. When the block becomes full, the pool allocates another block and
+ * continues in the same way. The only record-keeping is a pointer to the
+ * remaining free space in the current block, plus a list of used blocks for
+ * later freeing.
+ *
+ * This strategy works well when the requested objects are much smaller than
+ * the block size. Attempting to allocate objects larger than the block size
+ * will always fail, and attempting to allocate objects near the block size
+ * can waste large amounts of memory. The pool_alloc function deals with this
+ * problem by falling back on malloc for certain large requests. To force a
+ * request to come from malloc rather than the the pool, use the pool_alloc_sys
+ * function. The memory will be freed when the pool itself is freed, as usual.
+ *
+ * To determine how much free space is available in the current block, use the
+ * pool_unused function.
+ *
+ * Most pool_ functions have an pool_aligned_ alternative. These alternatives
+ * take an explicit alignment parameter. The alignment must be a power of two,
+ * and should be smaller than malloc's native allignment. If the allignment is
+ * larger, malloc's native alignment will be used instead and a small amount of
+ * memory might be wasted.
+ *
+ * The other functions use a default alignment suitable for any normal C data
+ * type.
+ */
+typedef struct {
+  char *block;  /* The current block. */
+  char *next;   /* The next free location in the current block */
+  char *end;    /* One-past the end of the current block */
+} Pool;
 
 /* Choose an alignment technique based on the platform: */
 #if defined(WIN32)
@@ -39,15 +72,15 @@
 #endif
 
 /* Discern the platform's alignment requirements: */
-struct align_test {
+typedef struct {
   char x;
   union {
     void *vp; Pool *pp;
     char c; short s; int i; long l;
     float f; double d; long double ld;
   } data;
-};
-#define DEFAULT_ALIGN offsetof(struct align_test, data)
+} AlignTest;
+#define DEFAULT_ALIGN offsetof(AlignTest, data)
 
 /**
  * Helper function to add new blocks to the pool. This function does not modify
@@ -98,35 +131,24 @@ void pool_free(Pool *p)
 }
 
 /**
- * Allocates memory from the pool.
- * @return address of the requested memory, or 0 for failure,
- */
-void *pool_alloc(Pool *p, size_t size)
-{
-  return pool_aligned_alloc(p, size, DEFAULT_ALIGN);
-}
-
-/**
  * Allocates memory using malloc and adds the result to the pool's list of
  * blocks to free.
- * @return address of the requested memory, or 0 for failure,
  */
-void *pool_alloc_sys(Pool *p, size_t size)
+void *pool_aligned_alloc_sys(Pool *p, size_t size, size_t align)
 {
-  return pool_aligned_alloc_sys(p, size, DEFAULT_ALIGN);
+  size_t padding = sizeof(char*) < align ? align : sizeof(char*);
+  char *block = malloc(padding + size);
+  if (!block) return 0;
+
+  /* Add the block to the list of stuff to free: */
+  *(char**)block = *(char**)p->block;
+  *(char**)p->block = block;
+
+  return block + padding;
 }
 
 /**
- * Returns the remaining free space in the current block.
- * @return address of the requested memory, or 0 for failure,
- */
-size_t pool_unused(Pool *p)
-{
-  return pool_aligned_unused(p, DEFAULT_ALIGN);
-}
-
-/**
- * A variant of pool_alloc taking an explicit alignment parameter.
+ * Allocates memory from the pool.
  */
 void *pool_aligned_alloc(Pool *p, size_t size, size_t align)
 {
@@ -151,23 +173,7 @@ void *pool_aligned_alloc(Pool *p, size_t size, size_t align)
 }
 
 /**
- * A variant of pool_alloc_sys taking an explicit alignment parameter.
- */
-void *pool_aligned_alloc_sys(Pool *p, size_t size, size_t align)
-{
-  size_t padding = sizeof(char*) < align ? align : sizeof(char*);
-  char *block = malloc(padding + size);
-  if (!block) return 0;
-
-  /* Add the block to the list of stuff to free: */
-  *(char**)block = *(char**)p->block;
-  *(char**)p->block = block;
-
-  return block + padding;
-}
-
-/**
- * A variant of pool_unused taking an explicit alignment parameter.
+ * Returns the remaining free space in the current block.
  */
 size_t pool_aligned_unused(Pool *p, size_t align)
 {
@@ -175,6 +181,30 @@ size_t pool_aligned_unused(Pool *p, size_t align)
   if (p->end < start || !start)
     return 0;
   return p->end - start;
+}
+
+/**
+ * A variant of pool_aligned_alloc_sys using default alignment
+ */
+void *pool_alloc_sys(Pool *p, size_t size)
+{
+  return pool_aligned_alloc_sys(p, size, DEFAULT_ALIGN);
+}
+
+/**
+ * A variant of pool_aligned_alloc using default alignment
+ */
+void *pool_alloc(Pool *p, size_t size)
+{
+  return pool_aligned_alloc(p, size, DEFAULT_ALIGN);
+}
+
+/**
+ * A variant of pool_aligned_unused using default alignment
+ */
+size_t pool_unused(Pool *p)
+{
+  return pool_aligned_unused(p, DEFAULT_ALIGN);
 }
 
 /**

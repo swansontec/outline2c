@@ -14,17 +14,24 @@
  * limitations under the License.
  */
 
-#ifndef PARSER_H_INCLUDED
-#define PARSER_H_INCLUDED
+#include <assert.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "context.h"
+#include "string.c"
+#include "pool.c"
+#include "lexer.c"
 
-int parse_code(Pool *pool, Source *in, Scope *scope, OutRoutine or, int scoped);
-int parse_include(Pool *pool, Source *in, Scope *scope, OutRoutine or);
-int parse_outline(Pool *pool, Source *in, Scope *scope, OutRoutine or);
-int parse_union(Pool *pool, Source *in, Scope *scope, OutRoutine or);
-int parse_map(Pool *pool, Source *in, Scope *scope, OutRoutine or);
-int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or);
-int parse_macro(Pool *pool, Source *in, Scope *scope, OutRoutine or);
+#include "type.c"
+#include "context.c"
+#include "list.c"
 
-#endif
+#include "lwl.c"
+#include "ast.c"
+#include "filter.c"
+#include "parser.c"
+#include "debug.c"
+#include "generate.c"
+#include "main.c"

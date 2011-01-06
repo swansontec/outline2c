@@ -14,8 +14,17 @@
  * limitations under the License.
  */
 
-#include "list.h"
-#include <stdio.h>
+/**
+ * An element within a list. Not all lists are dynamically-typed, but having
+ * a single dynamically-typed node struct saves the trouble of creating ad-hoc
+ * node structs for those cases.
+ */
+typedef struct ListNode ListNode;
+struct ListNode {
+  ListNode *next;
+  void *p;
+  Type type;
+};
 
 /**
  * Counts the nodes in a list.
@@ -27,6 +36,17 @@ int list_length(ListNode *first)
     ++i;
   return i;
 }
+
+/**
+ * This structure automates the process of building a linked list. The `first`
+ * element remembers the first element in the list, and the `last` element
+ * makes it possible to quickly insert new elements on the end.
+ */
+typedef struct {
+  ListNode *first;
+  ListNode *last;
+  Pool *pool;
+} ListBuilder;
 
 /**
  * Initializes a new ListBuilder structure.

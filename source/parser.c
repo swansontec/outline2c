@@ -23,13 +23,6 @@
  * consumed character.
  */
 
-#include "parser.h"
-#include "filter.h"
-#include "lwl.h"
-#include "lexer.h"
-#include <assert.h>
-#include <stdio.h>
-
 int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or);
 int parse_map_line(Pool *pool, Source *in, Scope *scope, OutRoutine or);
 int parse_macro_call(Pool *pool, Source *in, Scope *scope, OutRoutine or, AstMacro *macro);

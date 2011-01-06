@@ -14,23 +14,14 @@
  * limitations under the License.
  */
 
-#include "lwl.h"
-#include "parser.h"
-#include "debug.h"
-#include "generate.h"
-#include <string.h>
-
-typedef struct Options Options;
-
 /*
  * Holds outline2c command-line options.
  */
-struct Options
-{
+typedef struct {
   int debug;
   String name_in;
   String name_out;
-};
+} Options;
 
 Options options_init()
 {

@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
-#include "ast.h"
-#include <assert.h>
-#include <stdio.h>
+/**
+ * A source-level statement
+ */
+typedef struct {
+  void *p;
+  Type type;
+} AstCodeNode;
 
 int ast_is_code_node(Type type)
 {
@@ -29,23 +33,6 @@ int ast_is_code_node(Type type)
     type == AST_LOOKUP;
 }
 
-int ast_is_for_node(Type type)
-{
-  return
-    type == AST_OUTLINE ||
-    type == AST_VARIABLE;
-}
-
-int ast_is_filter_node(Type type)
-{
-  return
-    type == AST_FILTER_TAG ||
-    type == AST_FILTER_ANY ||
-    type == AST_FILTER_NOT ||
-    type == AST_FILTER_OR ||
-    type == AST_FILTER_AND;
-}
-
 AstCodeNode ast_to_code_node(ListNode node)
 {
   AstCodeNode temp;
@@ -53,6 +40,21 @@ AstCodeNode ast_to_code_node(ListNode node)
   temp.p = node.p;
   temp.type = node.type;
   return temp;
+}
+
+/**
+ * Possible items the for statement can loop over
+ */
+typedef struct {
+  void *p;
+  Type type;
+} AstForNode;
+
+int ast_is_for_node(Type type)
+{
+  return
+    type == AST_OUTLINE ||
+    type == AST_VARIABLE;
 }
 
 AstForNode ast_to_for_node(Dynamic node)
@@ -64,6 +66,24 @@ AstForNode ast_to_for_node(Dynamic node)
   return temp;
 }
 
+/**
+ * A filter element
+ */
+typedef struct {
+  void *p;
+  Type type;
+} AstFilterNode;
+
+int ast_is_filter_node(Type type)
+{
+  return
+    type == AST_FILTER_TAG ||
+    type == AST_FILTER_ANY ||
+    type == AST_FILTER_NOT ||
+    type == AST_FILTER_OR ||
+    type == AST_FILTER_AND;
+}
+
 AstFilterNode ast_to_filter_node(Dynamic node)
 {
   AstFilterNode temp;
@@ -72,6 +92,158 @@ AstFilterNode ast_to_filter_node(Dynamic node)
   temp.type = node.type;
   return temp;
 }
+
+typedef struct AstCodeText      AstCodeText;
+typedef struct AstOutline       AstOutline;
+typedef struct AstOutlineItem   AstOutlineItem;
+typedef struct AstOutlineTag    AstOutlineTag;
+typedef struct AstMap           AstMap;
+typedef struct AstMapLine       AstMapLine;
+typedef struct AstFor           AstFor;
+typedef struct AstFilter        AstFilter;
+typedef struct AstFilterTag     AstFilterTag;
+typedef struct AstFilterAny     AstFilterAny;
+typedef struct AstFilterNot     AstFilterNot;
+typedef struct AstFilterAnd     AstFilterAnd;
+typedef struct AstFilterOr      AstFilterOr;
+typedef struct AstMacro         AstMacro;
+typedef struct AstMacroCall     AstMacroCall;
+typedef struct AstVariable      AstVariable;
+typedef struct AstLookup        AstLookup;
+
+/**
+ * A run of text in the host language.
+ */
+struct AstCodeText {
+  String code;
+};
+
+/**
+ * An outline.
+ */
+struct AstOutline {
+  ListNode *items;
+};
+
+/**
+ * An individual item in an outline.
+ */
+struct AstOutlineItem {
+  ListNode *tags;
+  String name;
+  AstOutline *children;
+};
+
+/**
+ * An individual word in an outline item.
+ */
+struct AstOutlineTag {
+  String name;
+  ListNode *value;
+};
+
+/**
+ * A map statement
+ */
+struct AstMap
+{
+  AstVariable *item;
+  ListNode *lines;
+};
+
+struct AstMapLine
+{
+  AstFilter *filter;
+  ListNode *code;
+};
+
+/**
+ * A for statement.
+ */
+struct AstFor {
+  AstVariable *item;
+  AstForNode outline;
+  AstFilter *filter;
+  int reverse;
+  int list;
+  ListNode *code;
+};
+
+/**
+ * Filters outline items based on the presence or absence of tags.
+ */
+struct AstFilter {
+  AstFilterNode test;
+};
+
+/**
+ * Accepts an outline item if the given tag is present.
+ */
+struct AstFilterTag {
+  String tag;
+};
+
+/**
+ * Always returns true.
+ */
+struct AstFilterAny {
+  int dummy;
+};
+
+/**
+ * Accepts an outline item if the sub-conditions is false.
+ */
+struct AstFilterNot {
+  AstFilterNode test;
+};
+
+/**
+ * Accepts an outline item if both sub-conditions are true.
+ */
+struct AstFilterAnd {
+  AstFilterNode test_a;
+  AstFilterNode test_b;
+};
+
+/**
+ * Accepts an outline item if either sub-conditions are true.
+ */
+struct AstFilterOr {
+  AstFilterNode test_a;
+  AstFilterNode test_b;
+};
+
+/**
+ * A macro definition
+ */
+struct AstMacro {
+  ListNode *inputs; /* Real type is AstVariable */
+  ListNode *code;
+};
+
+/**
+ * A macro invocation
+ */
+struct AstMacroCall {
+  AstMacro *macro;
+  ListNode *inputs; /* Real type is AstForNode */
+};
+
+/**
+ * A changing value
+ */
+struct AstVariable {
+  String name;
+  AstOutlineItem *value;
+};
+
+/**
+ * A modifier on a symbol.
+ */
+struct AstLookup {
+  AstVariable *item;
+  String name;
+};
 
 AstOutline *ast_to_outline(Dynamic node)
 {

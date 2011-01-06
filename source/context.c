@@ -14,18 +14,13 @@
  * limitations under the License.
  */
 
-#include "context.h"
-#include <stdio.h>
-
-typedef struct Location Location;
-
 /**
  * Holds line and column information
  */
-struct Location {
+typedef struct {
   unsigned line;
   unsigned column;
-};
+} Location;
 
 /**
  * Obtains line and column numbers given a pointer into a file. This is not
@@ -55,6 +50,15 @@ Location location_init(String file, char const *position)
 }
 
 /**
+ * A stream of input text feeding the parser
+ */
+typedef struct {
+  String filename;
+  String data;
+  char const *cursor;
+} Source;
+
+/**
  * Prints an error message.
  */
 int source_error(Source *in, char const *message)
@@ -72,10 +76,21 @@ int source_error(Source *in, char const *message)
  * means that they need a different memory management strategy than the AST
  * stuff.
  */
+typedef struct Symbol Symbol;
 struct Symbol {
   String name;
   Dynamic value;
   Symbol *next;
+};
+
+/**
+ * One level in the symbol table. This implmentation uses a linked list for
+ * now, which is simple but not too efficient.
+ */
+typedef struct Scope Scope;
+struct Scope {
+  Scope *outer;
+  Symbol *first;
 };
 
 Scope scope_init(Scope *outer)
@@ -121,6 +136,18 @@ int scope_get(Scope *s, Dynamic *out, String name)
   }
   return 0;
 }
+
+/**
+ * Accepts an output value. Parser functions only use their return value to
+ * indicate success or failure. To output data, such as AST nodes, they call
+ * the current output routine. Calling the routine multiple times allows a
+ * parser function to produce multiple output items, which is not possible
+ * with ordinary return values.
+ */
+typedef struct {
+  int (*code)(void *data, Type type, void *p);
+  void *data;
+} OutRoutine;
 
 static int dynamic_out_fn(void *data, Type type, void *p)
 {

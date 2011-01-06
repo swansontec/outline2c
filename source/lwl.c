@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
-#include "lwl.h"
-#include "lexer.h"
-#include <stdio.h>
+/**
+ * Represents an LWL keyword implemented in C
+ */
+typedef struct {
+  int (*code)(Pool *pool, Source *in, Scope *scope, OutRoutine or);
+} Keyword;
 
 Keyword *keyword_new(Pool *p, int (*code)(Pool *pool, Source *in, Scope *scope, OutRoutine or))
 {
@@ -28,7 +31,25 @@ Keyword *keyword_new(Pool *p, int (*code)(Pool *pool, Source *in, Scope *scope, 
   return self;
 }
 
-static int parse_statement(Pool *pool, Source *in, Scope *scope, OutRoutine or, int allow_assign)
+int lwl_parse_statement(Pool *pool, Source *in, Scope *scope, OutRoutine or, int allow_assign);
+
+/**
+ * Parses an LWL value. Assignment statements are not permitted.
+ */
+int lwl_parse_value(Pool *pool, Source *in, Scope *scope, OutRoutine or)
+{
+  return lwl_parse_statement(pool, in, scope, or, 0);
+}
+
+/**
+ * Parses a line of LWL code, which could be either an assignment or a value.
+ */
+int lwl_parse_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
+{
+  return lwl_parse_statement(pool, in, scope, or, 1);
+}
+
+int lwl_parse_statement(Pool *pool, Source *in, Scope *scope, OutRoutine or, int allow_assign)
 {
   char const *start;
   Token token;
@@ -61,20 +82,4 @@ static int parse_statement(Pool *pool, Source *in, Scope *scope, OutRoutine or, 
   else
     CHECK(or.code(or.data, out.type, out.p));
   return 1;
-}
-
-/**
- * Parses an LWL value. Assignment statements are not permitted.
- */
-int lwl_parse_value(Pool *pool, Source *in, Scope *scope, OutRoutine or)
-{
-  return parse_statement(pool, in, scope, or, 0);
-}
-
-/**
- * Parses a line of LWL code, which could be either an assignment or a value.
- */
-int lwl_parse_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
-{
-  return parse_statement(pool, in, scope, or, 1);
 }
