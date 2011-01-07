@@ -80,38 +80,3 @@ int scope_get(Scope *s, Dynamic *out, String name)
   }
   return 0;
 }
-
-/**
- * Accepts an output value. Parser functions only use their return value to
- * indicate success or failure. To output data, such as AST nodes, they call
- * the current output routine. Calling the routine multiple times allows a
- * parser function to produce multiple output items, which is not possible
- * with ordinary return values.
- */
-typedef struct {
-  int (*code)(void *data, Type type, void *p);
-  void *data;
-} OutRoutine;
-
-static int dynamic_out_fn(void *data, Type type, void *p)
-{
-  Dynamic *out = data;
-  if (out->type != TYPE_END) return 0;
-  out->p = p;
-  out->type = type;
-  return 1;
-}
-
-/**
- * Produces an output routine which captures a single return value in a
- * Dynamic variable. Attempting to return more than one value will produce
- * an error in the output routine.
- */
-OutRoutine dynamic_out(Dynamic *out)
-{
-  OutRoutine self;
-  self.code = dynamic_out_fn;
-  self.data = out;
-  out->type = TYPE_END;
-  return self;
-}

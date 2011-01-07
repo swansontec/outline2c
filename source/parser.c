@@ -168,7 +168,7 @@ int parse_include(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   /* Process the file's contents: */
   if (!source_load(&source, pool, filename))
     return source_error(in, "Could not open the included file.");
-  CHECK(parse_code(pool, &source, scope, list_builder_out(&code), 0));
+  CHECK(parse_code(pool, &source, scope, out_list_builder(&code), 0));
 
   /* Closing semicolon: */
   token = lex_next(&start, &in->cursor, in->data.end);
@@ -198,7 +198,7 @@ int parse_outline(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   token = lex_next(&start, &in->cursor, in->data.end);
   while (token != LEX_BRACE_R) {
     in->cursor = start;
-    CHECK(parse_outline_item(pool, in, scope, list_builder_out(&items)));
+    CHECK(parse_outline_item(pool, in, scope, out_list_builder(&items)));
     token = lex_next(&start, &in->cursor, in->data.end);
   }
   self->items = items.first;
@@ -239,7 +239,7 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
         return source_error(in, "A tag's value must be a code block.");
 
       /* Value: */
-      CHECK(parse_code(pool, in, scope, list_builder_out(&code), 1));
+      CHECK(parse_code(pool, in, scope, out_list_builder(&code), 1));
 
       CHECK(list_builder_add(&tags, AST_OUTLINE_TAG,
         ast_outline_tag_new(pool, last, code.first)));
@@ -258,7 +258,7 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   self->children = 0;
   if (token == LEX_BRACE_L) {
     in->cursor = start;
-    CHECK(parse_outline(pool, in, scope, dynamic_out(&out)));
+    CHECK(parse_outline(pool, in, scope, out_dynamic(&out)));
     self->children = ast_to_outline(out);
   } else if (token != LEX_SEMICOLON) {
     return source_error(in, "An outline can only end with a semicolon or an opening brace.");
@@ -290,7 +290,7 @@ int parse_union(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 
 outline:
   /* Outline: */
-  CHECK(lwl_parse_value(pool, in, scope, dynamic_out(&out)));
+  CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
   if (out.type != AST_OUTLINE)
     return source_error(in, "Wrong type - the union statement expects an outline.\n");
   outline = ast_to_outline(out);
@@ -302,7 +302,7 @@ outline:
       return source_error(in, "Only the \"with\" modifier is allowed here.");
 
     /* Filter: */
-    CHECK(parse_filter(pool, in, scope, dynamic_out(&out)));
+    CHECK(parse_filter(pool, in, scope, out_dynamic(&out)));
     filter = ast_to_filter(out);
     token = lex_next(&start, &in->cursor, in->data.end);
   } else {
@@ -339,7 +339,7 @@ int parse_map(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   CHECK_MEM(self);
 
   /* Item to look up: */
-  CHECK(lwl_parse_value(pool, in, scope, dynamic_out(&out)));
+  CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
   if (out.type != AST_VARIABLE)
     return source_error(in, "Wrong type - expecting an outline item as a map parameter.");
   self->item = out.p;
@@ -353,7 +353,7 @@ int parse_map(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   token = lex_next(&start, &in->cursor, in->data.end);
   while (token != LEX_BRACE_R) {
     in->cursor = start;
-    CHECK(parse_map_line(pool, in, scope, list_builder_out(&lines)));
+    CHECK(parse_map_line(pool, in, scope, out_list_builder(&lines)));
     token = lex_next(&start, &in->cursor, in->data.end);
   }
   self->lines = lines.first;
@@ -375,7 +375,7 @@ int parse_map_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   CHECK_MEM(self);
 
   /* Filter: */
-  CHECK(parse_filter(pool, in, scope, dynamic_out(&out)));
+  CHECK(parse_filter(pool, in, scope, out_dynamic(&out)));
   self->filter = ast_to_filter(out);
   assert(self->filter);
 
@@ -385,7 +385,7 @@ int parse_map_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
     return source_error(in, "A line within a \"map\" statement must end with a code block.");
 
   /* Code: */
-  CHECK(parse_code(pool, in, scope, list_builder_out(&code), 1));
+  CHECK(parse_code(pool, in, scope, out_list_builder(&code), 1));
   self->code = code.first;
 
   CHECK(or.code(or.data, AST_MAP_LINE, self));
@@ -420,7 +420,7 @@ int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or)
     return source_error(in, "Expecting the \"in\" keyword here.");
 
   /* Outline name: */
-  CHECK(lwl_parse_value(pool, in, scope, dynamic_out(&out)));
+  CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
   if (!ast_is_for_node(out.type))
     return source_error(in, "Wrong type - the for statement expects an outline.\n");
   self->outline = ast_to_for_node(out);
@@ -437,7 +437,7 @@ modifier:
 
     /* "with" modifier: */
     if (string_equal(s, string_init_l("with", 4))) {
-      CHECK(parse_filter(pool, in, scope, dynamic_out(&out)));
+      CHECK(parse_filter(pool, in, scope, out_dynamic(&out)));
       self->filter = ast_to_filter(out);
       goto modifier;
 
@@ -458,7 +458,7 @@ modifier:
   }
 
   /* Code: */
-  CHECK(parse_code(pool, in, &inner, list_builder_out(&code), 1));
+  CHECK(parse_code(pool, in, &inner, out_list_builder(&code), 1));
   self->code = code.first;
 
   CHECK(or.code(or.data, AST_FOR, self));
@@ -507,7 +507,7 @@ input:
     return source_error(in, "A macro definition must end with a code block.");
 
   /* Code: */
-  CHECK(parse_code(pool, in, &inner, list_builder_out(&code), 1));
+  CHECK(parse_code(pool, in, &inner, out_list_builder(&code), 1));
   self->code = code.first;
 
   CHECK(or.code(or.data, AST_MACRO, self));
@@ -538,7 +538,7 @@ input:
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token == LEX_IDENTIFIER) {
     in->cursor = start;
-    CHECK(lwl_parse_value(pool, in, scope, dynamic_out(&out)));
+    CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
     if (!ast_is_for_node(out.type))
       return source_error(in, "Wrong type - macro parameters must be outlines.\n");
     CHECK(list_builder_add(&inputs, out.type, out.p));

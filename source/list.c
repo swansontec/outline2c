@@ -82,16 +82,3 @@ int list_builder_add(ListBuilder *b, Type type, void *p)
 
   return 1;
 }
-
-static int list_out_fn(void *data, Type type, void *p)
-{
-  return list_builder_add(data, type, p);
-}
-
-OutRoutine list_builder_out(ListBuilder *b)
-{
-  OutRoutine self;
-  self.code = list_out_fn;
-  self.data = b;
-  return self;
-}

@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
 
   /* Do outline2c stuff: */
   if (!main_context_init(&pool, &in, &scope, &opt)) goto error;
-  if (!parse_code(&pool, &in, &scope, list_builder_out(&code), 0)) goto error;
+  if (!parse_code(&pool, &in, &scope, out_list_builder(&code), 0)) goto error;
   if (opt.debug) {
     printf("--- AST: ---\n");
     dump_code(code.first, 0);

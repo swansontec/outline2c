@@ -66,7 +66,7 @@ int lwl_parse_statement(Pool *pool, Source *in, Scope *scope, OutRoutine or, int
   if (allow_assign) {
     token = lex_next(&start, &in->cursor, in->data.end);
     if (token == LEX_EQUALS) {
-      CHECK(lwl_parse_value(pool, in, scope, dynamic_out(&out)));
+      CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
       if (out.type == TYPE_END)
         return source_error(in, "Wrong type - this must be a value.");
       CHECK(scope_add(scope, pool, name, out.type, out.p));

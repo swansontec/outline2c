@@ -28,6 +28,7 @@
 #include "type.c"
 #include "context.c"
 #include "list.c"
+#include "out.c"
 
 #include "lwl.c"
 #include "ast.c"
