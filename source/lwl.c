@@ -23,7 +23,7 @@ typedef struct {
 
 Keyword *keyword_new(Pool *p, int (*code)(Pool *pool, Source *in, Scope *scope, OutRoutine or))
 {
-  Keyword *self = pool_alloc(p, sizeof(Keyword));
+  Keyword *self = pool_new(p, Keyword);
   CHECK_MEM(self);
   self->code = code;
 

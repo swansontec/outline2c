@@ -65,7 +65,7 @@ ListBuilder list_builder_init(Pool *pool)
  */
 int list_builder_add(ListBuilder *b, Type type, void *p)
 {
-  ListNode *node = pool_alloc(b->pool, sizeof(ListNode));
+  ListNode *node = pool_new(b->pool, ListNode);
   CHECK_MEM(node);
   node->next = 0;
   node->p = p;

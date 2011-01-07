@@ -83,7 +83,7 @@ int source_load(Source *self, Pool *pool, String filename)
   if (fseek(fp, 0, SEEK_SET))
     goto error;
 
-  data = pool_aligned_alloc(pool, size + 1, 1);
+  data = pool_alloc(pool, size + 1, 1);
   if (!data) goto error;
 
   if (fread(data, 1, size, fp) != size)

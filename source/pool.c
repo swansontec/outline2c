@@ -134,7 +134,7 @@ void pool_free(Pool *p)
  * Allocates memory using malloc and adds the result to the pool's list of
  * blocks to free.
  */
-void *pool_aligned_alloc_sys(Pool *p, size_t size, size_t align)
+void *pool_alloc_sys(Pool *p, size_t size, size_t align)
 {
   size_t padding = sizeof(char*) < align ? align : sizeof(char*);
   char *block = malloc(padding + size);
@@ -150,7 +150,7 @@ void *pool_aligned_alloc_sys(Pool *p, size_t size, size_t align)
 /**
  * Allocates memory from the pool.
  */
-void *pool_aligned_alloc(Pool *p, size_t size, size_t align)
+void *pool_alloc(Pool *p, size_t size, size_t align)
 {
   char *start = ALIGN(p->next, p->block, align);
   char *end = start + size;
@@ -160,7 +160,7 @@ void *pool_aligned_alloc(Pool *p, size_t size, size_t align)
     size_t block_size = p->end - p->block;
     /* Use malloc for large blocks: */
     if (block_size < 64*size)
-      return pool_aligned_alloc_sys(p, size, align);
+      return pool_alloc_sys(p, size, align);
 
     /* Grow the pool: */
     if (!pool_grow(p, block_size)) return 0;
@@ -172,37 +172,16 @@ void *pool_aligned_alloc(Pool *p, size_t size, size_t align)
   return start;
 }
 
+#define pool_new(pool, type) \
+  ((type*)pool_alloc(pool, sizeof(type), DEFAULT_ALIGN))
+
 /**
  * Returns the remaining free space in the current block.
  */
-size_t pool_aligned_unused(Pool *p, size_t align)
+size_t pool_unused(Pool *p, size_t align)
 {
   char *start = ALIGN(p->next, p->block, align);
   if (p->end < start || !start)
     return 0;
   return p->end - start;
-}
-
-/**
- * A variant of pool_aligned_alloc_sys using default alignment
- */
-void *pool_alloc_sys(Pool *p, size_t size)
-{
-  return pool_aligned_alloc_sys(p, size, DEFAULT_ALIGN);
-}
-
-/**
- * A variant of pool_aligned_alloc using default alignment
- */
-void *pool_alloc(Pool *p, size_t size)
-{
-  return pool_aligned_alloc(p, size, DEFAULT_ALIGN);
-}
-
-/**
- * A variant of pool_aligned_unused using default alignment
- */
-size_t pool_unused(Pool *p)
-{
-  return pool_aligned_unused(p, DEFAULT_ALIGN);
 }

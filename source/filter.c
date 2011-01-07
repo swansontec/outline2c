@@ -129,7 +129,7 @@ Dynamic filter_builder_pop(FilterBuilder *b)
  */
 int filter_build_tag(FilterBuilder *b, Pool *pool, String tag)
 {
-  AstFilterTag *self = pool_alloc(pool, sizeof(AstFilterTag));
+  AstFilterTag *self = pool_new(pool, AstFilterTag);
   CHECK_MEM(self);
   self->tag = string_copy(pool, tag);
   CHECK_MEM(string_size(self->tag));
@@ -139,7 +139,7 @@ int filter_build_tag(FilterBuilder *b, Pool *pool, String tag)
 
 int filter_build_any(FilterBuilder *b, Pool *pool)
 {
-  AstFilterAny *self = pool_alloc(pool, sizeof(AstFilterAny));
+  AstFilterAny *self = pool_new(pool, AstFilterAny);
   CHECK_MEM(self);
 
   return filter_builder_push(b, AST_FILTER_ANY, self);
@@ -147,7 +147,7 @@ int filter_build_any(FilterBuilder *b, Pool *pool)
 
 int filter_build_not(FilterBuilder *b, Pool *pool)
 {
-  AstFilterNot *self = pool_alloc(pool, sizeof(AstFilterNot));
+  AstFilterNot *self = pool_new(pool, AstFilterNot);
   CHECK_MEM(self);
   self->test = ast_to_filter_node(filter_builder_pop(b));
   assert(self->test.p);
@@ -157,7 +157,7 @@ int filter_build_not(FilterBuilder *b, Pool *pool)
 
 int filter_build_and(FilterBuilder *b, Pool *pool)
 {
-  AstFilterAnd *self = pool_alloc(pool, sizeof(AstFilterAnd));
+  AstFilterAnd *self = pool_new(pool, AstFilterAnd);
   CHECK_MEM(self);
   self->test_a = ast_to_filter_node(filter_builder_pop(b));
   assert(self->test_a.p);
@@ -169,7 +169,7 @@ int filter_build_and(FilterBuilder *b, Pool *pool)
 
 int filter_build_or(FilterBuilder *b, Pool *pool)
 {
-  AstFilterOr *self = pool_alloc(pool, sizeof(AstFilterOr));
+  AstFilterOr *self = pool_new(pool, AstFilterOr);
   CHECK_MEM(self);
   self->test_a = ast_to_filter_node(filter_builder_pop(b));
   assert(self->test_a.p);

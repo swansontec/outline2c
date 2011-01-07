@@ -186,7 +186,7 @@ int parse_outline(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   char const *start;
   Token token;
   ListBuilder items = list_builder_init(pool);
-  AstOutline *self = pool_alloc(pool, sizeof(AstOutline));
+  AstOutline *self = pool_new(pool, AstOutline);
   CHECK_MEM(self);
 
   /* Opening brace: */
@@ -218,7 +218,7 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   Dynamic out;
   String last = string_null();
   ListBuilder tags = list_builder_init(pool);
-  AstOutlineItem *self = pool_alloc(pool, sizeof(AstOutlineItem));
+  AstOutlineItem *self = pool_new(pool, AstOutlineItem);
   CHECK_MEM(self);
 
   /* Handle the words making up the item: */
@@ -280,7 +280,7 @@ int parse_union(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   AstFilter *filter;
   ListBuilder items = list_builder_init(pool);
   ListNode *item;
-  AstOutline *self = pool_alloc(pool, sizeof(AstOutline));
+  AstOutline *self = pool_new(pool, AstOutline);
   CHECK_MEM(self);
 
   /* Opening brace: */
@@ -335,7 +335,7 @@ int parse_map(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   Token token;
   Dynamic out;
   ListBuilder lines = list_builder_init(pool);
-  AstMap *self = pool_alloc(pool, sizeof(AstMap));
+  AstMap *self = pool_new(pool, AstMap);
   CHECK_MEM(self);
 
   /* Item to look up: */
@@ -371,7 +371,7 @@ int parse_map_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   Token token;
   Dynamic out;
   ListBuilder code = list_builder_init(pool);
-  AstMapLine *self = pool_alloc(pool, sizeof(AstMapLine));
+  AstMapLine *self = pool_new(pool, AstMapLine);
   CHECK_MEM(self);
 
   /* Filter: */
@@ -402,7 +402,7 @@ int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   Dynamic out;
   ListBuilder code = list_builder_init(pool);
   Scope inner = scope_init(scope);
-  AstFor *self = pool_alloc(pool, sizeof(AstFor));
+  AstFor *self = pool_new(pool, AstFor);
   CHECK_MEM(self);
 
   /* Variable name: */
@@ -475,7 +475,7 @@ int parse_macro(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   Scope inner = scope_init(scope);
   ListBuilder inputs = list_builder_init(pool);
   ListBuilder code = list_builder_init(pool);
-  AstMacro *self = pool_alloc(pool, sizeof(AstMacro));
+  AstMacro *self = pool_new(pool, AstMacro);
   CHECK_MEM(self);
 
   /* Opening parenthesis: */
@@ -523,7 +523,7 @@ int parse_macro_call(Pool *pool, Source *in, Scope *scope, OutRoutine or, AstMac
   Token token;
   Dynamic out;
   ListBuilder inputs = list_builder_init(pool);
-  AstMacroCall *self = pool_alloc(pool, sizeof(AstMacroCall));
+  AstMacroCall *self = pool_new(pool, AstMacroCall);
   CHECK_MEM(self);
 
   self->macro = macro;
@@ -570,7 +570,7 @@ int parse_filter(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   FilterBuilder fb;
   enum operators { NOT, AND, OR, LPAREN } stack[32];
   int top = 0;
-  AstFilter *self = pool_alloc(pool, sizeof(AstFilter));
+  AstFilter *self = pool_new(pool, AstFilter);
   CHECK_MEM(self);
 
   CHECK(filter_builder_init(&fb));

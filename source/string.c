@@ -121,7 +121,7 @@ String string_copy(Pool *pool, String string)
   if (!string_size(string)) return string_null();
 
   size  = string_size(string);
-  start = pool_aligned_alloc(pool, size, 1);
+  start = pool_alloc(pool, size, 1);
   if (!start) return string_null();
   memcpy(start, string.p, size);
   return string_init_l(start, size);
@@ -136,7 +136,7 @@ String string_merge(Pool *pool, String a, String b)
   char const *in;
   char *out;
 
-  out = pool_aligned_alloc(pool, string_size(a) + string_size(b), 1);
+  out = pool_alloc(pool, string_size(a) + string_size(b), 1);
   if (!out)
     return string_null();
 

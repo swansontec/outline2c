@@ -151,7 +151,7 @@ int generate_macro_call(FILE *out, AstMacroCall *p)
       AstVariable *value = call_input->p;
       input->value = value->value;
     } else if (call_input->type == AST_OUTLINE) {
-      AstOutlineItem *temp = pool_alloc(&pool, sizeof(AstOutlineItem));
+      AstOutlineItem *temp = pool_new(&pool, AstOutlineItem);
       temp->children = call_input->p;
       temp->name = input->name;
       temp->tags = 0;
