@@ -298,7 +298,7 @@ outline:
   /* Map? */
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token == LEX_IDENTIFIER) {
-    if (!string_equal(string_init(start, in->cursor), string_init_l("with", 4)))
+    if (!string_equal(string_init(start, in->cursor), string_init_k("with")))
       return source_error(in, "Only the \"with\" modifier is allowed here.");
 
     /* Filter: */
@@ -416,7 +416,7 @@ int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   /* "in" keyword: */
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token != LEX_IDENTIFIER ||
-    !string_equal(string_init(start, in->cursor), string_init_l("in", 2)))
+    !string_equal(string_init(start, in->cursor), string_init_k("in")))
     return source_error(in, "Expecting the \"in\" keyword here.");
 
   /* Outline name: */
@@ -436,18 +436,18 @@ modifier:
     String s = string_init(start, in->cursor);
 
     /* "with" modifier: */
-    if (string_equal(s, string_init_l("with", 4))) {
+    if (string_equal(s, string_init_k("with"))) {
       CHECK(parse_filter(pool, in, scope, out_dynamic(&out)));
       self->filter = ast_to_filter(out);
       goto modifier;
 
     /* "reverse" modifier: */
-    } else if (string_equal(s, string_init_l("reverse", 7))) {
+    } else if (string_equal(s, string_init_k("reverse"))) {
       self->reverse = 1;
       goto modifier;
 
     /* "list" modifier: */
-    } else if (string_equal(s, string_init_l("list", 4))) {
+    } else if (string_equal(s, string_init_k("list"))) {
       self->list = 1;
       goto modifier;
     } else {

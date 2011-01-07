@@ -233,18 +233,18 @@ int generate_lookup_builtin(FILE *out, AstLookup *p)
 {
   AstOutlineItem *item = p->item->value;
 
-  if (string_equal(p->name, string_init_l("quote", 5))) {
+  if (string_equal(p->name, string_init_k("quote"))) {
     CHECK(file_putc(out, '"'));
     CHECK(file_write(out, item->name.p, item->name.end));
     CHECK(file_putc(out, '"'));
     return 1;
-  } else if (string_equal(p->name, string_init_l("lower", 5))) {
+  } else if (string_equal(p->name, string_init_k("lower"))) {
     return generate_lower(out, item->name);
-  } else if (string_equal(p->name, string_init_l("upper", 5))) {
+  } else if (string_equal(p->name, string_init_k("upper"))) {
     return generate_upper(out, item->name);
-  } else if (string_equal(p->name, string_init_l("camel", 5))) {
+  } else if (string_equal(p->name, string_init_k("camel"))) {
     return generate_camel(out, item->name);
-  } else if (string_equal(p->name, string_init_l("mixed", 5))) {
+  } else if (string_equal(p->name, string_init_k("mixed"))) {
     return generate_mixed(out, item->name);
   }
 

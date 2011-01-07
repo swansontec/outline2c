@@ -161,7 +161,7 @@ Token lex(char const **p, char const *end)
       ++*p;
     } while (*p < end && IS_ALPHANUM(**p));
     token.end = *p;
-    if (string_equal(token, string_init_l("@o2c", 4)))
+    if (string_equal(token, string_init_k("@o2c")))
       return LEX_ESCAPE_O2C;
     return LEX_ESCAPE;
   /* Token-pasting: */

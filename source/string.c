@@ -44,17 +44,19 @@ String string_init_l(char const *p, size_t size)
   return s;
 }
 
-String string_null()
-{
-  String s = {0, 0};
-  return s;
-}
+#define string_init_k(k) string_init_l(k, sizeof(k) - 1)
 
-String string_from_c(char const *p)
+String string_init_c(char const *p)
 {
   String s;
   s.p = p;
   s.end = p + strlen(p);
+  return s;
+}
+
+String string_null()
+{
+  String s = {0, 0};
   return s;
 }
 

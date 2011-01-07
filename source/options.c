@@ -41,7 +41,7 @@ int options_parse(Options *self, int argc, char *argv[])
   int arg = 1;
 
   while (arg < argc) {
-    String s = string_from_c(argv[arg]);
+    String s = string_init_c(argv[arg]);
 
     /* Debug: */
     if (!strcmp(argv[arg], "-d") || !strcmp(argv[arg], "--debug")) {
@@ -51,10 +51,10 @@ int options_parse(Options *self, int argc, char *argv[])
     } else if (!strcmp(argv[arg], "-o")) {
       ++arg;
       if (argc <= arg) return 0;
-      self->name_out = string_from_c(argv[arg]);
+      self->name_out = string_init_c(argv[arg]);
 
     /* Output filename, smushed: */
-    } else if (2 == string_match(s, string_init_l("-o", 2))) {
+    } else if (2 == string_match(s, string_init_k("-o"))) {
       self->name_out = string_init(s.p + 2, s.end);
 
     /* Input filename: */

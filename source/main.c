@@ -55,17 +55,17 @@ int main_context_init(Pool *pool, Source *in, Scope *scope, Options *opt)
   *scope = scope_init(0);
 
   /* Keywords: */
-  CHECK(scope_add(scope, pool, string_init_l("include", 7), TYPE_KEYWORD,
+  CHECK(scope_add(scope, pool, string_init_k("include"), TYPE_KEYWORD,
     keyword_new(pool, parse_include)));
-  CHECK(scope_add(scope, pool, string_init_l("outline", 7), TYPE_KEYWORD,
+  CHECK(scope_add(scope, pool, string_init_k("outline"), TYPE_KEYWORD,
     keyword_new(pool, parse_outline)));
-  CHECK(scope_add(scope, pool, string_init_l("union", 5), TYPE_KEYWORD,
+  CHECK(scope_add(scope, pool, string_init_k("union"), TYPE_KEYWORD,
     keyword_new(pool, parse_union)));
-  CHECK(scope_add(scope, pool, string_init_l("map", 3), TYPE_KEYWORD,
+  CHECK(scope_add(scope, pool, string_init_k("map"), TYPE_KEYWORD,
     keyword_new(pool, parse_map)));
-  CHECK(scope_add(scope, pool, string_init_l("for", 3), TYPE_KEYWORD,
+  CHECK(scope_add(scope, pool, string_init_k("for"), TYPE_KEYWORD,
     keyword_new(pool, parse_for)));
-  CHECK(scope_add(scope, pool, string_init_l("macro", 5), TYPE_KEYWORD,
+  CHECK(scope_add(scope, pool, string_init_k("macro"), TYPE_KEYWORD,
     keyword_new(pool, parse_macro)));
 
   return 1;
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 
   /* Determine output file name: */
   if (!string_size(opt.name_out)) {
-    if (string_rmatch(opt.name_in, string_init_l(".ol", 3)) != 3) {
+    if (string_rmatch(opt.name_in, string_init_k(".ol")) != 3) {
       fprintf(stderr, "error: If no output file is specified, the input file name must end with \".ol\".\n");
       return 1;
     }
