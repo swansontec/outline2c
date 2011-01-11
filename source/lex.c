@@ -23,7 +23,8 @@ typedef enum {
 
   LEX_END = 0,          /* Normal end-of-file */
 
-  LEX_WHITESPACE,       /* Newlines, spaces, & tabs */
+  LEX_WHITESPACE,       /* Spaces, & tabs */
+  LEX_NEWLINE,          /* Newlines */
   LEX_COMMENT,          /* Both types of comment */
   LEX_STRING,           /* C-style double-quoted string */
   LEX_CHAR,             /* C-style single-quoted character */
@@ -51,8 +52,10 @@ typedef enum {
 } Token;
 
 #define IS_SPACE(c) ( \
-  c == ' '  || c == '\t' || \
-  c == '\r' || c == '\n')
+  c == ' ' || c == '\t')
+
+#define IS_NEWLINE(c) ( \
+  c == '\n' || c == '\f' || c == '\r')
 
 #define IS_ALPHA(c) ( \
   'a' <= c && c <= 'z' || \
@@ -81,6 +84,15 @@ Token lex(char const **p, char const *end)
       ++*p;
     } while (*p < end && IS_SPACE(**p));
     return LEX_WHITESPACE;
+  /* Newline: */
+  } else if (**p == '\n' || **p == '\f') {
+    ++*p;
+    return LEX_NEWLINE;
+  } else if (**p == '\r') {
+    ++*p;
+    if (*p < end && **p == '\n')
+      ++*p;
+    return LEX_NEWLINE;
   /* Comments: */
   } else if (**p == '/') {
     ++*p;
@@ -89,9 +101,7 @@ Token lex(char const **p, char const *end)
     if (**p == '/') {
       do {
         ++*p;
-        if (end <= *p) return LEX_COMMENT;
-      } while (**p != '\n');
-      ++*p;
+      } while (*p < end && !IS_NEWLINE(**p));
       return LEX_COMMENT;
     /* C style comments: */
     } else if (**p == '*') {
@@ -201,6 +211,9 @@ Token lex_next(char const **start, char const **p, char const *end)
   Token token;
   do {
     *start = *p; token = lex(p, end);
-  } while (token == LEX_WHITESPACE || token == LEX_COMMENT);
+  } while (
+    token == LEX_WHITESPACE ||
+    token == LEX_NEWLINE ||
+    token == LEX_COMMENT);
   return token;
 }
