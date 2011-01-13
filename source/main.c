@@ -14,60 +14,6 @@
  * limitations under the License.
  */
 
-/*
- * Holds outline2c command-line options.
- */
-typedef struct {
-  int debug;
-  String name_in;
-  String name_out;
-} Options;
-
-Options options_init()
-{
-  Options self;
-  self.debug = 0;
-  self.name_in = string_null();
-  self.name_out = string_null();
-  return self;
-}
-
-/**
- * Processes the command-line options, filling in the members of the Options
- * structure corresponding to the switches.
- * @return 0 for failure
- */
-int options_parse(Options *self, int argc, char *argv[])
-{
-  int arg = 1;
-
-  while (arg < argc) {
-    String s = string_from_c(argv[arg]);
-
-    /* Debug: */
-    if (!strcmp(argv[arg], "-d") || !strcmp(argv[arg], "--debug")) {
-      self->debug = 1;
-
-    /* Output filename: */
-    } else if (!strcmp(argv[arg], "-o")) {
-      ++arg;
-      if (argc <= arg) return 0;
-      self->name_out = string_from_c(argv[arg]);
-
-    /* Output filename, smushed: */
-    } else if (2 == string_match(s, string_init_l("-o", 2))) {
-      self->name_out = string_init(s.p + 2, s.end);
-
-    /* Input filename: */
-    } else {
-      if (string_size(self->name_in)) return 0;
-      self->name_in = s;
-    }
-    ++arg;
-  }
-  return 1;
-}
-
 /**
  * Performs code-generation into the output file given in the options.
  */

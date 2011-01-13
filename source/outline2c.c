@@ -36,4 +36,6 @@
 #include "parser.c"
 #include "debug.c"
 #include "generate.c"
+
+#include "options.c"
 #include "main.c"

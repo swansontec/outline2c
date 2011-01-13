@@ -19,6 +19,7 @@
     <ClInclude Include="..\source\list.c" />
     <ClInclude Include="..\source\lwl.c" />
     <ClInclude Include="..\source\main.c" />
+    <ClInclude Include="..\source\options.c" />
     <ClInclude Include="..\source\out.c" />
     <ClInclude Include="..\source\parser.c" />
     <ClInclude Include="..\source\pool.c" />
