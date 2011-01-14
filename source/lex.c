@@ -29,8 +29,7 @@ typedef enum {
   LEX_CHAR,             /* C-style single-quoted character */
   LEX_NUMBER,           /* C-style integer */
   LEX_IDENTIFIER,       /* [_a-zA-Z][_a-zA-Z0-9]* */
-  LEX_ESCAPE,           /* @[_a-zA-Z0-9]+ */
-  LEX_ESCAPE_O2C,       /* @o2c */
+  LEX_ESCAPE,           /* \ol */
   LEX_PASTE,            /* \\ */
 
   LEX_BANG,             /* ! */
@@ -152,17 +151,6 @@ Token lex(char const **p, char const *end)
       ++*p;
     } while (*p < end && IS_ALPHANUM(**p));
     return LEX_IDENTIFIER;
-  /* Escape codes: */
-  } else if (**p == '@') {
-    String token;
-    token.p = *p;
-    do {
-      ++*p;
-    } while (*p < end && IS_ALPHANUM(**p));
-    token.end = *p;
-    if (string_equal(token, string_init_k("@o2c")))
-      return LEX_ESCAPE_O2C;
-    return LEX_ESCAPE;
   /* Token-pasting: */
   } else if (**p == '\\') {
     ++*p;
@@ -172,12 +160,13 @@ Token lex(char const **p, char const *end)
       return LEX_PASTE;
     } else if (**p == 'o') {
       ++*p;
-      if (end <= *p) return LEX_ESCAPE;
-      if (**p == 'l') {
+      if (*p < end && **p == 'l') {
         ++*p;
-        return LEX_ESCAPE_O2C;
+        return LEX_ESCAPE;
+      } else {
+        --*p;
+        return LEX_BACKSLASH;
       }
-      return LEX_ESCAPE;
     }
     return LEX_BACKSLASH;
   /* Symbols: */

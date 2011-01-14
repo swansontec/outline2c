@@ -60,7 +60,7 @@ code:
   /* We are in a block of host-language code. Select a course of action: */
   if (token == LEX_END) goto done;
   if (token == LEX_PASTE) goto paste;
-  if (token == LEX_ESCAPE_O2C) goto escape;
+  if (token == LEX_ESCAPE) goto escape;
   if (token == LEX_IDENTIFIER) {
     if (scope_get(scope, &out, string_init(start, in->cursor))) {
       if (out.type == AST_MACRO) {
