@@ -15,62 +15,6 @@
  */
 
 /**
- * Holds line and column information
- */
-typedef struct {
-  unsigned line;
-  unsigned column;
-} Location;
-
-/**
- * Obtains line and column numbers given a pointer into a file. This is not
- * fast, but printing errors is hardly a bottleneck. This routine counts from
- * 0, but most text editors start from 1. It might make sense to add 1 to the
- * returned values.
- */
-Location location_init(String file, char const *position)
-{
-  Location self;
-  char const *p;
-
-  self.line = 0;
-  self.column = 0;
-  for (p = file.p; p < position; ++p) {
-    if (*p == '\n') {
-      ++self.line;
-      self.column = 0;
-    } else if (*p == '\t') {
-      self.column += 8;
-      self.column -= self.column % 8;
-    } else {
-      ++self.column;
-    }
-  }
-  return self;
-}
-
-/**
- * A stream of input text feeding the parser
- */
-typedef struct {
-  String filename;
-  String data;
-  char const *cursor;
-} Source;
-
-/**
- * Prints an error message.
- */
-int source_error(Source *in, char const *message)
-{
-  char *name = string_to_c(in->filename);
-  Location l = location_init(in->data, in->cursor);
-  fprintf(stderr, "%s:%d:%d: error: %s\n", name, l.line + 1, l.column + 1, message);
-  free(name);
-  return 0;
-}
-
-/**
  * A symbol definition.
  * TODO: These should be freed when the context pops to an outer scope, which
  * means that they need a different memory management strategy than the AST

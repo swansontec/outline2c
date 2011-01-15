@@ -98,15 +98,12 @@ int main_context_init(Pool *pool, Source *in, Scope *scope, Options *opt)
   CHECK_MEM(pool_init(pool, 0x10000)); /* 64K block size */
 
   /* Input stream: */
-  in->filename = opt->name_in;
-  in->data = string_load(pool, in->filename);
-  if (!string_size(in->data)) {
+  if (!source_load(in, pool, opt->name_in)) {
     fprintf(stderr, "error: Could not open source file \"");
-    fwrite(in->filename.p, string_size(in->filename), 1, stderr);
+    fwrite(opt->name_in.p, string_size(opt->name_in), 1, stderr);
     fprintf(stderr, "\"\n");
     return 0;
   }
-  in->cursor = in->data.p;
 
   /* Scope: */
   *scope = scope_init(0);

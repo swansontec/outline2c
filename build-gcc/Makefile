@@ -30,6 +30,7 @@ outline2c: ../source/outline2c.c \
 	../source/main.c \
 	../source/parser.c \
 	../source/pool.c \
+	../source/source.c \
 	../source/string.c \
 	../source/type.c \
 	; $(compile)

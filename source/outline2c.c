@@ -22,6 +22,7 @@
 
 #include "pool.c"
 #include "string.c"
+#include "source.c"
 #include "lexer.c"
 
 #include "type.c"

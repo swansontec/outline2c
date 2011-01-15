@@ -97,6 +97,7 @@
     <ClInclude Include="..\source\main.c" />
     <ClInclude Include="..\source\parser.c" />
     <ClInclude Include="..\source\pool.c" />
+    <ClInclude Include="..\source\source.c" />
     <ClInclude Include="..\source\string.c" />
     <ClInclude Include="..\source\type.c" />
   </ItemGroup>
