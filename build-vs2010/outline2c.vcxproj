@@ -92,7 +92,7 @@
     <ClInclude Include="..\source\dynamic.c" />
     <ClInclude Include="..\source\filter.c" />
     <ClInclude Include="..\source\generate.c" />
-    <ClInclude Include="..\source\lexer.c" />
+    <ClInclude Include="..\source\lex.c" />
     <ClInclude Include="..\source\list.c" />
     <ClInclude Include="..\source\lwl.c" />
     <ClInclude Include="..\source\main.c" />

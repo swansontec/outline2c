@@ -25,7 +25,7 @@ outline2c: ../source/outline2c.c \
 	../source/dynamic.c \
 	../source/filter.c \
 	../source/generate.c \
-	../source/lexer.c \
+	../source/lex.c \
 	../source/list.c \
 	../source/lwl.c \
 	../source/main.c \

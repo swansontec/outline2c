@@ -24,7 +24,7 @@
 #include "string.c"
 #include "source.c"
 #include "check.c"
-#include "lexer.c"
+#include "lex.c"
 
 #include "dynamic.c"
 #include "list.c"
