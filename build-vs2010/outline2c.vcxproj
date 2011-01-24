@@ -98,7 +98,7 @@
     <ClInclude Include="..\source\main.c" />
     <ClInclude Include="..\source\options.c" />
     <ClInclude Include="..\source\out.c" />
-    <ClInclude Include="..\source\parser.c" />
+    <ClInclude Include="..\source\parse.c" />
     <ClInclude Include="..\source\pool.c" />
     <ClInclude Include="..\source\scope.c" />
     <ClInclude Include="..\source\source.c" />

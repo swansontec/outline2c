@@ -31,7 +31,7 @@ outline2c: ../source/outline2c.c \
 	../source/main.c \
 	../source/options.c \
 	../source/out.c \
-	../source/parser.c \
+	../source/parse.c \
 	../source/pool.c \
 	../source/scope.c \
 	../source/source.c \

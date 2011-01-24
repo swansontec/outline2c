@@ -34,7 +34,7 @@
 #include "lwl.c"
 #include "ast.c"
 #include "filter.c"
-#include "parser.c"
+#include "parse.c"
 #include "debug.c"
 #include "generate.c"
 
