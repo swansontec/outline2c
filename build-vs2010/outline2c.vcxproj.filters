@@ -12,7 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\source\ast.c" />
-    <ClInclude Include="..\source\context.c" />
     <ClInclude Include="..\source\debug.c" />
     <ClInclude Include="..\source\filter.c" />
     <ClInclude Include="..\source\generate.c" />
@@ -23,6 +22,7 @@
     <ClInclude Include="..\source\out.c" />
     <ClInclude Include="..\source\parser.c" />
     <ClInclude Include="..\source\pool.c" />
+    <ClInclude Include="..\source\scope.c" />
     <ClInclude Include="..\source\source.c" />
     <ClInclude Include="..\source\string.c" />
     <ClInclude Include="..\source\type.c" />

@@ -20,7 +20,6 @@ default: outline2c
 
 outline2c: ../source/outline2c.c \
 	../source/ast.c \
-	../source/context.c \
 	../source/debug.c \
 	../source/filter.c \
 	../source/generate.c \
@@ -31,6 +30,7 @@ outline2c: ../source/outline2c.c \
 	../source/out.c \
 	../source/parser.c \
 	../source/pool.c \
+	../source/scope.c \
 	../source/source.c \
 	../source/string.c \
 	../source/type.c \

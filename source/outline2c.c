@@ -26,9 +26,9 @@
 #include "lexer.c"
 
 #include "type.c"
-#include "context.c"
 #include "list.c"
 #include "out.c"
+#include "scope.c"
 
 #include "lwl.c"
 #include "ast.c"
