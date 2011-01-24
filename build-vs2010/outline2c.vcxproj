@@ -88,7 +88,7 @@
   <ItemGroup>
     <ClInclude Include="..\source\ast.c" />
     <ClInclude Include="..\source\check.c" />
-    <ClInclude Include="..\source\debug.c" />
+    <ClInclude Include="..\source\dump.c" />
     <ClInclude Include="..\source\dynamic.c" />
     <ClInclude Include="..\source\filter.c" />
     <ClInclude Include="..\source\generate.c" />

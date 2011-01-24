@@ -35,7 +35,7 @@
 #include "ast.c"
 #include "filter.c"
 #include "parse.c"
-#include "debug.c"
+#include "dump.c"
 #include "generate.c"
 
 #include "options.c"
