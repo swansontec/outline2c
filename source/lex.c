@@ -21,7 +21,6 @@ typedef enum {
   LEX_ERROR_END = -100, /* Unexpected end-of-file */
   LEX_ERROR,            /* Unrecognized character sequence */
 
-  LEX_START,            /* Start of file */
   LEX_END = 0,          /* Normal end-of-file */
 
   LEX_WHITESPACE,       /* Newlines, spaces, & tabs */
@@ -52,18 +51,18 @@ typedef enum {
   LEX_BRACE_R           /* } */
 } Token;
 
-#define IS_SPACE(c) \
+#define IS_SPACE(c) ( \
   c == ' '  || c == '\t' || \
-  c == '\r' || c == '\n'
+  c == '\r' || c == '\n')
 
-#define IS_ALPHA(c) \
+#define IS_ALPHA(c) ( \
   'a' <= c && c <= 'z' || \
-  'A' <= c && c <= 'Z' || c == '_'
+  'A' <= c && c <= 'Z' || c == '_')
 
-#define IS_ALPHANUM(c) \
+#define IS_ALPHANUM(c) ( \
   '0' <= c && c <= '9' || \
   'a' <= c && c <= 'z' || \
-  'A' <= c && c <= 'Z' || c == '_'
+  'A' <= c && c <= 'Z' || c == '_')
 
 /**
  * Identifies the next token in the input stream. When the fuction starts, the
