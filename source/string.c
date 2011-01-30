@@ -110,6 +110,22 @@ size_t string_rmatch(String s1, String s2)
 }
 
 /**
+ * Copies a string
+ */
+String string_copy(Pool *pool, String string)
+{
+  size_t size;
+  char *start;
+  if (!string_size(string)) return string_null();
+
+  size  = string_size(string);
+  start = pool_aligned_alloc(pool, size, 1);
+  if (!start) return string_null();
+  memcpy(start, string.p, size);
+  return string_init_l(start, size);
+}
+
+/**
  * Concatenates one string onto another
  */
 String string_merge(String a, String b)

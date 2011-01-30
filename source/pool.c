@@ -206,19 +206,3 @@ size_t pool_unused(Pool *p)
 {
   return pool_aligned_unused(p, DEFAULT_ALIGN);
 }
-
-/**
- * Copies a string.
- */
-String pool_string_copy(Pool *p, String string)
-{
-  size_t size;
-  char *start;
-  if (!string_size(string)) return string_null();
-
-  size  = string_size(string);
-  start = pool_aligned_alloc(p, size, 1);
-  if (!start) return string_null();
-  memcpy(start, string.p, size);
-  return string_init_l(start, size);
-}

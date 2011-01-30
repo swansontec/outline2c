@@ -109,7 +109,7 @@ int scope_add(Scope *scope, Pool *pool, String name, Type type, void *p)
 {
   Symbol *sym = pool_alloc(pool, sizeof(Symbol));
   CHECK_MEM(sym);
-  sym->name = pool_string_copy(pool, name);
+  sym->name = string_copy(pool, name);
   CHECK_MEM(string_size(sym->name));
   sym->value.p = p;
   sym->value.type = type;

@@ -131,7 +131,7 @@ int filter_build_tag(FilterBuilder *b, Pool *pool, String tag)
 {
   AstFilterTag *self = pool_alloc(pool, sizeof(AstFilterTag));
   CHECK_MEM(self);
-  self->tag = pool_string_copy(pool, tag);
+  self->tag = string_copy(pool, tag);
   CHECK_MEM(string_size(self->tag));
 
   return filter_builder_push(b, AST_FILTER_TAG, self);

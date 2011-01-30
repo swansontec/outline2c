@@ -20,8 +20,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "string.c"
 #include "pool.c"
+#include "string.c"
 #include "lexer.c"
 
 #include "type.c"

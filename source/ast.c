@@ -291,7 +291,7 @@ AstCodeText *ast_code_text_new(Pool *p, String code)
 {
   AstCodeText *self = pool_alloc(p, sizeof(AstCodeText));
   CHECK_MEM(self);
-  self->code = pool_string_copy(p, code);
+  self->code = string_copy(p, code);
 
   CHECK_MEM(string_size(self->code));
   return self;
@@ -301,7 +301,7 @@ AstOutlineTag *ast_outline_tag_new(Pool *p, String name, ListNode *value)
 {
   AstOutlineTag *self = pool_alloc(p, sizeof(AstOutlineTag));
   CHECK_MEM(self);
-  self->name = pool_string_copy(p, name);
+  self->name = string_copy(p, name);
   self->value = value;
 
   CHECK_MEM(string_size(self->name));
@@ -313,7 +313,7 @@ AstVariable *ast_variable_new(Pool *p, String name)
 {
   AstVariable *self = pool_alloc(p, sizeof(AstVariable));
   CHECK_MEM(self);
-  self->name = pool_string_copy(p, name);
+  self->name = string_copy(p, name);
   self->value = 0;
 
   CHECK_MEM(string_size(self->name));
@@ -325,7 +325,7 @@ AstLookup *ast_lookup_new(Pool *p, AstVariable *item, String name)
   AstLookup *self = pool_alloc(p, sizeof(AstLookup));
   CHECK_MEM(self);
   self->item = item;
-  self->name = pool_string_copy(p, name);
+  self->name = string_copy(p, name);
 
   assert(self->item);
   CHECK_MEM(string_size(self->name));

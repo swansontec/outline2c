@@ -255,7 +255,7 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   if (!string_size(last))
     return source_error(in, "An outline item must have a name.");
   self->tags = tags.first;
-  self->name = pool_string_copy(pool, last);
+  self->name = string_copy(pool, last);
   CHECK_MEM(string_size(self->name));
 
   /* Is there a sub-outline? */
