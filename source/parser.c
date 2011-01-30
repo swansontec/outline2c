@@ -160,19 +160,17 @@ int parse_include(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   for (p = in->filename.p; p < in->filename.end; ++p)
     if (*p == '\\' || *p == '/')
       base_end = p + 1;
-  source.filename = string_merge(
+  source.filename = string_merge(pool,
     string_init(in->filename.p, base_end),
     string_init(start + 1, in->cursor - 1));
 
   /* Process the file's contents: */
-  source.data = string_load(source.filename);
+  source.data = string_load(pool, source.filename);
   if (!string_size(source.data)) {
     return source_error(in, "Could not open the included file.");
   }
   source.cursor = source.data.p;
   CHECK(parse_code(pool, &source, scope, list_builder_out(&code), 0));
-  string_free(source.filename);
-  string_free(source.data);
 
   /* Closing semicolon: */
   token = lex_next(&start, &in->cursor, in->data.end);

@@ -128,13 +128,13 @@ String string_copy(Pool *pool, String string)
 /**
  * Concatenates one string onto another
  */
-String string_merge(String a, String b)
+String string_merge(Pool *pool, String a, String b)
 {
   String s;
   char const *in;
   char *out;
 
-  out = malloc(string_size(a) + string_size(b));
+  out = pool_aligned_alloc(pool, string_size(a) + string_size(b), 1);
   if (!out)
     return string_null();
 
@@ -153,14 +153,14 @@ String string_merge(String a, String b)
  * structure. The content pointers will be NULL if the function fails.
  * @return 0 for failure
  */
-String string_load(String file)
+String string_load(Pool *pool, String filename)
 {
   char *c_name = 0;
   FILE *fp = 0;
   long size;
-  char *data = 0;
+  char *data;
 
-  c_name = string_to_c(file);
+  c_name = string_to_c(filename);
   if (!c_name) goto error;
 
   fp = fopen(c_name, "rb");
@@ -175,29 +175,19 @@ String string_load(String file)
   if (fseek(fp, 0, SEEK_SET))
     goto error;
 
-  data = malloc(size + 1);
+  data = pool_aligned_alloc(pool, size + 1, 1);
   if (!data) goto error;
 
   if (fread(data, 1, size, fp) != size)
     goto error;
+  data[size] = 0;
 
   free(c_name);
   fclose(fp);
-  data[size] = 0;
   return string_init(data, data + size);
 
 error:
   if (c_name) free(c_name);
   if (fp)     fclose(fp);
-  if (data)   free(data);
   return string_null();
-}
-
-/**
- * Frees the memory allocated by string_merge or string_load
- */
-void string_free(String data)
-{
-  if (data.p)
-    free((char *)data.p);
 }

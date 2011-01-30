@@ -99,7 +99,7 @@ int main_context_init(Pool *pool, Source *in, Scope *scope, Options *opt)
 
   /* Input stream: */
   in->filename = opt->name_in;
-  in->data = string_load(in->filename);
+  in->data = string_load(pool, in->filename);
   if (!string_size(in->data)) {
     fprintf(stderr, "error: Could not open source file \"");
     fwrite(in->filename.p, string_size(in->filename), 1, stderr);
@@ -130,7 +130,6 @@ int main_context_init(Pool *pool, Source *in, Scope *scope, Options *opt)
 
 void main_context_free(Source *in, Pool *pool)
 {
-  string_free(in->data);
   pool_free(pool);
 }
 
