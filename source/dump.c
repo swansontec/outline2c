@@ -26,7 +26,6 @@ void dump_map_line(AstMapLine *p);
 void dump_for(AstFor *p);
 void dump_for_node(AstForNode node);
 
-void dump_filter(AstFilter *p);
 void dump_filter_node(AstFilterNode node);
 void dump_filter_tag(AstFilterTag *p);
 void dump_filter_any(AstFilterAny *p);
@@ -148,7 +147,7 @@ void dump_map(AstMap *p)
 void dump_map_line(AstMapLine *p)
 {
   printf("  ");
-  dump_filter(p->filter);
+  dump_filter_node(p->filter);
   printf(" {");
   dump_code(p->code, 1);
   printf("}\n");
@@ -165,9 +164,9 @@ void dump_for(AstFor *p)
 
   dump_for_node(p->outline);
 
-  if (p->filter) {
+  if (p->filter.p) {
     printf(" with ");
-    dump_filter(p->filter);
+    dump_filter_node(p->filter);
   }
   if (p->reverse)
     printf(" reverse");
@@ -188,14 +187,6 @@ void dump_for_node(AstForNode node)
     AstVariable *v = node.p;
     dump_text(v->name);
   }
-}
-
-/**
- * Prints a filter expression
- */
-void dump_filter(AstFilter *p)
-{
-  dump_filter_node(p->test);
 }
 
 /**

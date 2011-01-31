@@ -23,11 +23,6 @@ int test_filter_or(AstFilterOr *test, AstOutlineItem *item);
 /**
  * Determines whether an outline item satisfies a particular filter expression.
  */
-int test_filter(AstFilter *test, AstOutlineItem *item)
-{
-  return test_filter_node(test->test, item);
-}
-
 int test_filter_node(AstFilterNode test, AstOutlineItem *item)
 {
   switch (test.type) {

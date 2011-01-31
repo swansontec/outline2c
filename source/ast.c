@@ -100,7 +100,6 @@ typedef struct AstOutlineTag    AstOutlineTag;
 typedef struct AstMap           AstMap;
 typedef struct AstMapLine       AstMapLine;
 typedef struct AstFor           AstFor;
-typedef struct AstFilter        AstFilter;
 typedef struct AstFilterTag     AstFilterTag;
 typedef struct AstFilterAny     AstFilterAny;
 typedef struct AstFilterNot     AstFilterNot;
@@ -153,7 +152,7 @@ struct AstMap
 
 struct AstMapLine
 {
-  AstFilter *filter;
+  AstFilterNode filter;
   ListNode *code;
 };
 
@@ -163,17 +162,10 @@ struct AstMapLine
 struct AstFor {
   AstVariable *item;
   AstForNode outline;
-  AstFilter *filter;
+  AstFilterNode filter;
   int reverse;
   int list;
   ListNode *code;
-};
-
-/**
- * Filters outline items based on the presence or absence of tags.
- */
-struct AstFilter {
-  AstFilterNode test;
 };
 
 /**
@@ -272,12 +264,6 @@ AstMap *ast_to_map(Dynamic node)
 AstMapLine *ast_to_map_line(ListNode node)
 {
   assert(node.type == AST_MAP_LINE);
-  return node.p;
-}
-
-AstFilter *ast_to_filter(Dynamic node)
-{
-  assert(node.type == AST_FILTER);
   return node.p;
 }
 

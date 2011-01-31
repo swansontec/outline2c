@@ -69,7 +69,7 @@ int generate_map(FILE *out, AstMap *p)
   /* Match against the map: */
  for (line = p->lines; line; line = line->next) {
    AstMapLine *l = ast_to_map_line(*line);
-   if (test_filter(l->filter, item)) {
+   if (test_filter_node(l->filter, item)) {
      CHECK(generate_code(out, l->code));
      return 1;
    }
@@ -111,7 +111,7 @@ int generate_for(FILE *out, AstFor *p)
       last = item;
 
       p->item->value = ast_to_outline_item(*item);
-      if (!p->filter || test_filter(p->filter, p->item->value)) {
+      if (!p->filter.p || test_filter_node(p->filter, p->item->value)) {
         if (p->list && need_comma)
           CHECK(file_putc(out, ','));
         CHECK(generate_code(out, p->code));
@@ -122,7 +122,7 @@ int generate_for(FILE *out, AstFor *p)
     ListNode *item;
     for (item = outline->items; item; item = item->next) {
       p->item->value = ast_to_outline_item(*item);
-      if (!p->filter || test_filter(p->filter, p->item->value)) {
+      if (!p->filter.p || test_filter_node(p->filter, p->item->value)) {
         if (p->list && need_comma)
           CHECK(file_putc(out, ','));
         CHECK(generate_code(out, p->code));

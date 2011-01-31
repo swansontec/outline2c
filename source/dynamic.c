@@ -31,7 +31,6 @@ typedef enum {
   AST_MAP,
   AST_MAP_LINE,
   AST_FOR,
-  AST_FILTER,
   AST_FILTER_TAG,
   AST_FILTER_ANY,
   AST_FILTER_NOT,

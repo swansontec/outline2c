@@ -277,7 +277,7 @@ int parse_union(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   Token token;
   Dynamic out;
   AstOutline *outline;
-  AstFilter *filter;
+  AstFilterNode filter;
   ListBuilder items = list_builder_init(pool);
   ListNode *item;
   AstOutline *self = pool_new(pool, AstOutline);
@@ -303,15 +303,15 @@ outline:
 
     /* Filter: */
     CHECK(parse_filter(pool, in, scope, out_dynamic(&out)));
-    filter = ast_to_filter(out);
+    filter = ast_to_filter_node(out);
     token = lex_next(&start, &in->cursor, in->data.end);
   } else {
-    filter = 0;
+    filter.p = 0;
   }
 
   /* Process items: */
   for (item = outline->items; item; item = item->next)
-    if (!filter || test_filter(filter, ast_to_outline_item(*item)))
+    if (!filter.p || test_filter_node(filter, ast_to_outline_item(*item)))
       CHECK(list_builder_add(&items, item->type, item->p));
 
   /* Another outline? */
@@ -376,8 +376,7 @@ int parse_map_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 
   /* Filter: */
   CHECK(parse_filter(pool, in, scope, out_dynamic(&out)));
-  self->filter = ast_to_filter(out);
-  assert(self->filter);
+  self->filter = ast_to_filter_node(out);
 
   /* Opening brace: */
   token = lex_next(&start, &in->cursor, in->data.end);
@@ -427,7 +426,7 @@ int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   assert(self->outline.p);
 
   /* Behavior modification keywords: */
-  self->filter = 0;
+  self->filter.p = 0;
   self->reverse = 0;
   self->list = 0;
 modifier:
@@ -438,7 +437,7 @@ modifier:
     /* "with" modifier: */
     if (string_equal(s, string_init_k("with"))) {
       CHECK(parse_filter(pool, in, scope, out_dynamic(&out)));
-      self->filter = ast_to_filter(out);
+      self->filter = ast_to_filter_node(out);
       goto modifier;
 
     /* "reverse" modifier: */
@@ -570,8 +569,7 @@ int parse_filter(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   FilterBuilder fb;
   enum operators { NOT, AND, OR, LPAREN } stack[32];
   int top = 0;
-  AstFilter *self = pool_new(pool, AstFilter);
-  CHECK_MEM(self);
+  Dynamic out;
 
   CHECK(filter_builder_init(&fb));
 
@@ -659,10 +657,8 @@ done:
     }
   }
 
-  self->test = ast_to_filter_node(filter_builder_pop(&fb));
-  assert(self->test.p);
-
-  CHECK(or.code(or.data, AST_FILTER, self));
+  out = filter_builder_pop(&fb);
+  CHECK(or.code(or.data, out.type, out.p));
   filter_builder_free(&fb);
   return 1;
 }
