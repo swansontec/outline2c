@@ -14,29 +14,19 @@
  * limitations under the License.
  */
 
-#include <assert.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+/**
+ * All functions return 1 for success and 0 for failure. This macro checks a
+ * return code and bails out if it indicates an error.
+ */
+#define CHECK(r) do { if (!(r)) return 0; } while(0)
 
-#include "pool.c"
-#include "string.c"
-#include "source.c"
-#include "check.c"
-#include "lexer.c"
-
-#include "type.c"
-#include "list.c"
-#include "out.c"
-#include "scope.c"
-
-#include "lwl.c"
-#include "ast.c"
-#include "filter.c"
-#include "parser.c"
-#include "debug.c"
-#include "generate.c"
-
-#include "options.c"
-#include "main.c"
+/**
+ * Verifies that a memory-allocating call succeeds, and prints an error message
+ * otherwise.
+ */
+#define CHECK_MEM(r) do { \
+  if (!(r)) { \
+    fprintf(stderr, "error: Out of memory at %s:%d\n", __FILE__, __LINE__); \
+    return 0; \
+  } \
+} while(0)

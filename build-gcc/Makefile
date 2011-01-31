@@ -20,6 +20,7 @@ default: outline2c
 
 outline2c: ../source/outline2c.c \
 	../source/ast.c \
+	../source/check.c \
 	../source/debug.c \
 	../source/filter.c \
 	../source/generate.c \
