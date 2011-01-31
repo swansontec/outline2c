@@ -22,16 +22,15 @@
  * with ordinary return values.
  */
 typedef struct {
-  int (*code)(void *data, Type type, void *p);
+  int (*code)(void *data, Dynamic value);
   void *data;
 } OutRoutine;
 
-static int out_dynamic_fn(void *data, Type type, void *p)
+static int out_dynamic_fn(void *data, Dynamic value)
 {
   Dynamic *out = data;
   if (out->type != TYPE_END) return 0;
-  out->p = p;
-  out->type = type;
+  *out = value;
   return 1;
 }
 
@@ -49,9 +48,9 @@ OutRoutine out_dynamic(Dynamic *out)
   return self;
 }
 
-static int out_list_fn(void *data, Type type, void *p)
+static int out_list_fn(void *data, Dynamic value)
 {
-  return list_builder_add(data, type, p);
+  return list_builder_add(data, value);
 }
 
 OutRoutine out_list_builder(ListBuilder *b)

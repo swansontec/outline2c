@@ -22,8 +22,7 @@
 typedef struct ListNode ListNode;
 struct ListNode {
   ListNode *next;
-  void *p;
-  Type type;
+  Dynamic d;
 };
 
 /**
@@ -63,14 +62,13 @@ ListBuilder list_builder_init(Pool *pool)
 /**
  * Adds an item to the end of a list.
  */
-int list_builder_add(ListBuilder *b, Type type, void *p)
+int list_builder_add(ListBuilder *b, Dynamic value)
 {
   ListNode *node = pool_new(b->pool, ListNode);
   CHECK_MEM(node);
   node->next = 0;
-  node->p = p;
-  node->type = type;
-  if (!node->p) return 0;
+  node->d = value;
+  if (!node->d.p) return 0;
 
   if (!b->first) {
     b->first = node;

@@ -21,7 +21,7 @@ int test_filter_tag(AstFilterTag *test, AstOutlineItem *item)
   ListNode *tag;
 
   for (tag = item->tags; tag; tag = tag->next) {
-    if (string_equal(ast_to_outline_tag(*tag)->name, test->tag))
+    if (string_equal(ast_to_outline_tag(tag->d)->name, test->tag))
       return 1;
   }
 
@@ -88,11 +88,8 @@ void filter_builder_free(FilterBuilder *b)
 /**
  * Pushes a node onto the stack.
  */
-static int filter_builder_push(FilterBuilder *b, Type type, void *p)
+static int filter_builder_push(FilterBuilder *b, Dynamic node)
 {
-  Dynamic node;
-  node.p = p;
-  node.type = type;
   if (!node.p) return 0;
 
   /* Grow, if needed: */
@@ -124,7 +121,7 @@ int filter_build_tag(FilterBuilder *b, Pool *pool, String tag)
   self->tag = string_copy(pool, tag);
   CHECK_MEM(string_size(self->tag));
 
-  return filter_builder_push(b, AST_FILTER_TAG, self);
+  return filter_builder_push(b, dynamic(AST_FILTER_TAG, self));
 }
 
 int filter_build_any(FilterBuilder *b, Pool *pool)
@@ -132,7 +129,7 @@ int filter_build_any(FilterBuilder *b, Pool *pool)
   AstFilterAny *self = pool_new(pool, AstFilterAny);
   CHECK_MEM(self);
 
-  return filter_builder_push(b, AST_FILTER_ANY, self);
+  return filter_builder_push(b, dynamic(AST_FILTER_ANY, self));
 }
 
 int filter_build_not(FilterBuilder *b, Pool *pool)
@@ -142,7 +139,7 @@ int filter_build_not(FilterBuilder *b, Pool *pool)
   self->test = ast_to_filter_node(filter_builder_pop(b));
   assert(self->test.p);
 
-  return filter_builder_push(b, AST_FILTER_NOT, self);
+  return filter_builder_push(b, dynamic(AST_FILTER_NOT, self));
 }
 
 int filter_build_and(FilterBuilder *b, Pool *pool)
@@ -154,7 +151,7 @@ int filter_build_and(FilterBuilder *b, Pool *pool)
   self->test_b = ast_to_filter_node(filter_builder_pop(b));
   assert(self->test_b.p);
 
-  return filter_builder_push(b, AST_FILTER_AND, self);
+  return filter_builder_push(b, dynamic(AST_FILTER_AND, self));
 }
 
 int filter_build_or(FilterBuilder *b, Pool *pool)
@@ -166,5 +163,5 @@ int filter_build_or(FilterBuilder *b, Pool *pool)
   self->test_b = ast_to_filter_node(filter_builder_pop(b));
   assert(self->test_b.p);
 
-  return filter_builder_push(b, AST_FILTER_OR, self);
+  return filter_builder_push(b, dynamic(AST_FILTER_OR, self));
 }

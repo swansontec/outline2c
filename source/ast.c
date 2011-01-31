@@ -33,7 +33,7 @@ int ast_is_code_node(Type type)
     type == AST_CODE_TEXT;
 }
 
-AstCodeNode ast_to_code_node(ListNode node)
+AstCodeNode ast_to_code_node(Dynamic node)
 {
   AstCodeNode temp;
   assert(ast_is_code_node(node.type));
@@ -222,19 +222,19 @@ typedef struct {
   String code;
 } AstCodeText;
 
-AstVariable *ast_to_variable(ListNode node)
+AstVariable *ast_to_variable(Dynamic node)
 {
   assert(node.type == AST_VARIABLE);
   return node.p;
 }
 
-AstOutlineTag *ast_to_outline_tag(ListNode node)
+AstOutlineTag *ast_to_outline_tag(Dynamic node)
 {
   assert(node.type == AST_OUTLINE_TAG);
   return node.p;
 }
 
-AstOutlineItem *ast_to_outline_item(ListNode node)
+AstOutlineItem *ast_to_outline_item(Dynamic node)
 {
   assert(node.type == AST_OUTLINE_ITEM);
   return node.p;
@@ -246,7 +246,7 @@ AstOutline *ast_to_outline(Dynamic node)
   return node.p;
 }
 
-AstMapLine *ast_to_map_line(ListNode node)
+AstMapLine *ast_to_map_line(Dynamic node)
 {
   assert(node.type == AST_MAP_LINE);
   return node.p;

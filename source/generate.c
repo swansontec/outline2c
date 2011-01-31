@@ -22,7 +22,7 @@ int generate_code_node(FILE *out, AstCodeNode node);
 int generate_code(FILE *out, ListNode *node)
 {
   for (; node; node = node->next)
-    CHECK(generate_code_node(out, ast_to_code_node(*node)));
+    CHECK(generate_code_node(out, ast_to_code_node(node->d)));
   return 1;
 }
 
@@ -48,7 +48,7 @@ int generate_lookup_tag(FILE *out, AstLookup *p)
   ListNode *tag;
 
   for (tag = item->tags; tag; tag = tag->next) {
-    AstOutlineTag *t = ast_to_outline_tag(*tag);
+    AstOutlineTag *t = ast_to_outline_tag(tag->d);
     if (t->value && string_equal(t->name, p->name)) {
       CHECK(generate_code(out, t->value));
       return 1;
@@ -119,14 +119,14 @@ int generate_macro_call(FILE *out, AstMacroCall *p)
   macro_input = p->macro->inputs;
   call_input = p->inputs;
   while (macro_input && call_input) {
-    AstVariable *input = ast_to_variable(*macro_input);
+    AstVariable *input = ast_to_variable(macro_input->d);
 
-    if (call_input->type == AST_VARIABLE) {
-      AstVariable *value = call_input->p;
+    if (call_input->d.type == AST_VARIABLE) {
+      AstVariable *value = call_input->d.p;
       input->value = value->value;
-    } else if (call_input->type == AST_OUTLINE) {
+    } else if (call_input->d.type == AST_OUTLINE) {
       AstOutlineItem *temp = pool_new(&pool, AstOutlineItem);
-      temp->children = call_input->p;
+      temp->children = call_input->d.p;
       temp->name = input->name;
       temp->tags = 0;
       input->value = temp;
@@ -154,7 +154,7 @@ int generate_map(FILE *out, AstMap *p)
 
   /* Match against the map: */
   for (line = p->lines; line; line = line->next) {
-    AstMapLine *l = ast_to_map_line(*line);
+    AstMapLine *l = ast_to_map_line(line->d);
     if (test_filter_node(l->filter, item)) {
       CHECK(generate_code(out, l->code));
       return 1;
@@ -196,7 +196,7 @@ int generate_for(FILE *out, AstFor *p)
         item = item->next;
       last = item;
 
-      p->item->value = ast_to_outline_item(*item);
+      p->item->value = ast_to_outline_item(item->d);
       if (!p->filter.p || test_filter_node(p->filter, p->item->value)) {
         if (p->list && need_comma)
           CHECK(file_putc(out, ','));
@@ -207,7 +207,7 @@ int generate_for(FILE *out, AstFor *p)
   } else {
     ListNode *item;
     for (item = outline->items; item; item = item->next) {
-      p->item->value = ast_to_outline_item(*item);
+      p->item->value = ast_to_outline_item(item->d);
       if (!p->filter.p || test_filter_node(p->filter, p->item->value)) {
         if (p->list && need_comma)
           CHECK(file_putc(out, ','));

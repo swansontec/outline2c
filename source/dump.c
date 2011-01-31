@@ -38,7 +38,7 @@ void dump_text(String text)
 void dump_code(ListNode *node, int indent)
 {
   for (; node; node = node->next)
-    dump_code_node(ast_to_code_node(*node), indent);
+    dump_code_node(ast_to_code_node(node->d), indent);
 }
 
 /**
@@ -69,14 +69,12 @@ void dump_macro_call(AstMacroCall *p)
   macro_input = p->macro->inputs;
   call_input = p->inputs;
   while (macro_input && call_input) {
-    Dynamic temp;
     if (call_input != p->inputs)
       printf(", ");
 
-    dump_variable(ast_to_variable(*macro_input));
+    dump_variable(ast_to_variable(macro_input->d));
     printf("=");
-    temp.p = call_input->p; temp.type = call_input->type;
-    dump_for_node(ast_to_for_node(temp));
+    dump_for_node(ast_to_for_node(call_input->d));
 
     macro_input = macro_input->next;
     call_input = call_input->next;
@@ -143,7 +141,7 @@ void dump_outline_item(AstOutlineItem *p, int indent)
   /* Tags: */
   space(indent);
   for (tag = p->tags; tag; tag = tag->next) {
-    dump_outline_tag(ast_to_outline_tag(*tag), indent);
+    dump_outline_tag(ast_to_outline_tag(tag->d), indent);
     printf(" ");
   }
 
@@ -163,7 +161,7 @@ void dump_outline_items(AstOutline *p, int indent)
 
   printf(" {\n");
   for (item = p->items; item; item = item->next) {
-    dump_outline_item(ast_to_outline_item(*item), indent + INDENT);
+    dump_outline_item(ast_to_outline_item(item->d), indent + INDENT);
     printf("\n");
   }
   space(indent);
@@ -200,7 +198,7 @@ void dump_map(AstMap *p)
   printf(" {\n");
 
   for (line = p->lines; line; line = line->next)
-    dump_map_line(ast_to_map_line(*line));
+    dump_map_line(ast_to_map_line(line->d));
 
   printf("}");
 }

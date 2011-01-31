@@ -49,14 +49,13 @@ Scope scope_init(Scope *outer)
  * Adds a symbol to the current scope.
  * @return 0 for failure.
  */
-int scope_add(Scope *scope, Pool *pool, String name, Type type, void *p)
+int scope_add(Scope *scope, Pool *pool, String name, Dynamic value)
 {
   Symbol *sym = pool_new(pool, Symbol);
   CHECK_MEM(sym);
   sym->name = string_copy(pool, name);
   CHECK_MEM(string_size(sym->name));
-  sym->value.p = p;
-  sym->value.type = type;
+  sym->value = value;
   sym->next = scope->first;
   scope->first = sym;
   return 1;

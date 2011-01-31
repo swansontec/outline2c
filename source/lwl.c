@@ -71,7 +71,7 @@ int lwl_parse_statement(Pool *pool, Source *in, Scope *scope, OutRoutine or, int
       CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
       if (out.type == TYPE_END)
         return source_error(in, "Wrong type - this must be a value.");
-      CHECK(scope_add(scope, pool, name, out.type, out.p));
+      CHECK(scope_add(scope, pool, name, out));
       return 1;
     }
     in->cursor = start;
@@ -82,6 +82,6 @@ int lwl_parse_statement(Pool *pool, Source *in, Scope *scope, OutRoutine or, int
   if (out.type == TYPE_KEYWORD)
     CHECK(((Keyword*)out.p)->code(pool, in, scope, or));
   else
-    CHECK(or.code(or.data, out.type, out.p));
+    CHECK(or.code(or.data, out));
   return 1;
 }

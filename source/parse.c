@@ -42,13 +42,12 @@ int parse_code(Pool *pool, Source *in, Scope *scope, OutRoutine or, int scoped)
   char const *start_c, *start;
   Token token;
   Dynamic out;
-  AstVariable *variable;
   int indent = 1;
 
 #define WRITE_CODE \
   if (start_c != start) \
-    CHECK(or.code(or.data, AST_CODE_TEXT, \
-      ast_code_text_new(pool, string_init(start_c, start))));
+    CHECK(or.code(or.data, dynamic(AST_CODE_TEXT, \
+      ast_code_text_new(pool, string_init(start_c, start)))));
 
   start_c = in->cursor;
   start = in->cursor; token = lex(&in->cursor, in->data.end);
@@ -63,7 +62,6 @@ code:
       if (out.type == AST_MACRO) {
         goto macro;
       } else if (out.type == AST_VARIABLE) {
-        variable = out.p;
         goto variable;
       }
     }
@@ -114,15 +112,15 @@ variable:
   if (token == LEX_BANG) {
     start = in->cursor; token = lex(&in->cursor, in->data.end);
     if (token == LEX_IDENTIFIER) {
-      CHECK(or.code(or.data, AST_LOOKUP,
-        ast_lookup_new(pool, variable, string_init(start, in->cursor))));
+      CHECK(or.code(or.data, dynamic(AST_LOOKUP,
+        ast_lookup_new(pool, out.p, string_init(start, in->cursor)))));
       start_c = in->cursor;
       start = in->cursor; token = lex(&in->cursor, in->data.end);
     } else {
-      CHECK(or.code(or.data, AST_VARIABLE, variable));
+      CHECK(or.code(or.data, out));
     }
   } else {
-    CHECK(or.code(or.data, AST_VARIABLE, variable));
+    CHECK(or.code(or.data, out));
   }
   goto code;
 
@@ -160,8 +158,8 @@ input:
   if (token == LEX_IDENTIFIER) {
     AstVariable *v;
     CHECK(v = ast_variable_new(pool, string_init(start, in->cursor)));
-    CHECK(list_builder_add(&inputs, AST_VARIABLE, v));
-    CHECK(scope_add(&inner, pool, v->name, AST_VARIABLE, v));
+    CHECK(list_builder_add(&inputs, dynamic(AST_VARIABLE, v)));
+    CHECK(scope_add(&inner, pool, v->name, dynamic(AST_VARIABLE, v)));
 
     /* Comma or closing parenthesis: */
     token = lex_next(&start, &in->cursor, in->data.end);
@@ -181,7 +179,7 @@ input:
   CHECK(parse_code(pool, in, &inner, out_list_builder(&code), 1));
   self->code = code.first;
 
-  CHECK(or.code(or.data, AST_MACRO, self));
+  CHECK(or.code(or.data, dynamic(AST_MACRO, self)));
   return 1;
 }
 
@@ -212,7 +210,7 @@ input:
     CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
     if (!ast_is_for_node(out.type))
       return source_error(in, "Wrong type - macro parameters must be outlines.\n");
-    CHECK(list_builder_add(&inputs, out.type, out.p));
+    CHECK(list_builder_add(&inputs, out));
 
     /* Comma or closing parenthesis: */
     token = lex_next(&start, &in->cursor, in->data.end);
@@ -226,7 +224,7 @@ input:
   if (list_length(self->inputs) != list_length(macro->inputs))
     return source_error(in, "Wrong number of arguments.");
 
-  CHECK(or.code(or.data, AST_MACRO_CALL, self));
+  CHECK(or.code(or.data, dynamic(AST_MACRO_CALL, self)));
   return 1;
 }
 
@@ -241,7 +239,6 @@ int parse_filter(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   FilterBuilder fb;
   enum operators { NOT, AND, OR, LPAREN } stack[32];
   int top = 0;
-  Dynamic out;
 
   CHECK(filter_builder_init(&fb));
 
@@ -329,8 +326,7 @@ done:
     }
   }
 
-  out = filter_builder_pop(&fb);
-  CHECK(or.code(or.data, out.type, out.p));
+  CHECK(or.code(or.data, filter_builder_pop(&fb)));
   filter_builder_free(&fb);
   return 1;
 }
@@ -355,8 +351,8 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   token = lex_next(&start, &in->cursor, in->data.end);
   while (token == LEX_IDENTIFIER) {
     if (string_size(last)) {
-      CHECK(list_builder_add(&tags, AST_OUTLINE_TAG,
-        ast_outline_tag_new(pool, last, 0)));
+      CHECK(list_builder_add(&tags, dynamic(AST_OUTLINE_TAG,
+        ast_outline_tag_new(pool, last, 0))));
     }
     last = string_init(start, in->cursor);
     token = lex_next(&start, &in->cursor, in->data.end);
@@ -371,8 +367,8 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
       /* Value: */
       CHECK(parse_code(pool, in, scope, out_list_builder(&code), 1));
 
-      CHECK(list_builder_add(&tags, AST_OUTLINE_TAG,
-        ast_outline_tag_new(pool, last, code.first)));
+      CHECK(list_builder_add(&tags, dynamic(AST_OUTLINE_TAG,
+        ast_outline_tag_new(pool, last, code.first))));
 
       last = string_null();
       token = lex_next(&start, &in->cursor, in->data.end);
@@ -394,7 +390,7 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
     return source_error(in, "An outline can only end with a semicolon or an opening brace.");
   }
 
-  CHECK(or.code(or.data, AST_OUTLINE_ITEM, self));
+  CHECK(or.code(or.data, dynamic(AST_OUTLINE_ITEM, self)));
   return 1;
 }
 
@@ -423,7 +419,7 @@ int parse_outline(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   }
   self->items = items.first;
 
-  CHECK(or.code(or.data, AST_OUTLINE, self));
+  CHECK(or.code(or.data, dynamic(AST_OUTLINE, self)));
   return 1;
 }
 
@@ -470,8 +466,8 @@ outline:
 
   /* Process items: */
   for (item = outline->items; item; item = item->next)
-    if (!filter.p || test_filter_node(filter, ast_to_outline_item(*item)))
-      CHECK(list_builder_add(&items, item->type, item->p));
+    if (!filter.p || test_filter_node(filter, ast_to_outline_item(item->d)))
+      CHECK(list_builder_add(&items, item->d));
 
   /* Another outline? */
   if (token == LEX_COMMA) {
@@ -481,7 +477,7 @@ outline:
   }
 
   self->items = items.first;
-  CHECK(or.code(or.data, AST_OUTLINE, self));
+  CHECK(or.code(or.data, dynamic(AST_OUTLINE, self)));
   return 1;
 }
 
@@ -510,7 +506,7 @@ int parse_map_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   CHECK(parse_code(pool, in, scope, out_list_builder(&code), 1));
   self->code = code.first;
 
-  CHECK(or.code(or.data, AST_MAP_LINE, self));
+  CHECK(or.code(or.data, dynamic(AST_MAP_LINE, self)));
   return 1;
 }
 
@@ -546,7 +542,7 @@ int parse_map(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   }
   self->lines = lines.first;
 
-  CHECK(or.code(or.data, AST_MAP, self));
+  CHECK(or.code(or.data, dynamic(AST_MAP, self)));
   return 1;
 }
 
@@ -568,7 +564,7 @@ int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   if (token != LEX_IDENTIFIER)
     return source_error(in, "Expecting a new symbol name here.");
   CHECK(self->item = ast_variable_new(pool, string_init(start, in->cursor)));
-  CHECK(scope_add(&inner, pool, self->item->name, AST_VARIABLE, self->item));
+  CHECK(scope_add(&inner, pool, self->item->name, dynamic(AST_VARIABLE, self->item)));
   assert(self->item);
 
   /* "in" keyword: */
@@ -619,7 +615,7 @@ modifier:
   CHECK(parse_code(pool, in, &inner, out_list_builder(&code), 1));
   self->code = code.first;
 
-  CHECK(or.code(or.data, AST_FOR, self));
+  CHECK(or.code(or.data, dynamic(AST_FOR, self)));
   return 1;
 }
 
