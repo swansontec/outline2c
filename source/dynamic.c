@@ -47,3 +47,11 @@ typedef struct {
   void *p;
   Type type;
 } Dynamic;
+
+Dynamic dynamic(Type type, void *p)
+{
+  Dynamic self;
+  self.p = p;
+  self.type = type;
+  return self;
+}
