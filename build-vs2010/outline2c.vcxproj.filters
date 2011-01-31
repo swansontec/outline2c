@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\source\ast.c" />
+    <ClInclude Include="..\source\case.c" />
     <ClInclude Include="..\source\check.c" />
     <ClInclude Include="..\source\dump.c" />
     <ClInclude Include="..\source\dynamic.c" />

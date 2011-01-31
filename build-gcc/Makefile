@@ -20,6 +20,7 @@ default: outline2c
 
 outline2c: ../source/outline2c.c \
 	../source/ast.c \
+	../source/case.c \
 	../source/check.c \
 	../source/dump.c \
 	../source/dynamic.c \

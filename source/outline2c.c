@@ -36,6 +36,7 @@
 #include "filter.c"
 #include "parse.c"
 #include "dump.c"
+#include "case.c"
 #include "generate.c"
 
 #include "options.c"
