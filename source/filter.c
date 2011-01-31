@@ -15,25 +15,6 @@
  */
 
 int test_filter_node(AstFilterNode test, AstOutlineItem *item);
-int test_filter_tag(AstFilterTag *test, AstOutlineItem *item);
-int test_filter_not(AstFilterNot *test, AstOutlineItem *item);
-int test_filter_and(AstFilterAnd *test, AstOutlineItem *item);
-int test_filter_or(AstFilterOr *test, AstOutlineItem *item);
-
-/**
- * Determines whether an outline item satisfies a particular filter expression.
- */
-int test_filter_node(AstFilterNode test, AstOutlineItem *item)
-{
-  switch (test.type) {
-  case AST_FILTER_TAG: return test_filter_tag(test.p, item);
-  case AST_FILTER_ANY: return 1;
-  case AST_FILTER_NOT: return test_filter_not(test.p, item);
-  case AST_FILTER_AND: return test_filter_and(test.p, item);
-  case AST_FILTER_OR:  return test_filter_or(test.p, item);
-  default: assert(0); return 0;
-  }
-}
 
 int test_filter_tag(AstFilterTag *test, AstOutlineItem *item)
 {
@@ -64,6 +45,21 @@ int test_filter_or(AstFilterOr *test, AstOutlineItem *item)
   return
     test_filter_node(test->test_a, item) ||
     test_filter_node(test->test_b, item);
+}
+
+/**
+ * Determines whether an outline item satisfies a particular filter expression.
+ */
+int test_filter_node(AstFilterNode test, AstOutlineItem *item)
+{
+  switch (test.type) {
+  case AST_FILTER_TAG: return test_filter_tag(test.p, item);
+  case AST_FILTER_ANY: return 1;
+  case AST_FILTER_NOT: return test_filter_not(test.p, item);
+  case AST_FILTER_AND: return test_filter_and(test.p, item);
+  case AST_FILTER_OR:  return test_filter_or(test.p, item);
+  default: assert(0); return 0;
+  }
 }
 
 /**

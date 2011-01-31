@@ -25,12 +25,12 @@ typedef struct {
 int ast_is_code_node(Type type)
 {
   return
-    type == AST_CODE_TEXT ||
+    type == AST_VARIABLE ||
+    type == AST_LOOKUP ||
+    type == AST_MACRO_CALL ||
     type == AST_MAP ||
     type == AST_FOR ||
-    type == AST_MACRO_CALL ||
-    type == AST_VARIABLE ||
-    type == AST_LOOKUP;
+    type == AST_CODE_TEXT;
 }
 
 AstCodeNode ast_to_code_node(ListNode node)
@@ -53,8 +53,8 @@ typedef struct {
 int ast_is_for_node(Type type)
 {
   return
-    type == AST_OUTLINE ||
-    type == AST_VARIABLE;
+    type == AST_VARIABLE ||
+    type == AST_OUTLINE;
 }
 
 AstForNode ast_to_for_node(Dynamic node)
@@ -93,159 +93,138 @@ AstFilterNode ast_to_filter_node(Dynamic node)
   return temp;
 }
 
-typedef struct AstCodeText      AstCodeText;
-typedef struct AstOutline       AstOutline;
-typedef struct AstOutlineItem   AstOutlineItem;
-typedef struct AstOutlineTag    AstOutlineTag;
-typedef struct AstMap           AstMap;
-typedef struct AstMapLine       AstMapLine;
-typedef struct AstFor           AstFor;
-typedef struct AstFilterTag     AstFilterTag;
-typedef struct AstFilterAny     AstFilterAny;
-typedef struct AstFilterNot     AstFilterNot;
-typedef struct AstFilterAnd     AstFilterAnd;
-typedef struct AstFilterOr      AstFilterOr;
-typedef struct AstMacro         AstMacro;
-typedef struct AstMacroCall     AstMacroCall;
-typedef struct AstVariable      AstVariable;
-typedef struct AstLookup        AstLookup;
+typedef struct AstOutlineItem AstOutlineItem;
 
 /**
- * A run of text in the host language.
+ * A changing value
  */
-struct AstCodeText {
-  String code;
+typedef struct {
+  String name;
+  AstOutlineItem *value;
+} AstVariable;
+
+/**
+ * A modifier on a symbol.
+ */
+typedef struct {
+  AstVariable *item;
+  String name;
+} AstLookup;
+
+/**
+ * A macro definition
+ */
+typedef struct {
+  ListNode *inputs; /* Real type is AstVariable */
+  ListNode *code;
+} AstMacro;
+
+/**
+ * A macro invocation
+ */
+typedef struct {
+  AstMacro *macro;
+  ListNode *inputs;
+} AstMacroCall;
+
+/**
+ * Accepts an outline item if the given tag is present.
+ */
+typedef struct {
+  String tag;
+} AstFilterTag;
+
+/**
+ * Always returns true.
+ */
+typedef struct {
+  int dummy;
+} AstFilterAny;
+
+/**
+ * Accepts an outline item if the sub-conditions is false.
+ */
+typedef struct {
+  AstFilterNode test;
+} AstFilterNot;
+
+/**
+ * Accepts an outline item if both sub-conditions are true.
+ */
+typedef struct {
+  AstFilterNode test_a;
+  AstFilterNode test_b;
+} AstFilterAnd;
+
+/**
+ * Accepts an outline item if either sub-conditions are true.
+ */
+typedef struct {
+  AstFilterNode test_a;
+  AstFilterNode test_b;
+} AstFilterOr;
+
+typedef struct AstOutline AstOutline;
+
+/**
+ * An individual word in an outline item.
+ */
+typedef struct {
+  String name;
+  ListNode *value;
+} AstOutlineTag;
+
+/**
+ * An individual item in an outline.
+ */
+struct AstOutlineItem {
+  ListNode *tags; /* Real type is AstOutlineTag */
+  String name;
+  AstOutline *children;
 };
 
 /**
  * An outline.
  */
 struct AstOutline {
-  ListNode *items;
+  ListNode *items; /* Real type is AstOutlineItem */
 };
 
-/**
- * An individual item in an outline.
- */
-struct AstOutlineItem {
-  ListNode *tags;
-  String name;
-  AstOutline *children;
-};
-
-/**
- * An individual word in an outline item.
- */
-struct AstOutlineTag {
-  String name;
-  ListNode *value;
-};
+typedef struct {
+  AstFilterNode filter;
+  ListNode *code;
+} AstMapLine;
 
 /**
  * A map statement
  */
-struct AstMap
-{
+typedef struct {
   AstVariable *item;
-  ListNode *lines;
-};
-
-struct AstMapLine
-{
-  AstFilterNode filter;
-  ListNode *code;
-};
+  ListNode *lines; /* Real type is AstMapLine */
+} AstMap;
 
 /**
  * A for statement.
  */
-struct AstFor {
+typedef struct {
   AstVariable *item;
   AstForNode outline;
   AstFilterNode filter;
   int reverse;
   int list;
   ListNode *code;
-};
+} AstFor;
 
 /**
- * Accepts an outline item if the given tag is present.
+ * A run of text in the host language.
  */
-struct AstFilterTag {
-  String tag;
-};
+typedef struct {
+  String code;
+} AstCodeText;
 
-/**
- * Always returns true.
- */
-struct AstFilterAny {
-  int dummy;
-};
-
-/**
- * Accepts an outline item if the sub-conditions is false.
- */
-struct AstFilterNot {
-  AstFilterNode test;
-};
-
-/**
- * Accepts an outline item if both sub-conditions are true.
- */
-struct AstFilterAnd {
-  AstFilterNode test_a;
-  AstFilterNode test_b;
-};
-
-/**
- * Accepts an outline item if either sub-conditions are true.
- */
-struct AstFilterOr {
-  AstFilterNode test_a;
-  AstFilterNode test_b;
-};
-
-/**
- * A macro definition
- */
-struct AstMacro {
-  ListNode *inputs; /* Real type is AstVariable */
-  ListNode *code;
-};
-
-/**
- * A macro invocation
- */
-struct AstMacroCall {
-  AstMacro *macro;
-  ListNode *inputs; /* Real type is AstForNode */
-};
-
-/**
- * A changing value
- */
-struct AstVariable {
-  String name;
-  AstOutlineItem *value;
-};
-
-/**
- * A modifier on a symbol.
- */
-struct AstLookup {
-  AstVariable *item;
-  String name;
-};
-
-AstOutline *ast_to_outline(Dynamic node)
+AstVariable *ast_to_variable(ListNode node)
 {
-  assert(node.type == AST_OUTLINE);
-  return node.p;
-}
-
-AstOutlineItem *ast_to_outline_item(ListNode node)
-{
-  assert(node.type == AST_OUTLINE_ITEM);
+  assert(node.type == AST_VARIABLE);
   return node.p;
 }
 
@@ -255,9 +234,15 @@ AstOutlineTag *ast_to_outline_tag(ListNode node)
   return node.p;
 }
 
-AstMap *ast_to_map(Dynamic node)
+AstOutlineItem *ast_to_outline_item(ListNode node)
 {
-  assert(node.type == AST_MAP);
+  assert(node.type == AST_OUTLINE_ITEM);
+  return node.p;
+}
+
+AstOutline *ast_to_outline(Dynamic node)
+{
+  assert(node.type == AST_OUTLINE);
   return node.p;
 }
 
@@ -265,34 +250,6 @@ AstMapLine *ast_to_map_line(ListNode node)
 {
   assert(node.type == AST_MAP_LINE);
   return node.p;
-}
-
-AstVariable *ast_to_variable(ListNode node)
-{
-  assert(node.type == AST_VARIABLE);
-  return node.p;
-}
-
-AstCodeText *ast_code_text_new(Pool *p, String code)
-{
-  AstCodeText *self = pool_new(p, AstCodeText);
-  CHECK_MEM(self);
-  self->code = string_copy(p, code);
-
-  CHECK_MEM(string_size(self->code));
-  return self;
-}
-
-AstOutlineTag *ast_outline_tag_new(Pool *p, String name, ListNode *value)
-{
-  AstOutlineTag *self = pool_new(p, AstOutlineTag);
-  CHECK_MEM(self);
-  self->name = string_copy(p, name);
-  self->value = value;
-
-  CHECK_MEM(string_size(self->name));
-  /* value may be NULL */
-  return self;
 }
 
 AstVariable *ast_variable_new(Pool *p, String name)
@@ -315,5 +272,27 @@ AstLookup *ast_lookup_new(Pool *p, AstVariable *item, String name)
 
   assert(self->item);
   CHECK_MEM(string_size(self->name));
+  return self;
+}
+
+AstOutlineTag *ast_outline_tag_new(Pool *p, String name, ListNode *value)
+{
+  AstOutlineTag *self = pool_new(p, AstOutlineTag);
+  CHECK_MEM(self);
+  self->name = string_copy(p, name);
+  self->value = value;
+
+  CHECK_MEM(string_size(self->name));
+  /* value may be NULL */
+  return self;
+}
+
+AstCodeText *ast_code_text_new(Pool *p, String code)
+{
+  AstCodeText *self = pool_new(p, AstCodeText);
+  CHECK_MEM(self);
+  self->code = string_copy(p, code);
+
+  CHECK_MEM(string_size(self->code));
   return self;
 }
