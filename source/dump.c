@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-void dump_code_node(AstCodeNode node, int indent);
-void dump_for_node(AstForNode node);
-void dump_filter_node(AstFilterNode node);
-
 #define INDENT 2
 
 static void space(int indent)
@@ -38,7 +34,7 @@ void dump_text(String text)
 void dump_code(ListNode *node, int indent)
 {
   for (; node; node = node->next)
-    dump_code_node(ast_to_code_node(node->d), indent);
+    dump(node->d, indent);
 }
 
 /**
@@ -74,7 +70,7 @@ void dump_macro_call(AstMacroCall *p)
 
     dump_variable(ast_to_variable(macro_input->d));
     printf("=");
-    dump_for_node(ast_to_for_node(call_input->d));
+    dump(call_input->d, 0);
 
     macro_input = macro_input->next;
     call_input = call_input->next;
@@ -98,24 +94,24 @@ void dump_filter_any(AstFilterAny *p)
 void dump_filter_not(AstFilterNot *p)
 {
   printf("!");
-  dump_filter_node(p->test);
+  dump(p->test, 0);
 }
 
 void dump_filter_and(AstFilterAnd *p)
 {
   printf("(");
-  dump_filter_node(p->test_a);
+  dump(p->test_a, 0);
   printf(" & ");
-  dump_filter_node(p->test_b);
+  dump(p->test_b, 0);
   printf(")");
 }
 
 void dump_filter_or(AstFilterOr *p)
 {
   printf("(");
-  dump_filter_node(p->test_a);
+  dump(p->test_a, 0);
   printf(" | ");
-  dump_filter_node(p->test_b);
+  dump(p->test_b, 0);
   printf(")");
 }
 
@@ -180,7 +176,7 @@ void dump_outline(AstOutline *p, int indent)
 void dump_map_line(AstMapLine *p)
 {
   printf("  ");
-  dump_filter_node(p->filter);
+  dump(p->filter, 0);
   printf(" {");
   dump_code(p->code, 1);
   printf("}\n");
@@ -212,11 +208,11 @@ void dump_for(AstFor *p)
   dump_text(p->item->name);
   printf(" in ");
 
-  dump_for_node(p->outline);
+  dump(p->outline, 0);
 
   if (p->filter.p) {
     printf(" with ");
-    dump_filter_node(p->filter);
+    dump(p->filter, 0);
   }
   if (p->reverse)
     printf(" reverse");
@@ -233,38 +229,21 @@ void dump_code_text(AstCodeText *p)
   dump_text(p->code);
 }
 
-void dump_code_node(AstCodeNode node, int indent)
+void dump(Dynamic node, int indent)
 {
   switch (node.type) {
   case AST_VARIABLE:   dump_variable(node.p); break;
   case AST_LOOKUP:     dump_lookup(node.p); break;
   case AST_MACRO_CALL: dump_macro_call(node.p); break;
-  case AST_MAP:        dump_map(node.p); break;
-  case AST_FOR:        dump_for(node.p); break;
-  case AST_CODE_TEXT:  dump_code_text(node.p); break;
-  default: printf("(Unknown node %d)", node.type);
-  }
-}
-
-void dump_for_node(AstForNode node)
-{
-  switch (node.type) {
-  case AST_VARIABLE:   dump_variable(node.p); break;
-  case AST_OUTLINE:    dump_outline(node.p, 0); break;
-  }
-}
-
-/**
- * Prints a single element within a filter expression
- */
-void dump_filter_node(AstFilterNode node)
-{
-  switch (node.type) {
   case AST_FILTER_TAG: dump_filter_tag(node.p); break;
   case AST_FILTER_ANY: dump_filter_any(node.p); break;
   case AST_FILTER_NOT: dump_filter_not(node.p); break;
   case AST_FILTER_AND: dump_filter_and(node.p); break;
-  case AST_FILTER_OR:  dump_filter_or(node.p);  break;
-  default: printf("(Unknown filter node %d)", node.type);
+  case AST_FILTER_OR:  dump_filter_or(node.p); break;
+  case AST_OUTLINE:    dump_outline(node.p, indent); break;
+  case AST_MAP:        dump_map(node.p); break;
+  case AST_FOR:        dump_for(node.p); break;
+  case AST_CODE_TEXT:  dump_code_text(node.p); break;
+  default: printf("(Unknown node %d)", node.type);
   }
 }

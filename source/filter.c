@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-int test_filter_node(AstFilterNode test, AstOutlineItem *item);
-
 int test_filter_tag(AstFilterTag *test, AstOutlineItem *item)
 {
   ListNode *tag;
@@ -30,27 +28,27 @@ int test_filter_tag(AstFilterTag *test, AstOutlineItem *item)
 
 int test_filter_not(AstFilterNot *test, AstOutlineItem *item)
 {
-  return !test_filter_node(test->test, item);
+  return !test_filter(test->test, item);
 }
 
 int test_filter_and(AstFilterAnd *test, AstOutlineItem *item)
 {
   return
-    test_filter_node(test->test_a, item) &&
-    test_filter_node(test->test_b, item);
+    test_filter(test->test_a, item) &&
+    test_filter(test->test_b, item);
 }
 
 int test_filter_or(AstFilterOr *test, AstOutlineItem *item)
 {
   return
-    test_filter_node(test->test_a, item) ||
-    test_filter_node(test->test_b, item);
+    test_filter(test->test_a, item) ||
+    test_filter(test->test_b, item);
 }
 
 /**
  * Determines whether an outline item satisfies a particular filter expression.
  */
-int test_filter_node(AstFilterNode test, AstOutlineItem *item)
+int test_filter(Dynamic test, AstOutlineItem *item)
 {
   switch (test.type) {
   case AST_FILTER_TAG: return test_filter_tag(test.p, item);
@@ -136,7 +134,7 @@ int filter_build_not(FilterBuilder *b, Pool *pool)
 {
   AstFilterNot *self = pool_new(pool, AstFilterNot);
   CHECK_MEM(self);
-  self->test = ast_to_filter_node(filter_builder_pop(b));
+  self->test = filter_builder_pop(b);
   assert(self->test.p);
 
   return filter_builder_push(b, dynamic(AST_FILTER_NOT, self));
@@ -146,9 +144,9 @@ int filter_build_and(FilterBuilder *b, Pool *pool)
 {
   AstFilterAnd *self = pool_new(pool, AstFilterAnd);
   CHECK_MEM(self);
-  self->test_a = ast_to_filter_node(filter_builder_pop(b));
+  self->test_a = filter_builder_pop(b);
   assert(self->test_a.p);
-  self->test_b = ast_to_filter_node(filter_builder_pop(b));
+  self->test_b = filter_builder_pop(b);
   assert(self->test_b.p);
 
   return filter_builder_push(b, dynamic(AST_FILTER_AND, self));
@@ -158,9 +156,9 @@ int filter_build_or(FilterBuilder *b, Pool *pool)
 {
   AstFilterOr *self = pool_new(pool, AstFilterOr);
   CHECK_MEM(self);
-  self->test_a = ast_to_filter_node(filter_builder_pop(b));
+  self->test_a = filter_builder_pop(b);
   assert(self->test_a.p);
-  self->test_b = ast_to_filter_node(filter_builder_pop(b));
+  self->test_b = filter_builder_pop(b);
   assert(self->test_b.p);
 
   return filter_builder_push(b, dynamic(AST_FILTER_OR, self));

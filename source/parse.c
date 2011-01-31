@@ -208,7 +208,7 @@ input:
   if (token == LEX_IDENTIFIER) {
     in->cursor = start;
     CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
-    if (!ast_is_for_node(out.type))
+    if (!can_get_items(out))
       return source_error(in, "Wrong type - macro parameters must be outlines.\n");
     CHECK(list_builder_add(&inputs, out));
 
@@ -432,7 +432,7 @@ int parse_union(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   Token token;
   Dynamic out;
   AstOutline *outline;
-  AstFilterNode filter;
+  Dynamic filter;
   ListBuilder items = list_builder_init(pool);
   ListNode *item;
   AstOutline *self = pool_new(pool, AstOutline);
@@ -458,7 +458,8 @@ outline:
 
     /* Filter: */
     CHECK(parse_filter(pool, in, scope, out_dynamic(&out)));
-    filter = ast_to_filter_node(out);
+    assert(can_test_filter(out));
+    filter = out;
     token = lex_next(&start, &in->cursor, in->data.end);
   } else {
     filter.p = 0;
@@ -466,7 +467,7 @@ outline:
 
   /* Process items: */
   for (item = outline->items; item; item = item->next)
-    if (!filter.p || test_filter_node(filter, ast_to_outline_item(item->d)))
+    if (!filter.p || test_filter(filter, ast_to_outline_item(item->d)))
       CHECK(list_builder_add(&items, item->d));
 
   /* Another outline? */
@@ -495,7 +496,8 @@ int parse_map_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 
   /* Filter: */
   CHECK(parse_filter(pool, in, scope, out_dynamic(&out)));
-  self->filter = ast_to_filter_node(out);
+  assert(can_test_filter(out));
+  self->filter = out;
 
   /* Opening brace: */
   token = lex_next(&start, &in->cursor, in->data.end);
@@ -575,9 +577,9 @@ int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 
   /* Outline name: */
   CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
-  if (!ast_is_for_node(out.type))
+  if (!can_get_items(out))
     return source_error(in, "Wrong type - the for statement expects an outline.\n");
-  self->outline = ast_to_for_node(out);
+  self->outline = out;
   assert(self->outline.p);
 
   /* Behavior modification keywords: */
@@ -592,7 +594,8 @@ modifier:
     /* "with" modifier: */
     if (string_equal(s, string_init_k("with"))) {
       CHECK(parse_filter(pool, in, scope, out_dynamic(&out)));
-      self->filter = ast_to_filter_node(out);
+      assert(can_test_filter(out));
+      self->filter = out;
       goto modifier;
 
     /* "reverse" modifier: */

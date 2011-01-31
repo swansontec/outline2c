@@ -14,85 +14,6 @@
  * limitations under the License.
  */
 
-/**
- * A source-level statement
- */
-typedef struct {
-  void *p;
-  Type type;
-} AstCodeNode;
-
-int ast_is_code_node(Type type)
-{
-  return
-    type == AST_VARIABLE ||
-    type == AST_LOOKUP ||
-    type == AST_MACRO_CALL ||
-    type == AST_MAP ||
-    type == AST_FOR ||
-    type == AST_CODE_TEXT;
-}
-
-AstCodeNode ast_to_code_node(Dynamic node)
-{
-  AstCodeNode temp;
-  assert(ast_is_code_node(node.type));
-  temp.p = node.p;
-  temp.type = node.type;
-  return temp;
-}
-
-/**
- * Possible items the for statement can loop over
- */
-typedef struct {
-  void *p;
-  Type type;
-} AstForNode;
-
-int ast_is_for_node(Type type)
-{
-  return
-    type == AST_VARIABLE ||
-    type == AST_OUTLINE;
-}
-
-AstForNode ast_to_for_node(Dynamic node)
-{
-  AstForNode temp;
-  assert(ast_is_for_node(node.type));
-  temp.p = node.p;
-  temp.type = node.type;
-  return temp;
-}
-
-/**
- * A filter element
- */
-typedef struct {
-  void *p;
-  Type type;
-} AstFilterNode;
-
-int ast_is_filter_node(Type type)
-{
-  return
-    type == AST_FILTER_TAG ||
-    type == AST_FILTER_ANY ||
-    type == AST_FILTER_NOT ||
-    type == AST_FILTER_OR ||
-    type == AST_FILTER_AND;
-}
-
-AstFilterNode ast_to_filter_node(Dynamic node)
-{
-  AstFilterNode temp;
-  assert(ast_is_filter_node(node.type));
-  temp.p = node.p;
-  temp.type = node.type;
-  return temp;
-}
-
 typedef struct AstOutlineItem AstOutlineItem;
 
 /**
@@ -145,23 +66,23 @@ typedef struct {
  * Accepts an outline item if the sub-conditions is false.
  */
 typedef struct {
-  AstFilterNode test;
+  Dynamic test;
 } AstFilterNot;
 
 /**
  * Accepts an outline item if both sub-conditions are true.
  */
 typedef struct {
-  AstFilterNode test_a;
-  AstFilterNode test_b;
+  Dynamic test_a;
+  Dynamic test_b;
 } AstFilterAnd;
 
 /**
  * Accepts an outline item if either sub-conditions are true.
  */
 typedef struct {
-  AstFilterNode test_a;
-  AstFilterNode test_b;
+  Dynamic test_a;
+  Dynamic test_b;
 } AstFilterOr;
 
 typedef struct AstOutline AstOutline;
@@ -191,7 +112,7 @@ struct AstOutline {
 };
 
 typedef struct {
-  AstFilterNode filter;
+  Dynamic filter;
   ListNode *code;
 } AstMapLine;
 
@@ -208,8 +129,8 @@ typedef struct {
  */
 typedef struct {
   AstVariable *item;
-  AstForNode outline;
-  AstFilterNode filter;
+  Dynamic outline;
+  Dynamic filter;
   int reverse;
   int list;
   ListNode *code;
@@ -295,4 +216,48 @@ AstCodeText *ast_code_text_new(Pool *p, String code)
 
   CHECK_MEM(string_size(self->code));
   return self;
+}
+
+/**
+ * The ability to appear in debug dumps
+ */
+void dump(Dynamic node, int indent);
+
+/**
+ * The ability to test against an outline item
+ */
+int test_filter(Dynamic test, AstOutlineItem *item);
+int can_test_filter(Dynamic value)
+{
+  return
+    value.type == AST_FILTER_TAG ||
+    value.type == AST_FILTER_ANY ||
+    value.type == AST_FILTER_NOT ||
+    value.type == AST_FILTER_OR ||
+    value.type == AST_FILTER_AND;
+}
+
+/**
+ * The ability to behave as an outline
+ */
+int can_get_items(Dynamic value)
+{
+  return
+    value.type == AST_VARIABLE ||
+    value.type == AST_OUTLINE;
+}
+
+/**
+ * The ability to generate output text
+ */
+int generate(FILE *out, Dynamic node);
+int can_generate(Dynamic value)
+{
+  return
+    value.type == AST_VARIABLE ||
+    value.type == AST_LOOKUP ||
+    value.type == AST_MACRO_CALL ||
+    value.type == AST_MAP ||
+    value.type == AST_FOR ||
+    value.type == AST_CODE_TEXT;
 }

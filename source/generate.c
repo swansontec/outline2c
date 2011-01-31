@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-int generate_code_node(FILE *out, AstCodeNode node);
-
 /**
  * Processes source code, writing the result to the output file.
  */
 int generate_code(FILE *out, ListNode *node)
 {
   for (; node; node = node->next)
-    CHECK(generate_code_node(out, ast_to_code_node(node->d)));
+    CHECK(generate(out, node->d));
   return 1;
 }
 
@@ -155,7 +153,7 @@ int generate_map(FILE *out, AstMap *p)
   /* Match against the map: */
   for (line = p->lines; line; line = line->next) {
     AstMapLine *l = ast_to_map_line(line->d);
-    if (test_filter_node(l->filter, item)) {
+    if (test_filter(l->filter, item)) {
       CHECK(generate_code(out, l->code));
       return 1;
     }
@@ -197,7 +195,7 @@ int generate_for(FILE *out, AstFor *p)
       last = item;
 
       p->item->value = ast_to_outline_item(item->d);
-      if (!p->filter.p || test_filter_node(p->filter, p->item->value)) {
+      if (!p->filter.p || test_filter(p->filter, p->item->value)) {
         if (p->list && need_comma)
           CHECK(file_putc(out, ','));
         CHECK(generate_code(out, p->code));
@@ -208,7 +206,7 @@ int generate_for(FILE *out, AstFor *p)
     ListNode *item;
     for (item = outline->items; item; item = item->next) {
       p->item->value = ast_to_outline_item(item->d);
-      if (!p->filter.p || test_filter_node(p->filter, p->item->value)) {
+      if (!p->filter.p || test_filter(p->filter, p->item->value)) {
         if (p->list && need_comma)
           CHECK(file_putc(out, ','));
         CHECK(generate_code(out, p->code));
@@ -229,7 +227,7 @@ int generate_code_text(FILE *out, AstCodeText *p)
 /**
  * Processes source code, writing the result to the output file.
  */
-int generate_code_node(FILE *out, AstCodeNode node)
+int generate(FILE *out, Dynamic node)
 {
   switch (node.type) {
   case AST_VARIABLE:   return generate_variable(out, node.p);
