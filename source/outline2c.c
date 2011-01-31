@@ -26,7 +26,7 @@
 #include "check.c"
 #include "lexer.c"
 
-#include "type.c"
+#include "dynamic.c"
 #include "list.c"
 #include "out.c"
 #include "scope.c"

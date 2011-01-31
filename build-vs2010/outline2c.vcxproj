@@ -89,6 +89,7 @@
     <ClInclude Include="..\source\ast.c" />
     <ClInclude Include="..\source\check.c" />
     <ClInclude Include="..\source\debug.c" />
+    <ClInclude Include="..\source\dynamic.c" />
     <ClInclude Include="..\source\filter.c" />
     <ClInclude Include="..\source\generate.c" />
     <ClInclude Include="..\source\lexer.c" />
@@ -102,7 +103,6 @@
     <ClInclude Include="..\source\scope.c" />
     <ClInclude Include="..\source\source.c" />
     <ClInclude Include="..\source\string.c" />
-    <ClInclude Include="..\source\type.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

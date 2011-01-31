@@ -22,6 +22,7 @@ outline2c: ../source/outline2c.c \
 	../source/ast.c \
 	../source/check.c \
 	../source/debug.c \
+	../source/dynamic.c \
 	../source/filter.c \
 	../source/generate.c \
 	../source/lexer.c \
@@ -35,7 +36,6 @@ outline2c: ../source/outline2c.c \
 	../source/scope.c \
 	../source/source.c \
 	../source/string.c \
-	../source/type.c \
 	; $(compile)
 
 test: outline2c
