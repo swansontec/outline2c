@@ -17,7 +17,7 @@
 /**
  * Performs code-generation into the output file given in the options.
  */
-int main_generate(ListNode *code, Options *opt)
+int main_generate(Pool *pool, ListNode *code, Options *opt)
 {
   char *s;
   FILE *file_out;
@@ -32,7 +32,7 @@ int main_generate(ListNode *code, Options *opt)
   }
   free(s);
 
-  CHECK(generate_code(file_out, code));
+  CHECK(generate_code(pool, file_out, code));
 
   fclose(file_out);
   return 1;
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
     printf("--- AST: ---\n");
     dump_code(code.first, 0);
   }
-  if (!main_generate(code.first, &opt)) goto error;
+  if (!main_generate(&pool, code.first, &opt)) goto error;
 
   main_context_free(&in, &pool);
   return 0;

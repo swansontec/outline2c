@@ -246,7 +246,7 @@ int can_get_items(Dynamic value)
 /**
  * The ability to generate output text
  */
-int generate(FILE *out, Dynamic node);
+int generate(Pool *pool, FILE *out, Dynamic node);
 int can_generate(Dynamic value)
 {
   return

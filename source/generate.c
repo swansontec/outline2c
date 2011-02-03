@@ -38,17 +38,17 @@ ListNode *get_items(Dynamic node)
 /**
  * Processes source code, writing the result to the output file.
  */
-int generate_code(FILE *out, ListNode *node)
+int generate_code(Pool *pool, FILE *out, ListNode *node)
 {
   for (; node; node = node->next)
-    CHECK(generate(out, node->d));
+    CHECK(generate(pool, out, node->d));
   return 1;
 }
 
 /**
  * Performs code-generation for a variable lookup
  */
-int generate_variable(FILE *out, AstVariable *p)
+int generate_variable(Pool *pool, FILE *out, AstVariable *p)
 {
   AstOutlineItem *item = p->value;
 
@@ -61,7 +61,7 @@ int generate_variable(FILE *out, AstVariable *p)
  * exists and has a value, the function emits the value and returns 1.
  * Otherwise, the function returns -1. Returns 0 for errors.
  */
-int generate_lookup_tag(FILE *out, AstLookup *p)
+int generate_lookup_tag(Pool *pool, FILE *out, AstLookup *p)
 {
   AstOutlineItem *item;
   ListNode *tag;
@@ -76,7 +76,7 @@ int generate_lookup_tag(FILE *out, AstLookup *p)
   for (tag = item->tags; tag; tag = tag->next) {
     AstOutlineTag *t = ast_to_outline_tag(tag->d);
     if (t->value && string_equal(t->name, p->name)) {
-      CHECK(generate_code(out, t->value));
+      CHECK(generate_code(pool, out, t->value));
       return 1;
     }
   }
@@ -88,7 +88,7 @@ int generate_lookup_tag(FILE *out, AstLookup *p)
  * If the lookup name matches one of the built-in transformations, generate
  * that and return 1. Otherwise, return 0.
  */
-int generate_lookup_builtin(FILE *out, AstLookup *p)
+int generate_lookup_builtin(Pool *pool, FILE *out, AstLookup *p)
 {
   AstOutlineItem *item;
 
@@ -120,17 +120,17 @@ int generate_lookup_builtin(FILE *out, AstLookup *p)
 /**
  * Performs code-generation for a lookup node.
  */
-int generate_lookup(FILE *out, AstLookup *p)
+int generate_lookup(Pool *pool, FILE *out, AstLookup *p)
 {
   int rv;
 
   /* If a tag satisfies the lookup, generate that: */
-  rv = generate_lookup_tag(out, p);
+  rv = generate_lookup_tag(pool, out, p);
   if (rv == 1) return 1;
   if (rv == 0) return 0;
 
   /* If that didn't work, try the built-in transforms: */
-  if (generate_lookup_builtin(out, p))
+  if (generate_lookup_builtin(pool, out, p))
     return 1;
 
   {
@@ -141,12 +141,10 @@ int generate_lookup(FILE *out, AstLookup *p)
   return 0;
 }
 
-int generate_macro_call(FILE *out, AstMacroCall *p)
+int generate_macro_call(Pool *pool, FILE *out, AstMacroCall *p)
 {
   ListNode *call_input;
   ListNode *macro_input;
-  Pool pool;
-  CHECK_MEM(pool_init(&pool, 0x100));
 
   /* Assign values to all inputs: */
   macro_input = p->macro->inputs;
@@ -158,7 +156,7 @@ int generate_macro_call(FILE *out, AstMacroCall *p)
       AstVariable *value = call_input->d.p;
       input->value = value->value;
     } else if (call_input->d.type == AST_OUTLINE) {
-      AstOutlineItem *temp = pool_new(&pool, AstOutlineItem);
+      AstOutlineItem *temp = pool_new(pool, AstOutlineItem);
       temp->children = call_input->d.p;
       temp->name = input->name;
       temp->tags = 0;
@@ -171,12 +169,11 @@ int generate_macro_call(FILE *out, AstMacroCall *p)
     call_input = call_input->next;
   }
 
-  CHECK(generate_code(out, p->macro->code));
-  pool_free(&pool);
+  CHECK(generate_code(pool, out, p->macro->code));
   return 1;
 }
 
-int generate_outline_item(FILE *out, AstOutlineItem *p)
+int generate_outline_item(Pool *pool, FILE *out, AstOutlineItem *p)
 {
   CHECK(file_write(out, p->name.p, p->name.end));
   return 1;
@@ -185,7 +182,7 @@ int generate_outline_item(FILE *out, AstOutlineItem *p)
 /**
  * Performs code-generation for a map statement.
  */
-int generate_map(FILE *out, AstMap *p)
+int generate_map(Pool *pool, FILE *out, AstMap *p)
 {
   AstOutlineItem *item;
   ListNode *line;
@@ -202,7 +199,7 @@ int generate_map(FILE *out, AstMap *p)
   for (line = p->lines; line; line = line->next) {
     AstMapLine *l = ast_to_map_line(line->d);
     if (test_filter(l->filter, item)) {
-      CHECK(generate_code(out, l->code));
+      CHECK(generate_code(pool, out, l->code));
       return 1;
     }
   }
@@ -214,7 +211,7 @@ int generate_map(FILE *out, AstMap *p)
   return 0;
 }
 
-int generate_for_item(FILE *out, AstFor *p, ListNode *item, int *need_comma)
+int generate_for_item(Pool *pool, FILE *out, AstFor *p, ListNode *item, int *need_comma)
 {
   if (p->filter.p && !test_filter(p->filter, ast_to_outline_item(item->d)))
     return 1;
@@ -224,14 +221,14 @@ int generate_for_item(FILE *out, AstFor *p, ListNode *item, int *need_comma)
   *need_comma = 1;
 
   p->item->value = ast_to_outline_item(item->d);
-  CHECK(generate_code(out, p->code));
+  CHECK(generate_code(pool, out, p->code));
   return 1;
 }
 
 /**
  * Performs code-generation for a for statement node
  */
-int generate_for(FILE *out, AstFor *p)
+int generate_for(Pool *pool, FILE *out, AstFor *p)
 {
   ListNode *items = get_items(p->outline);
   int need_comma = 0;
@@ -246,18 +243,18 @@ int generate_for(FILE *out, AstFor *p)
         item = item->next;
       last = item;
 
-      CHECK(generate_for_item(out, p, item, &need_comma));
+      CHECK(generate_for_item(pool, out, p, item, &need_comma));
     }
   } else {
     ListNode *item;
     for (item = items; item; item = item->next)
-      CHECK(generate_for_item(out, p, item, &need_comma));
+      CHECK(generate_for_item(pool, out, p, item, &need_comma));
   }
 
   return 1;
 }
 
-int generate_code_text(FILE *out, AstCodeText *p)
+int generate_code_text(Pool *pool, FILE *out, AstCodeText *p)
 {
   CHECK(file_write(out, p->code.p, p->code.end));
   return 1;
@@ -266,16 +263,16 @@ int generate_code_text(FILE *out, AstCodeText *p)
 /**
  * Processes source code, writing the result to the output file.
  */
-int generate(FILE *out, Dynamic node)
+int generate(Pool *pool, FILE *out, Dynamic node)
 {
   switch (node.type) {
-  case AST_VARIABLE:   return generate_variable(out, node.p);
-  case AST_LOOKUP:     return generate_lookup(out, node.p);
-  case AST_MACRO_CALL: return generate_macro_call(out, node.p);
-  case AST_OUTLINE_ITEM: return generate_outline_item(out, node.p);
-  case AST_MAP:        return generate_map(out, node.p);
-  case AST_FOR:        return generate_for(out, node.p);
-  case AST_CODE_TEXT:  return generate_code_text(out, node.p);
+  case AST_VARIABLE:   return generate_variable(pool, out, node.p);
+  case AST_LOOKUP:     return generate_lookup(pool, out, node.p);
+  case AST_MACRO_CALL: return generate_macro_call(pool, out, node.p);
+  case AST_OUTLINE_ITEM: return generate_outline_item(pool, out, node.p);
+  case AST_MAP:        return generate_map(pool, out, node.p);
+  case AST_FOR:        return generate_for(pool, out, node.p);
+  case AST_CODE_TEXT:  return generate_code_text(pool, out, node.p);
   default: assert(0);  return 0;
   }
 }
