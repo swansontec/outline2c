@@ -217,3 +217,34 @@ Token lex_next(char const **start, char const **p, char const *end)
     token == LEX_COMMENT);
   return token;
 }
+
+/**
+ * Determines the extent of a block. This function looks for matching braces,
+ * ignoring braces inside quotes, comments and so forth. Returns an all-null
+ * Source structure response to an error.
+ */
+Source lex_block(Source *in)
+{
+  char const *start;
+  Token token;
+  Source out = *in;
+  Source null = {0};
+  int depth = 1;
+
+  /* Find the opening brace: */
+  token = lex_next(&start, &in->cursor, in->data.end);
+  if (token != LEX_BRACE_L)
+    return null;
+  out.cursor = in->cursor;
+
+  /* Find the ending brace: */
+  do {
+    start = in->cursor; token = lex(&in->cursor, in->data.end);
+    if (token == LEX_BRACE_L) ++depth;
+    if (token == LEX_BRACE_R) --depth;
+  } while (token != LEX_END && depth);
+  if (token == LEX_END)
+    return null;
+  out.data.end = start;
+  return out;
+}

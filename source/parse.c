@@ -28,27 +28,19 @@ int parse_macro_call(Pool *pool, Source *in, Scope *scope, OutRoutine or, AstMac
 /**
  * Parses a block of code in the host language, looking for escape sequences
  * and replacement symbols.
- *
- * When this function is called, the cursor should point to either the start
- * of the file or the opening brace. When the function returns, the cursor
- * will point to either the end of the file or the character after the closing
- * brace.
- *
- * @param scoped If this parameter is non-zero, the parser will stop at the
- * first unbalanced }. Otherwise, the parser will stop at the end of the file.
  */
-int parse_code(Pool *pool, Source *in, Scope *scope, OutRoutine or, int scoped)
+int parse_code(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 {
-  char const *start_c, *start;
+  char const *start_block, *start_c, *start;
   Token token;
   Dynamic out;
-  int indent = 1;
 
 #define WRITE_CODE \
   if (start_c != start) \
     CHECK(or.code(or.data, dynamic(AST_CODE_TEXT, \
       ast_code_text_new(pool, string_init(start_c, start)))));
 
+  start_block = in->cursor;
   start_c = in->cursor;
   start = in->cursor; token = lex(&in->cursor, in->data.end);
 
@@ -65,11 +57,6 @@ code:
         goto variable;
       }
     }
-  } else if (scoped && token == LEX_BRACE_R) {
-    if (!--indent)
-      goto done;
-  } else if (scoped && token == LEX_BRACE_L) {
-    ++indent;
   }
   start = in->cursor; token = lex(&in->cursor, in->data.end);
   goto code;
@@ -126,11 +113,7 @@ variable:
 
 done:
   WRITE_CODE
-
-  /* End-of-code: */
-  if (scoped && token == LEX_END)
-    return source_error(in, start, "Unexpected end of input in code block.");
-
+  in->cursor = start_block;
   return 1;
 }
 
@@ -143,6 +126,7 @@ int parse_macro(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   Token token;
   Scope inner = scope_init(scope);
   ListBuilder inputs = list_builder_init(pool);
+  Source block;
   ListBuilder code = list_builder_init(pool);
   AstMacro *self = pool_new(pool, AstMacro);
   CHECK_MEM(self);
@@ -170,13 +154,14 @@ input:
   }
   self->inputs = inputs.first;
 
-  /* Opening brace: */
-  token = lex_next(&start, &in->cursor, in->data.end);
-  if (token != LEX_BRACE_L)
+  /* Block: */
+  start = in->cursor;
+  block = lex_block(in);
+  if (!block.cursor)
     return source_error(in, start, "A macro definition must end with a code block.");
 
   /* Code: */
-  CHECK(parse_code(pool, in, &inner, out_list_builder(&code), 1));
+  CHECK(parse_code(pool, &block, &inner, out_list_builder(&code)));
   self->code = code.first;
 
   CHECK(or.code(or.data, dynamic(AST_MACRO, self)));
@@ -358,15 +343,17 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
     token = lex_next(&start, &in->cursor, in->data.end);
     if (token == LEX_EQUALS) {
       Scope inner = scope_init(scope);
+      Source block;
       ListBuilder code = list_builder_init(pool);
 
-      /* Opening brace: */
-      token = lex_next(&start, &in->cursor, in->data.end);
-      if (token != LEX_BRACE_L)
+      /* Block: */
+      start = in->cursor;
+      block = lex_block(in);
+      if (!block.cursor)
         return source_error(in, start, "A tag's value must be a code block.");
 
       /* Value: */
-      CHECK(parse_code(pool, in, &inner, out_list_builder(&code), 1));
+      CHECK(parse_code(pool, &block, &inner, out_list_builder(&code)));
 
       CHECK(list_builder_add(&tags, dynamic(AST_OUTLINE_TAG,
         ast_outline_tag_new(pool, last, code.first))));
@@ -491,9 +478,9 @@ outline:
 int parse_map_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 {
   char const *start;
-  Token token;
   Dynamic out;
   Scope inner = scope_init(scope);
+  Source block;
   ListBuilder code = list_builder_init(pool);
   AstMapLine *self = pool_new(pool, AstMapLine);
   CHECK_MEM(self);
@@ -503,13 +490,14 @@ int parse_map_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   assert(can_test_filter(out));
   self->filter = out;
 
-  /* Opening brace: */
-  token = lex_next(&start, &in->cursor, in->data.end);
-  if (token != LEX_BRACE_L)
+  /* Block: */
+  start = in->cursor;
+  block = lex_block(in);
+  if (!block.cursor)
     return source_error(in, start, "A line within a \"map\" statement must end with a code block.");
 
   /* Code: */
-  CHECK(parse_code(pool, in, &inner, out_list_builder(&code), 1));
+  CHECK(parse_code(pool, &block, &inner, out_list_builder(&code)));
   self->code = code.first;
 
   CHECK(or.code(or.data, dynamic(AST_MAP_LINE, self)));
@@ -561,6 +549,7 @@ int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   char const *start;
   Token token;
   Dynamic out;
+  Source block;
   ListBuilder code = list_builder_init(pool);
   Scope inner = scope_init(scope);
   AstFor *self = pool_new(pool, AstFor);
@@ -616,12 +605,16 @@ modifier:
     } else {
       return source_error(in, start, "Invalid \"for\" statement modifier.");
     }
-  } else if (token != LEX_BRACE_L) {
-    return source_error(in, start, "A \"for\" statement must end with a code block.");
   }
+  in->cursor = start;
+
+  /* Block: */
+  block = lex_block(in);
+  if (!block.cursor)
+    return source_error(in, start, "A \"for\" statement must end with a code block.");
 
   /* Code: */
-  CHECK(parse_code(pool, in, &inner, out_list_builder(&code), 1));
+  CHECK(parse_code(pool, &block, &inner, out_list_builder(&code)));
   self->code = code.first;
 
   CHECK(or.code(or.data, dynamic(AST_FOR, self)));
@@ -657,7 +650,7 @@ int parse_include(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   /* Process the file's contents: */
   if (!source_load(&source, pool, filename))
     return source_error(in, start, "Could not open the included file.");
-  CHECK(parse_code(pool, &source, scope, out_list_builder(&code), 0));
+  CHECK(parse_code(pool, &source, scope, out_list_builder(&code)));
 
   /* Closing semicolon: */
   token = lex_next(&start, &in->cursor, in->data.end);
