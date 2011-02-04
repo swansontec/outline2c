@@ -28,7 +28,7 @@ typedef struct {
  * A modifier on a symbol.
  */
 typedef struct {
-  AstVariable *item;
+  Dynamic item;
   String name;
 } AstLookup;
 
@@ -120,7 +120,7 @@ typedef struct {
  * A map statement
  */
 typedef struct {
-  AstVariable *item;
+  Dynamic item;
   ListNode *lines; /* Real type is AstMapLine */
 } AstMap;
 
@@ -161,12 +161,6 @@ AstOutlineItem *ast_to_outline_item(Dynamic node)
   return node.p;
 }
 
-AstOutline *ast_to_outline(Dynamic node)
-{
-  assert(node.type == AST_OUTLINE);
-  return node.p;
-}
-
 AstMapLine *ast_to_map_line(Dynamic node)
 {
   assert(node.type == AST_MAP_LINE);
@@ -184,14 +178,14 @@ AstVariable *ast_variable_new(Pool *p, String name)
   return self;
 }
 
-AstLookup *ast_lookup_new(Pool *p, AstVariable *item, String name)
+AstLookup *ast_lookup_new(Pool *p, Dynamic item, String name)
 {
   AstLookup *self = pool_new(p, AstLookup);
   CHECK_MEM(self);
   self->item = item;
   self->name = string_copy(p, name);
 
-  assert(self->item);
+  assert(self->item.p);
   CHECK_MEM(string_size(self->name));
   return self;
 }
@@ -245,6 +239,7 @@ int can_get_items(Dynamic value)
 {
   return
     value.type == AST_VARIABLE ||
+    value.type == AST_OUTLINE_ITEM ||
     value.type == AST_OUTLINE;
 }
 
@@ -258,6 +253,7 @@ int can_generate(Dynamic value)
     value.type == AST_VARIABLE ||
     value.type == AST_LOOKUP ||
     value.type == AST_MACRO_CALL ||
+    value.type == AST_OUTLINE_ITEM ||
     value.type == AST_MAP ||
     value.type == AST_FOR ||
     value.type == AST_CODE_TEXT;

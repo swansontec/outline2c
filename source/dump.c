@@ -50,7 +50,7 @@ void dump_variable(AstVariable *p)
  */
 void dump_lookup(AstLookup *p)
 {
-  dump_text(p->item->name);
+  dump(p->item, 0);
   printf("!");
   dump_text(p->name);
 }
@@ -190,7 +190,7 @@ void dump_map(AstMap *p)
   ListNode *line;
 
   printf("\\ol map ");
-  dump_text(p->item->name);
+  dump(p->item, 0);
   printf(" {\n");
 
   for (line = p->lines; line; line = line->next)
@@ -235,6 +235,7 @@ void dump(Dynamic node, int indent)
   case AST_VARIABLE:   dump_variable(node.p); break;
   case AST_LOOKUP:     dump_lookup(node.p); break;
   case AST_MACRO_CALL: dump_macro_call(node.p); break;
+  case AST_OUTLINE_ITEM: dump_outline_item(node.p, indent); break;
   case AST_FILTER_TAG: dump_filter_tag(node.p); break;
   case AST_FILTER_ANY: dump_filter_any(node.p); break;
   case AST_FILTER_NOT: dump_filter_not(node.p); break;

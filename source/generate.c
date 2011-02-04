@@ -21,7 +21,11 @@ ListNode *get_items(Dynamic node)
 {
   if (node.type == AST_VARIABLE) {
     AstVariable *v = node.p;
+    assert(v->value);
     return v->value->children ? v->value->children->items : 0;
+  } else if (node.type == AST_OUTLINE_ITEM) {
+    AstOutlineItem *item = node.p;
+    return item->children ? item->children->items : 0;
   } else if (node.type == AST_OUTLINE) {
     AstOutline *outline = node.p;
     return outline->items;
@@ -59,8 +63,15 @@ int generate_variable(FILE *out, AstVariable *p)
  */
 int generate_lookup_tag(FILE *out, AstLookup *p)
 {
-  AstOutlineItem *item = p->item->value;
+  AstOutlineItem *item;
   ListNode *tag;
+
+  if (p->item.type == AST_VARIABLE) {
+    AstVariable *v = p->item.p;
+    item = v->value;
+  } else if (p->item.type == AST_OUTLINE_ITEM) {
+    item = p->item.p;
+  }
 
   for (tag = item->tags; tag; tag = tag->next) {
     AstOutlineTag *t = ast_to_outline_tag(tag->d);
@@ -79,7 +90,14 @@ int generate_lookup_tag(FILE *out, AstLookup *p)
  */
 int generate_lookup_builtin(FILE *out, AstLookup *p)
 {
-  AstOutlineItem *item = p->item->value;
+  AstOutlineItem *item;
+
+  if (p->item.type == AST_VARIABLE) {
+    AstVariable *v = p->item.p;
+    item = v->value;
+  } else if (p->item.type == AST_OUTLINE_ITEM) {
+    item = p->item.p;
+  }
 
   if (string_equal(p->name, string_init_k("quote"))) {
     CHECK(file_putc(out, '"'));
@@ -158,14 +176,27 @@ int generate_macro_call(FILE *out, AstMacroCall *p)
   return 1;
 }
 
+int generate_outline_item(FILE *out, AstOutlineItem *p)
+{
+  CHECK(file_write(out, p->name.p, p->name.end));
+  return 1;
+}
+
 /**
  * Performs code-generation for a map statement.
  */
 int generate_map(FILE *out, AstMap *p)
 {
-  AstOutlineItem *item = p->item->value;
+  AstOutlineItem *item;
   ListNode *line;
   char *temp;
+
+  if (p->item.type == AST_VARIABLE) {
+    AstVariable *v = p->item.p;
+    item = v->value;
+  } else if (p->item.type == AST_OUTLINE_ITEM) {
+    item = p->item.p;
+  }
 
   /* Match against the map: */
   for (line = p->lines; line; line = line->next) {
@@ -177,7 +208,7 @@ int generate_map(FILE *out, AstMap *p)
   }
 
   /* Nothing matched: */
-  temp = string_to_c(p->item->value->name);
+  temp = string_to_c(item->name);
   fprintf(stderr, "error: Could not match item \"%s\" against map.\n", temp);
   free(temp);
   return 0;
@@ -241,6 +272,7 @@ int generate(FILE *out, Dynamic node)
   case AST_VARIABLE:   return generate_variable(out, node.p);
   case AST_LOOKUP:     return generate_lookup(out, node.p);
   case AST_MACRO_CALL: return generate_macro_call(out, node.p);
+  case AST_OUTLINE_ITEM: return generate_outline_item(out, node.p);
   case AST_MAP:        return generate_map(out, node.p);
   case AST_FOR:        return generate_for(out, node.p);
   case AST_CODE_TEXT:  return generate_code_text(out, node.p);

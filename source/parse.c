@@ -61,7 +61,7 @@ code:
     if (scope_get(scope, &out, string_init(start, in->cursor))) {
       if (out.type == AST_MACRO) {
         goto macro;
-      } else if (out.type == AST_VARIABLE) {
+      } else if (out.type == AST_VARIABLE || out.type == AST_OUTLINE_ITEM) {
         goto variable;
       }
     }
@@ -113,7 +113,7 @@ variable:
     start = in->cursor; token = lex(&in->cursor, in->data.end);
     if (token == LEX_IDENTIFIER) {
       CHECK(or.code(or.data, dynamic(AST_LOOKUP,
-        ast_lookup_new(pool, out.p, string_init(start, in->cursor)))));
+        ast_lookup_new(pool, out, string_init(start, in->cursor)))));
       start_c = in->cursor;
       start = in->cursor; token = lex(&in->cursor, in->data.end);
     } else {
@@ -385,7 +385,8 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   if (token == LEX_BRACE_L) {
     in->cursor = start;
     CHECK(parse_outline(pool, in, scope, out_dynamic(&out)));
-    self->children = ast_to_outline(out);
+    assert(out.type == AST_OUTLINE);
+    self->children = out.p;
   } else if (token != LEX_SEMICOLON) {
     return source_error(in, "An outline can only end with a semicolon or an opening brace.");
   }
@@ -431,7 +432,7 @@ int parse_union(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   char const *start;
   Token token;
   Dynamic out;
-  AstOutline *outline;
+  ListNode *items_in;
   Dynamic filter;
   ListBuilder items = list_builder_init(pool);
   ListNode *item;
@@ -446,9 +447,9 @@ int parse_union(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 outline:
   /* Outline: */
   CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
-  if (out.type != AST_OUTLINE)
+  if (!can_get_items(out))
     return source_error(in, "Wrong type - the union statement expects an outline.\n");
-  outline = ast_to_outline(out);
+  items_in = get_items(out);
 
   /* Map? */
   token = lex_next(&start, &in->cursor, in->data.end);
@@ -466,7 +467,7 @@ outline:
   }
 
   /* Process items: */
-  for (item = outline->items; item; item = item->next)
+  for (item = items_in; item; item = item->next)
     if (!filter.p || test_filter(filter, ast_to_outline_item(item->d)))
       CHECK(list_builder_add(&items, item->d));
 
@@ -526,9 +527,9 @@ int parse_map(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 
   /* Item to look up: */
   CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
-  if (out.type != AST_VARIABLE)
+  if (out.type != AST_VARIABLE && out.type != AST_OUTLINE_ITEM)
     return source_error(in, "Wrong type - expecting an outline item as a map parameter.");
-  self->item = out.p;
+  self->item = out;
 
   /* Opening brace: */
   token = lex_next(&start, &in->cursor, in->data.end);
