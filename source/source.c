@@ -28,14 +28,14 @@ typedef struct {
  * 0, but most text editors start from 1. It might make sense to add 1 to the
  * returned values.
  */
-Location location_init(String file, char const *position)
+Location location_init(char const *start, char const *location)
 {
   Location self;
   char const *p;
 
   self.line = 0;
   self.column = 0;
-  for (p = file.p; p < position; ++p) {
+  for (p = start; p < location; ++p) {
     if (*p == '\n') {
       ++self.line;
       self.column = 0;
@@ -107,9 +107,9 @@ error:
 /**
  * Prints an error message related to current cursor location
  */
-int source_error(Source *self, char const *message)
+int source_error(Source *self, char const *location, char const *message)
 {
-  Location l = location_init(self->data, self->cursor);
+  Location l = location_init(self->data.p, location);
   fwrite(self->filename.p, string_size(self->filename), 1, stderr);
   fprintf(stderr, ":%d:%d: error: %s\n", l.line + 1, l.column + 1, message);
   return 0;

@@ -61,16 +61,17 @@ int lwl_parse_statement(Pool *pool, Source *in, Scope *scope, OutRoutine or, int
   /* Symbol: */
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token != LEX_IDENTIFIER)
-    return source_error(in, "Expecting a keyword or variable name here.");
+    return source_error(in, start, "Expecting a keyword or variable name here.");
   name = string_init(start, in->cursor);
 
   /* Equals sign? */
   if (allow_assign) {
     token = lex_next(&start, &in->cursor, in->data.end);
     if (token == LEX_EQUALS) {
+      start = in->cursor;
       CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
       if (out.type == TYPE_END)
-        return source_error(in, "Wrong type - this must be a value.");
+        return source_error(in, start, "Wrong type - this must be a value.");
       CHECK(scope_add(scope, pool, name, out));
       return 1;
     }
@@ -78,7 +79,7 @@ int lwl_parse_statement(Pool *pool, Source *in, Scope *scope, OutRoutine or, int
   }
 
   if (!scope_get(scope, &out, name))
-    return source_error(in, "Unknown variable or keyword.");
+    return source_error(in, start, "Unknown variable or keyword.");
   if (out.type == TYPE_KEYWORD)
     CHECK(((Keyword*)out.p)->code(pool, in, scope, or));
   else
