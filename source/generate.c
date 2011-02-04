@@ -173,15 +173,15 @@ int generate_map(FILE *out, AstMap *p)
  */
 int generate_for(FILE *out, AstFor *p)
 {
-  AstOutline *outline;
+  AstOutline *outline = 0;
   int need_comma = 0;
 
   /* Find the outline list to process: */
-  if (p->outline.type == AST_OUTLINE) {
-    outline = p->outline.p;
-  } else {
+  if (p->outline.type == AST_VARIABLE) {
     AstVariable *v = p->outline.p;
     outline = v->value->children;
+  } else if (p->outline.type == AST_OUTLINE) {
+    outline = p->outline.p;
   }
   if (!outline)
     return 1;
@@ -220,26 +220,24 @@ int generate_for(FILE *out, AstFor *p)
   return 1;
 }
 
+int generate_code_text(FILE *out, AstCodeText *p)
+{
+  CHECK(file_write(out, p->code.p, p->code.end));
+  return 1;
+}
+
 /**
  * Processes source code, writing the result to the output file.
  */
 int generate_code_node(FILE *out, AstCodeNode node)
 {
-  if (node.type == AST_CODE_TEXT) {
-    AstCodeText *p = node.p;
-    CHECK(file_write(out, p->code.p, p->code.end));
-  } else if (node.type == AST_MAP) {
-    CHECK(generate_map(out, node.p));
-  } else if (node.type == AST_FOR) {
-    CHECK(generate_for(out, node.p));
-  } else if (node.type == AST_MACRO_CALL) {
-    CHECK(generate_macro_call(out, node.p));
-  } else if (node.type == AST_VARIABLE) {
-    CHECK(generate_variable(out, node.p));
-  } else if (node.type == AST_LOOKUP) {
-    CHECK(generate_lookup(out, node.p));
-  } else {
-    assert(0);
+  switch (node.type) {
+  case AST_VARIABLE:   return generate_variable(out, node.p);
+  case AST_LOOKUP:     return generate_lookup(out, node.p);
+  case AST_MACRO_CALL: return generate_macro_call(out, node.p);
+  case AST_MAP:        return generate_map(out, node.p);
+  case AST_FOR:        return generate_for(out, node.p);
+  case AST_CODE_TEXT:  return generate_code_text(out, node.p);
+  default: assert(0);  return 0;
   }
-  return 1;
 }

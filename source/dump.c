@@ -121,7 +121,7 @@ void dump_filter_or(AstFilterOr *p)
   printf(")");
 }
 
-void dump_outline(AstOutline *p, int indent);
+void dump_outline_items(AstOutline *p, int indent);
 
 void dump_outline_tag(AstOutlineTag *p, int indent)
 {
@@ -152,15 +152,12 @@ void dump_outline_item(AstOutlineItem *p, int indent)
 
   /* Children: */
   if (p->children && p->children->items)
-    dump_outline(p->children, indent);
+    dump_outline_items(p->children, indent);
   else
     printf(";");
 }
 
-/**
- * Prints a top-level outline statement.
- */
-void dump_outline(AstOutline *p, int indent)
+void dump_outline_items(AstOutline *p, int indent)
 {
   ListNode *item;
 
@@ -171,6 +168,15 @@ void dump_outline(AstOutline *p, int indent)
   }
   space(indent);
   printf("}");
+}
+
+/**
+ * Prints a top-level outline statement.
+ */
+void dump_outline(AstOutline *p, int indent)
+{
+  printf("outline");
+  dump_outline_items(p, indent);
 }
 
 void dump_map_line(AstMapLine *p)
@@ -189,7 +195,7 @@ void dump_map(AstMap *p)
 {
   ListNode *line;
 
-  printf("map ");
+  printf("\\ol map ");
   dump_text(p->item->name);
   printf(" {\n");
 
@@ -204,7 +210,7 @@ void dump_map(AstMap *p)
  */
 void dump_for(AstFor *p)
 {
-  printf("for ");
+  printf("\\ol for ");
   dump_text(p->item->name);
   printf(" in ");
 
@@ -224,33 +230,29 @@ void dump_for(AstFor *p)
   printf("}");
 }
 
+void dump_code_text(AstCodeText *p)
+{
+  dump_text(p->code);
+}
+
 void dump_code_node(AstCodeNode node, int indent)
 {
-  if (node.type == AST_CODE_TEXT) {
-    AstCodeText *p = node.p;
-    dump_text(p->code);
-  } else if (node.type == AST_FOR) {
-    printf("\\ol ");
-    dump_for(node.p);
-  } else if (node.type == AST_MACRO_CALL) {
-    dump_macro_call(node.p);
-  } else if (node.type == AST_VARIABLE) {
-    dump_variable(node.p);
-  } else if (node.type == AST_LOOKUP) {
-    dump_lookup(node.p);
-  } else {
-    printf("(Unknown code node %d)", node.type);
+  switch (node.type) {
+  case AST_VARIABLE:   dump_variable(node.p); break;
+  case AST_LOOKUP:     dump_lookup(node.p); break;
+  case AST_MACRO_CALL: dump_macro_call(node.p); break;
+  case AST_MAP:        dump_map(node.p); break;
+  case AST_FOR:        dump_for(node.p); break;
+  case AST_CODE_TEXT:  dump_code_text(node.p); break;
+  default: printf("(Unknown node %d)", node.type);
   }
 }
 
 void dump_for_node(AstForNode node)
 {
-  if (node.type == AST_OUTLINE) {
-    printf("outline");
-    dump_outline((AstOutline*)node.p, 0);
-  } else {
-    AstVariable *v = node.p;
-    dump_text(v->name);
+  switch (node.type) {
+  case AST_VARIABLE:   dump_variable(node.p); break;
+  case AST_OUTLINE:    dump_outline(node.p, 0); break;
   }
 }
 
