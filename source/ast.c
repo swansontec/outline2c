@@ -36,8 +36,9 @@ typedef struct {
  * A macro definition
  */
 typedef struct {
-  ListNode *inputs; /* Real type is AstVariable */
-  ListNode *code;
+  ListNode *inputs; /* Real type is String packed into AstCodeText */
+  Scope *scope;
+  Source code;
 } AstMacro;
 
 /**

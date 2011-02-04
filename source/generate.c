@@ -145,31 +145,22 @@ int generate_macro_call(Pool *pool, FILE *out, AstMacroCall *p)
 {
   ListNode *call_input;
   ListNode *macro_input;
+  Scope scope = scope_init(p->macro->scope);
+  ListBuilder code = list_builder_init(pool);
 
   /* Assign values to all inputs: */
   macro_input = p->macro->inputs;
   call_input = p->inputs;
   while (macro_input && call_input) {
-    AstVariable *input = ast_to_variable(macro_input->d);
-
-    if (call_input->d.type == AST_VARIABLE) {
-      AstVariable *value = call_input->d.p;
-      input->value = value->value;
-    } else if (call_input->d.type == AST_OUTLINE) {
-      AstOutlineItem *temp = pool_new(pool, AstOutlineItem);
-      temp->children = call_input->d.p;
-      temp->name = input->name;
-      temp->tags = 0;
-      input->value = temp;
-    } else {
-      assert(0);
-    }
+    AstCodeText *name = macro_input->d.p;
+    CHECK(scope_add(&scope, pool, name->code, call_input->d));
 
     macro_input = macro_input->next;
     call_input = call_input->next;
   }
 
-  CHECK(generate_code(pool, out, p->macro->code));
+  CHECK(parse_code(pool, &p->macro->code, &scope, out_list_builder(&code)));
+  CHECK(generate_code(pool, out, code.first));
   return 1;
 }
 

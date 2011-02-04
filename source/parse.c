@@ -124,10 +124,7 @@ int parse_macro(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 {
   char const *start;
   Token token;
-  Scope inner = scope_init(scope);
   ListBuilder inputs = list_builder_init(pool);
-  Source block;
-  ListBuilder code = list_builder_init(pool);
   AstMacro *self = pool_new(pool, AstMacro);
   CHECK_MEM(self);
 
@@ -140,10 +137,9 @@ input:
   /* Argument? */
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token == LEX_IDENTIFIER) {
-    AstVariable *v;
-    CHECK(v = ast_variable_new(pool, string_init(start, in->cursor)));
-    CHECK(list_builder_add(&inputs, dynamic(AST_VARIABLE, v)));
-    CHECK(scope_add(&inner, pool, v->name, dynamic(AST_VARIABLE, v)));
+    AstCodeText *s;
+    CHECK(s = ast_code_text_new(pool, string_init(start, in->cursor)));
+    CHECK(list_builder_add(&inputs, dynamic(AST_CODE_TEXT, s)));
 
     /* Comma or closing parenthesis: */
     token = lex_next(&start, &in->cursor, in->data.end);
@@ -153,16 +149,13 @@ input:
       return source_error(in, start, "Expecting a closing ) or another argument.");
   }
   self->inputs = inputs.first;
+  self->scope = scope;
 
   /* Block: */
   start = in->cursor;
-  block = lex_block(in);
-  if (!block.cursor)
+  self->code = lex_block(in);
+  if (!self->code.cursor)
     return source_error(in, start, "A macro definition must end with a code block.");
-
-  /* Code: */
-  CHECK(parse_code(pool, &block, &inner, out_list_builder(&code)));
-  self->code = code.first;
 
   CHECK(or.code(or.data, dynamic(AST_MACRO, self)));
   return 1;
@@ -193,8 +186,6 @@ input:
   if (token == LEX_IDENTIFIER) {
     in->cursor = start;
     CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
-    if (!can_get_items(out))
-      return source_error(in, start, "Wrong type - macro parameters must be outlines.\n");
     CHECK(list_builder_add(&inputs, out));
 
     /* Comma or closing parenthesis: */

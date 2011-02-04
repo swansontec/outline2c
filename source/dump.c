@@ -65,10 +65,11 @@ void dump_macro_call(AstMacroCall *p)
   macro_input = p->macro->inputs;
   call_input = p->inputs;
   while (macro_input && call_input) {
+    AstCodeText *name = macro_input->d.p;
     if (call_input != p->inputs)
       printf(", ");
 
-    dump_variable(ast_to_variable(macro_input->d));
+    dump_text(name->code);
     printf("=");
     dump(call_input->d, 0);
 
@@ -77,7 +78,7 @@ void dump_macro_call(AstMacroCall *p)
   }
 
   printf(") {");
-  dump_code(p->macro->code, 0);
+  dump_text(string_init(p->macro->code.cursor, p->macro->code.data.end));
   printf("}");
 }
 
