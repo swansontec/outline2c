@@ -19,11 +19,7 @@
  */
 ListNode *get_items(Dynamic node)
 {
-  if (node.type == AST_VARIABLE) {
-    AstVariable *v = node.p;
-    assert(v->value);
-    return v->value->children ? v->value->children->items : 0;
-  } else if (node.type == AST_OUTLINE_ITEM) {
+  if (node.type == AST_OUTLINE_ITEM) {
     AstOutlineItem *item = node.p;
     return item->children ? item->children->items : 0;
   } else if (node.type == AST_OUTLINE) {
@@ -46,34 +42,15 @@ int generate_code(Pool *pool, FILE *out, ListNode *node)
 }
 
 /**
- * Performs code-generation for a variable lookup
- */
-int generate_variable(Pool *pool, FILE *out, AstVariable *p)
-{
-  AstOutlineItem *item = p->value;
-
-  CHECK(file_write(out, item->name.p, item->name.end));
-  return 1;
-}
-
-/**
  * Searches for a tag with the specified name in an outline item. If the tag
  * exists and has a value, the function emits the value and returns 1.
  * Otherwise, the function returns -1. Returns 0 for errors.
  */
 int generate_lookup_tag(Pool *pool, FILE *out, AstLookup *p)
 {
-  AstOutlineItem *item;
   ListNode *tag;
 
-  if (p->item.type == AST_VARIABLE) {
-    AstVariable *v = p->item.p;
-    item = v->value;
-  } else if (p->item.type == AST_OUTLINE_ITEM) {
-    item = p->item.p;
-  }
-
-  for (tag = item->tags; tag; tag = tag->next) {
+  for (tag = p->item->tags; tag; tag = tag->next) {
     AstOutlineTag *t = ast_to_outline_tag(tag->d);
     if (t->value && string_equal(t->name, p->name)) {
       CHECK(generate_code(pool, out, t->value));
@@ -90,28 +67,19 @@ int generate_lookup_tag(Pool *pool, FILE *out, AstLookup *p)
  */
 int generate_lookup_builtin(Pool *pool, FILE *out, AstLookup *p)
 {
-  AstOutlineItem *item;
-
-  if (p->item.type == AST_VARIABLE) {
-    AstVariable *v = p->item.p;
-    item = v->value;
-  } else if (p->item.type == AST_OUTLINE_ITEM) {
-    item = p->item.p;
-  }
-
   if (string_equal(p->name, string_init_k("quote"))) {
     CHECK(file_putc(out, '"'));
-    CHECK(file_write(out, item->name.p, item->name.end));
+    CHECK(file_write(out, p->item->name.p, p->item->name.end));
     CHECK(file_putc(out, '"'));
     return 1;
   } else if (string_equal(p->name, string_init_k("lower"))) {
-    return generate_lower(out, item->name);
+    return generate_lower(out, p->item->name);
   } else if (string_equal(p->name, string_init_k("upper"))) {
-    return generate_upper(out, item->name);
+    return generate_upper(out, p->item->name);
   } else if (string_equal(p->name, string_init_k("camel"))) {
-    return generate_camel(out, item->name);
+    return generate_camel(out, p->item->name);
   } else if (string_equal(p->name, string_init_k("mixed"))) {
-    return generate_mixed(out, item->name);
+    return generate_mixed(out, p->item->name);
   }
 
   return 0;
@@ -175,28 +143,20 @@ int generate_outline_item(Pool *pool, FILE *out, AstOutlineItem *p)
  */
 int generate_map(Pool *pool, FILE *out, AstMap *p)
 {
-  AstOutlineItem *item;
   ListNode *line;
   char *temp;
-
-  if (p->item.type == AST_VARIABLE) {
-    AstVariable *v = p->item.p;
-    item = v->value;
-  } else if (p->item.type == AST_OUTLINE_ITEM) {
-    item = p->item.p;
-  }
 
   /* Match against the map: */
   for (line = p->lines; line; line = line->next) {
     AstMapLine *l = ast_to_map_line(line->d);
-    if (test_filter(l->filter, item)) {
+    if (test_filter(l->filter, p->item)) {
       CHECK(generate_code(pool, out, l->code));
       return 1;
     }
   }
 
   /* Nothing matched: */
-  temp = string_to_c(item->name);
+  temp = string_to_c(p->item->name);
   fprintf(stderr, "error: Could not match item \"%s\" against map.\n", temp);
   free(temp);
   return 0;
@@ -261,7 +221,6 @@ int generate_code_text(Pool *pool, FILE *out, AstCodeText *p)
 int generate(Pool *pool, FILE *out, Dynamic node)
 {
   switch (node.type) {
-  case AST_VARIABLE:   return generate_variable(pool, out, node.p);
   case AST_LOOKUP:     return generate_lookup(pool, out, node.p);
   case AST_MACRO_CALL: return generate_macro_call(pool, out, node.p);
   case AST_OUTLINE_ITEM: return generate_outline_item(pool, out, node.p);

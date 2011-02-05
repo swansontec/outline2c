@@ -17,18 +17,10 @@
 typedef struct AstOutlineItem AstOutlineItem;
 
 /**
- * A changing value
- */
-typedef struct {
-  String name;
-  AstOutlineItem *value;
-} AstVariable;
-
-/**
  * A modifier on a symbol.
  */
 typedef struct {
-  Dynamic item;
+  AstOutlineItem *item;
   String name;
 } AstLookup;
 
@@ -121,7 +113,7 @@ typedef struct {
  * A map statement
  */
 typedef struct {
-  Dynamic item;
+  AstOutlineItem *item;
   ListNode *lines; /* Real type is AstMapLine */
 } AstMap;
 
@@ -145,12 +137,6 @@ typedef struct {
   String code;
 } AstCodeText;
 
-AstVariable *ast_to_variable(Dynamic node)
-{
-  assert(node.type == AST_VARIABLE);
-  return node.p;
-}
-
 AstOutlineTag *ast_to_outline_tag(Dynamic node)
 {
   assert(node.type == AST_OUTLINE_TAG);
@@ -169,25 +155,14 @@ AstMapLine *ast_to_map_line(Dynamic node)
   return node.p;
 }
 
-AstVariable *ast_variable_new(Pool *p, String name)
-{
-  AstVariable *self = pool_new(p, AstVariable);
-  CHECK_MEM(self);
-  self->name = string_copy(p, name);
-  self->value = 0;
-
-  CHECK_MEM(string_size(self->name));
-  return self;
-}
-
-AstLookup *ast_lookup_new(Pool *p, Dynamic item, String name)
+AstLookup *ast_lookup_new(Pool *p, AstOutlineItem *item, String name)
 {
   AstLookup *self = pool_new(p, AstLookup);
   CHECK_MEM(self);
   self->item = item;
   self->name = string_copy(p, name);
 
-  assert(self->item.p);
+  assert(self->item);
   CHECK_MEM(string_size(self->name));
   return self;
 }
@@ -240,7 +215,6 @@ ListNode *get_items(Dynamic node);
 int can_get_items(Dynamic value)
 {
   return
-    value.type == AST_VARIABLE ||
     value.type == AST_OUTLINE_ITEM ||
     value.type == AST_OUTLINE;
 }
@@ -252,7 +226,6 @@ int generate(Pool *pool, FILE *out, Dynamic node);
 int can_generate(Dynamic value)
 {
   return
-    value.type == AST_VARIABLE ||
     value.type == AST_LOOKUP ||
     value.type == AST_MACRO_CALL ||
     value.type == AST_OUTLINE_ITEM ||

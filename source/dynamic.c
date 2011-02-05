@@ -23,7 +23,6 @@
 typedef enum {
   TYPE_KEYWORD,
 
-  AST_VARIABLE,
   AST_LOOKUP,
   AST_MACRO,
   AST_MACRO_CALL,

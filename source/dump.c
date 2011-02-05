@@ -38,19 +38,11 @@ void dump_code(ListNode *node, int indent)
 }
 
 /**
- * Prints a symbol in a debug-friendly manner.
- */
-void dump_variable(AstVariable *p)
-{
-  dump_text(p->name);
-}
-
-/**
  * Prints a lookup symbol.
  */
 void dump_lookup(AstLookup *p)
 {
-  dump(p->item, 0);
+  dump_text(p->item->name);
   printf("!");
   dump_text(p->name);
 }
@@ -191,7 +183,7 @@ void dump_map(AstMap *p)
   ListNode *line;
 
   printf("\\ol map ");
-  dump(p->item, 0);
+  dump_text(p->item->name);
   printf(" {\n");
 
   for (line = p->lines; line; line = line->next)
@@ -233,7 +225,6 @@ void dump_code_text(AstCodeText *p)
 void dump(Dynamic node, int indent)
 {
   switch (node.type) {
-  case AST_VARIABLE:   dump_variable(node.p); break;
   case AST_LOOKUP:     dump_lookup(node.p); break;
   case AST_MACRO_CALL: dump_macro_call(node.p); break;
   case AST_OUTLINE_ITEM: dump_outline_item(node.p, indent); break;

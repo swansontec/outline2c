@@ -53,7 +53,7 @@ code:
     if (scope_get(scope, &out, string_init(start, in->cursor))) {
       if (out.type == AST_MACRO) {
         goto macro;
-      } else if (out.type == AST_VARIABLE || out.type == AST_OUTLINE_ITEM) {
+      } else if (out.type == AST_OUTLINE_ITEM) {
         goto variable;
       }
     }
@@ -100,7 +100,7 @@ variable:
     start = in->cursor; token = lex(&in->cursor, in->data.end);
     if (token == LEX_IDENTIFIER) {
       CHECK(or.code(or.data, dynamic(AST_LOOKUP,
-        ast_lookup_new(pool, out, string_init(start, in->cursor)))));
+        ast_lookup_new(pool, out.p, string_init(start, in->cursor)))));
       start_c = in->cursor;
       start = in->cursor; token = lex(&in->cursor, in->data.end);
     } else {
@@ -510,9 +510,9 @@ int parse_map(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   /* Item to look up: */
   start = in->cursor;
   CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
-  if (out.type != AST_VARIABLE && out.type != AST_OUTLINE_ITEM)
+  if (out.type != AST_OUTLINE_ITEM)
     return source_error(in, start, "Wrong type - expecting an outline item as a map parameter.");
-  self->item = out;
+  self->item = out.p;
 
   /* Opening brace: */
   token = lex_next(&start, &in->cursor, in->data.end);
