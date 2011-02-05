@@ -204,6 +204,9 @@ int generate_map(Pool *pool, FILE *out, AstMap *p)
 
 int generate_for_item(Pool *pool, FILE *out, AstFor *p, ListNode *item, int *need_comma)
 {
+  Scope scope = scope_init(p->scope);
+  ListBuilder code = list_builder_init(pool);
+
   if (p->filter.p && !test_filter(p->filter, ast_to_outline_item(item->d)))
     return 1;
 
@@ -211,8 +214,9 @@ int generate_for_item(Pool *pool, FILE *out, AstFor *p, ListNode *item, int *nee
     CHECK(file_putc(out, ','));
   *need_comma = 1;
 
-  p->item->value = ast_to_outline_item(item->d);
-  CHECK(generate_code(pool, out, p->code));
+  CHECK(scope_add(&scope, pool, p->item, item->d));
+  CHECK(parse_code(pool, &p->code, &scope, out_list_builder(&code)));
+  CHECK(generate_code(pool, out, code.first));
   return 1;
 }
 

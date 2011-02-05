@@ -206,7 +206,7 @@ void dump_map(AstMap *p)
 void dump_for(AstFor *p)
 {
   printf("\\ol for ");
-  dump_text(p->item->name);
+  dump_text(p->item);
   printf(" in ");
 
   dump(p->outline, 0);
@@ -221,7 +221,7 @@ void dump_for(AstFor *p)
     printf(" list");
 
   printf(" {");
-  dump_code(p->code, 0);
+  dump_text(string_init(p->code.cursor, p->code.data.end));
   printf("}");
 }
 

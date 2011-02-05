@@ -540,9 +540,6 @@ int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   char const *start;
   Token token;
   Dynamic out;
-  Source block;
-  ListBuilder code = list_builder_init(pool);
-  Scope inner = scope_init(scope);
   AstFor *self = pool_new(pool, AstFor);
   CHECK_MEM(self);
 
@@ -550,9 +547,7 @@ int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token != LEX_IDENTIFIER)
     return source_error(in, start, "Expecting a new symbol name here.");
-  CHECK(self->item = ast_variable_new(pool, string_init(start, in->cursor)));
-  CHECK(scope_add(&inner, pool, self->item->name, dynamic(AST_VARIABLE, self->item)));
-  assert(self->item);
+  self->item = string_init(start, in->cursor);
 
   /* "in" keyword: */
   token = lex_next(&start, &in->cursor, in->data.end);
@@ -598,15 +593,12 @@ modifier:
     }
   }
   in->cursor = start;
+  self->scope = scope;
 
   /* Block: */
-  block = lex_block(in);
-  if (!block.cursor)
+  self->code = lex_block(in);
+  if (!self->code.cursor)
     return source_error(in, start, "A \"for\" statement must end with a code block.");
-
-  /* Code: */
-  CHECK(parse_code(pool, &block, &inner, out_list_builder(&code)));
-  self->code = code.first;
 
   CHECK(or.code(or.data, dynamic(AST_FOR, self)));
   return 1;

@@ -129,12 +129,13 @@ typedef struct {
  * A for statement.
  */
 typedef struct {
-  AstVariable *item;
+  String item;
   Dynamic outline;
   Dynamic filter;
   int reverse;
   int list;
-  ListNode *code;
+  Scope *scope;
+  Source code;
 } AstFor;
 
 /**
