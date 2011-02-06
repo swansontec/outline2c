@@ -17,7 +17,7 @@
 /**
  * Performs code-generation into the output file given in the options.
  */
-int generate(ListNode *code, Options *opt)
+int main_generate(ListNode *code, Options *opt)
 {
   char *s;
   FILE *file_out;
@@ -82,8 +82,8 @@ void main_context_free(Source *in, Pool *pool)
 int main(int argc, char *argv[])
 {
   Options opt = options_init();
-  Source in = {0};
   Pool pool = {0};
+  Source in = {0};
   Scope scope;
   ListBuilder code = list_builder_init(&pool);
 
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
     printf("--- AST: ---\n");
     dump_code(code.first, 0);
   }
-  if (!generate(code.first, &opt)) goto error;
+  if (!main_generate(code.first, &opt)) goto error;
 
   main_context_free(&in, &pool);
   return 0;

@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
+typedef int (*KeywordFn)(Pool *pool, Source *in, Scope *scope, OutRoutine or);
+
 /**
  * Represents an LWL keyword implemented in C
  */
 typedef struct {
-  int (*code)(Pool *pool, Source *in, Scope *scope, OutRoutine or);
+  KeywordFn code;
 } Keyword;
 
-Keyword *keyword_new(Pool *p, int (*code)(Pool *pool, Source *in, Scope *scope, OutRoutine or))
+Keyword *keyword_new(Pool *p, KeywordFn code)
 {
   Keyword *self = pool_new(p, Keyword);
   CHECK_MEM(self);

@@ -153,19 +153,19 @@ int generate_map(FILE *out, AstMap *p)
   char *temp;
 
   /* Match against the map: */
- for (line = p->lines; line; line = line->next) {
-   AstMapLine *l = ast_to_map_line(*line);
-   if (test_filter_node(l->filter, item)) {
-     CHECK(generate_code(out, l->code));
-     return 1;
-   }
- }
+  for (line = p->lines; line; line = line->next) {
+    AstMapLine *l = ast_to_map_line(*line);
+    if (test_filter_node(l->filter, item)) {
+      CHECK(generate_code(out, l->code));
+      return 1;
+    }
+  }
 
- /* Nothing matched: */
- temp = string_to_c(p->item->value->name);
- fprintf(stderr, "error: Could not match item \"%s\" against map.\n", temp);
- free(temp);
- return 0;
+  /* Nothing matched: */
+  temp = string_to_c(p->item->value->name);
+  fprintf(stderr, "error: Could not match item \"%s\" against map.\n", temp);
+  free(temp);
+  return 0;
 }
 
 /**

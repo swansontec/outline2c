@@ -86,8 +86,7 @@ void filter_builder_free(FilterBuilder *b)
 }
 
 /**
- * Pushes an node onto the stack.
- * @return 0 for failure
+ * Pushes a node onto the stack.
  */
 static int filter_builder_push(FilterBuilder *b, Type type, void *p)
 {

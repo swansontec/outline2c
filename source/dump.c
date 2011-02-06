@@ -29,7 +29,7 @@ static void space(int indent)
 
 void dump_text(String text)
 {
-  fwrite(text.p, 1, text.end - text.p, stdout);
+  fwrite(text.p, string_size(text), 1, stdout);
 }
 
 /**
