@@ -167,7 +167,8 @@ int generate_for_item(Pool *pool, FILE *out, AstFor *p, ListNode *item, int *nee
   Scope scope = scope_init(p->scope);
   ListBuilder code = list_builder_init(pool);
 
-  if (p->filter.p && !test_filter(p->filter, ast_to_outline_item(item->d)))
+  if (dynamic_ok(p->filter) &&
+    !test_filter(p->filter, ast_to_outline_item(item->d)))
     return 1;
 
   if (p->list && *need_comma)

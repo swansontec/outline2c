@@ -29,7 +29,8 @@ typedef struct {
 static int out_dynamic_fn(void *data, Dynamic value)
 {
   Dynamic *out = data;
-  if (out->type != TYPE_END) return 0;
+  if (dynamic_ok(*out)) return 0;
+  if (!dynamic_ok(value)) return 0;
   *out = value;
   return 1;
 }
@@ -44,7 +45,7 @@ OutRoutine out_dynamic(Dynamic *out)
   OutRoutine self;
   self.code = out_dynamic_fn;
   self.data = out;
-  out->type = TYPE_END;
+  *out = dynamic_none();
   return self;
 }
 

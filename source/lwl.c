@@ -70,7 +70,7 @@ int lwl_parse_statement(Pool *pool, Source *in, Scope *scope, OutRoutine or, int
     if (token == LEX_EQUALS) {
       start = in->cursor;
       CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
-      if (out.type == TYPE_END)
+      if (!dynamic_ok(out))
         return source_error(in, start, "Wrong type - this must be a value.");
       CHECK(scope_add(scope, pool, name, out));
       return 1;

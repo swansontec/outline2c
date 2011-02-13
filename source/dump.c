@@ -203,7 +203,7 @@ void dump_for(AstFor *p)
 
   dump(p->outline, 0);
 
-  if (p->filter.p) {
+  if (dynamic_ok(p->filter)) {
     printf(" with ");
     dump(p->filter, 0);
   }

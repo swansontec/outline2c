@@ -21,6 +21,8 @@
  */
 
 typedef enum {
+  TYPE_NONE = 0,
+
   TYPE_KEYWORD,
 
   AST_LOOKUP,
@@ -37,9 +39,7 @@ typedef enum {
   AST_MAP_LINE,
   AST_MAP,
   AST_FOR,
-  AST_CODE_TEXT,
-
-  TYPE_END
+  AST_CODE_TEXT
 } Type;
 
 typedef struct {
@@ -47,10 +47,19 @@ typedef struct {
   Type type;
 } Dynamic;
 
-Dynamic dynamic(Type type, void *p)
+Dynamic dynamic_init(Type type, void *p)
 {
   Dynamic self;
   self.p = p;
   self.type = type;
   return self;
 }
+
+#define dynamic_none() \
+  (dynamic_init(TYPE_NONE, 0))
+
+#define dynamic(type, p) \
+  ((p) ? dynamic_init(type, p) : dynamic_none())
+
+#define dynamic_ok(self) \
+  ((self).type != TYPE_NONE)

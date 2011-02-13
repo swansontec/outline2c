@@ -88,7 +88,7 @@ void filter_builder_free(FilterBuilder *b)
  */
 static int filter_builder_push(FilterBuilder *b, Dynamic node)
 {
-  if (!node.p) return 0;
+  if (!dynamic_ok(node)) return 0;
 
   /* Grow, if needed: */
   if (b->stack_size <= b->stack_top) {
@@ -135,7 +135,7 @@ int filter_build_not(FilterBuilder *b, Pool *pool)
   AstFilterNot *self = pool_new(pool, AstFilterNot);
   CHECK_MEM(self);
   self->test = filter_builder_pop(b);
-  assert(self->test.p);
+  assert(dynamic_ok(self->test));
 
   return filter_builder_push(b, dynamic(AST_FILTER_NOT, self));
 }
@@ -145,9 +145,9 @@ int filter_build_and(FilterBuilder *b, Pool *pool)
   AstFilterAnd *self = pool_new(pool, AstFilterAnd);
   CHECK_MEM(self);
   self->test_a = filter_builder_pop(b);
-  assert(self->test_a.p);
+  assert(dynamic_ok(self->test_a));
   self->test_b = filter_builder_pop(b);
-  assert(self->test_b.p);
+  assert(dynamic_ok(self->test_b));
 
   return filter_builder_push(b, dynamic(AST_FILTER_AND, self));
 }
@@ -157,9 +157,9 @@ int filter_build_or(FilterBuilder *b, Pool *pool)
   AstFilterOr *self = pool_new(pool, AstFilterOr);
   CHECK_MEM(self);
   self->test_a = filter_builder_pop(b);
-  assert(self->test_a.p);
+  assert(dynamic_ok(self->test_a));
   self->test_b = filter_builder_pop(b);
-  assert(self->test_b.p);
+  assert(dynamic_ok(self->test_b));
 
   return filter_builder_push(b, dynamic(AST_FILTER_OR, self));
 }

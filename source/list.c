@@ -68,7 +68,7 @@ int list_builder_add(ListBuilder *b, Dynamic value)
   CHECK_MEM(node);
   node->next = 0;
   node->d = value;
-  if (!node->d.p) return 0;
+  if (!dynamic_ok(node->d)) return 0;
 
   if (!b->first) {
     b->first = node;

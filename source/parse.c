@@ -73,7 +73,6 @@ escape:
   WRITE_CODE
 
   /* "\ol" escape sequences: */
-  out.type = TYPE_END;
   CHECK(lwl_parse_line(pool, in, scope, or));
 
   start_c = in->cursor;
@@ -443,12 +442,12 @@ outline:
     filter = out;
     token = lex_next(&start, &in->cursor, in->data.end);
   } else {
-    filter.p = 0;
+    filter = dynamic_none();
   }
 
   /* Process items: */
   for (item = items_in; item; item = item->next)
-    if (!filter.p || test_filter(filter, ast_to_outline_item(item->d)))
+    if (!dynamic_ok(filter) || test_filter(filter, ast_to_outline_item(item->d)))
       CHECK(list_builder_add(&items, item->d));
 
   /* Another outline? */
@@ -561,10 +560,10 @@ int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   if (!can_get_items(out))
     return source_error(in, start, "Wrong type - the for statement expects an outline.\n");
   self->outline = out;
-  assert(self->outline.p);
+  assert(dynamic_ok(self->outline));
 
   /* Behavior modification keywords: */
-  self->filter.p = 0;
+  self->filter = dynamic_none();
   self->reverse = 0;
   self->list = 0;
 modifier:
