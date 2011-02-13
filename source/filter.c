@@ -124,10 +124,7 @@ int filter_build_tag(FilterBuilder *b, Pool *pool, String tag)
 
 int filter_build_any(FilterBuilder *b, Pool *pool)
 {
-  AstFilterAny *self = pool_new(pool, AstFilterAny);
-  CHECK_MEM(self);
-
-  return filter_builder_push(b, dynamic(AST_FILTER_ANY, self));
+  return filter_builder_push(b, dynamic_init(AST_FILTER_ANY, 0));
 }
 
 int filter_build_not(FilterBuilder *b, Pool *pool)

@@ -79,7 +79,7 @@ void dump_filter_tag(AstFilterTag *p)
   dump_text(p->tag);
 }
 
-void dump_filter_any(AstFilterAny *p)
+void dump_filter_any(void *data)
 {
   printf("*");
 }

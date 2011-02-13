@@ -48,12 +48,7 @@ typedef struct {
   String tag;
 } AstFilterTag;
 
-/**
- * Always returns true.
- */
-typedef struct {
-  int dummy;
-} AstFilterAny;
+/* AstFilterAny has no data */
 
 /**
  * Accepts an outline item if the sub-conditions is false.
