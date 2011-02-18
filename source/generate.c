@@ -19,10 +19,10 @@
  */
 ListNode *get_items(Dynamic node)
 {
-  if (node.type == AST_OUTLINE_ITEM) {
+  if (node.type == type_outline_item) {
     AstOutlineItem *item = node.p;
     return item->children ? item->children->items : 0;
-  } else if (node.type == AST_OUTLINE) {
+  } else if (node.type == type_outline) {
     AstOutline *outline = node.p;
     return outline->items;
   } else {
@@ -221,13 +221,12 @@ int generate_code_text(Pool *pool, FILE *out, AstCodeText *p)
  */
 int generate(Pool *pool, FILE *out, Dynamic node)
 {
-  switch (node.type) {
-  case AST_LOOKUP:     return generate_lookup(pool, out, node.p);
-  case AST_MACRO_CALL: return generate_macro_call(pool, out, node.p);
-  case AST_OUTLINE_ITEM: return generate_outline_item(pool, out, node.p);
-  case AST_MAP:        return generate_map(pool, out, node.p);
-  case AST_FOR:        return generate_for(pool, out, node.p);
-  case AST_CODE_TEXT:  return generate_code_text(pool, out, node.p);
-  default: assert(0);  return 0;
-  }
+  if(node.type == type_lookup)      return generate_lookup(pool, out, node.p);
+  if(node.type == type_macro_call)  return generate_macro_call(pool, out, node.p);
+  if(node.type == type_outline_item)return generate_outline_item(pool, out, node.p);
+  if(node.type == type_map)         return generate_map(pool, out, node.p);
+  if(node.type == type_for)         return generate_for(pool, out, node.p);
+  if(node.type == type_code_text)   return generate_code_text(pool, out, node.p);
+  assert(0);
+  return 0;
 }

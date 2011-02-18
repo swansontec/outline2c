@@ -80,7 +80,7 @@ int lwl_parse_statement(Pool *pool, Source *in, Scope *scope, OutRoutine or, int
 
   if (!scope_get(scope, &out, name))
     return source_error(in, start, "Unknown variable or keyword.");
-  if (out.type == TYPE_KEYWORD)
+  if (out.type == type_keyword)
     CHECK(((Keyword*)out.p)->code(pool, in, scope, or));
   else
     CHECK(or.code(or.data, out));

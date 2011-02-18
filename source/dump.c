@@ -224,19 +224,17 @@ void dump_code_text(AstCodeText *p)
 
 void dump(Dynamic node, int indent)
 {
-  switch (node.type) {
-  case AST_LOOKUP:     dump_lookup(node.p); break;
-  case AST_MACRO_CALL: dump_macro_call(node.p); break;
-  case AST_OUTLINE_ITEM: dump_outline_item(node.p, indent); break;
-  case AST_FILTER_TAG: dump_filter_tag(node.p); break;
-  case AST_FILTER_ANY: dump_filter_any(node.p); break;
-  case AST_FILTER_NOT: dump_filter_not(node.p); break;
-  case AST_FILTER_AND: dump_filter_and(node.p); break;
-  case AST_FILTER_OR:  dump_filter_or(node.p); break;
-  case AST_OUTLINE:    dump_outline(node.p, indent); break;
-  case AST_MAP:        dump_map(node.p); break;
-  case AST_FOR:        dump_for(node.p); break;
-  case AST_CODE_TEXT:  dump_code_text(node.p); break;
-  default: printf("(Unknown node %d)", node.type);
-  }
+  if (node.type == type_lookup)      dump_lookup(node.p); return;
+  if (node.type == type_macro_call)  dump_macro_call(node.p); return;
+  if (node.type == type_outline_item)dump_outline_item(node.p, indent); return;
+  if (node.type == type_filter_tag)  dump_filter_tag(node.p); return;
+  if (node.type == type_filter_any)  dump_filter_any(node.p); return;
+  if (node.type == type_filter_not)  dump_filter_not(node.p); return;
+  if (node.type == type_filter_and)  dump_filter_and(node.p); return;
+  if (node.type == type_filter_or)   dump_filter_or(node.p); return;
+  if (node.type == type_outline)     dump_outline(node.p, indent); return;
+  if (node.type == type_map)         dump_map(node.p); return;
+  if (node.type == type_for)         dump_for(node.p); return;
+  if (node.type == type_code_text)   dump_code_text(node.p); return;
+  printf("<Unknown node>");
 }

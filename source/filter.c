@@ -50,14 +50,13 @@ int test_filter_or(AstFilterOr *test, AstOutlineItem *item)
  */
 int test_filter(Dynamic test, AstOutlineItem *item)
 {
-  switch (test.type) {
-  case AST_FILTER_TAG: return test_filter_tag(test.p, item);
-  case AST_FILTER_ANY: return 1;
-  case AST_FILTER_NOT: return test_filter_not(test.p, item);
-  case AST_FILTER_AND: return test_filter_and(test.p, item);
-  case AST_FILTER_OR:  return test_filter_or(test.p, item);
-  default: assert(0); return 0;
-  }
+  if (test.type == type_filter_tag) return test_filter_tag(test.p, item);
+  if (test.type == type_filter_any) return 1;
+  if (test.type == type_filter_not) return test_filter_not(test.p, item);
+  if (test.type == type_filter_and) return test_filter_and(test.p, item);
+  if (test.type == type_filter_or)  return test_filter_or(test.p, item);
+  assert(0);
+  return 0;
 }
 
 /**
@@ -119,12 +118,12 @@ int filter_build_tag(FilterBuilder *b, Pool *pool, String tag)
   self->tag = string_copy(pool, tag);
   CHECK_MEM(string_size(self->tag));
 
-  return filter_builder_push(b, dynamic(AST_FILTER_TAG, self));
+  return filter_builder_push(b, dynamic(type_filter_tag, self));
 }
 
 int filter_build_any(FilterBuilder *b, Pool *pool)
 {
-  return filter_builder_push(b, dynamic_init(AST_FILTER_ANY, 0));
+  return filter_builder_push(b, dynamic_init(type_filter_any, 0));
 }
 
 int filter_build_not(FilterBuilder *b, Pool *pool)
@@ -134,7 +133,7 @@ int filter_build_not(FilterBuilder *b, Pool *pool)
   self->test = filter_builder_pop(b);
   assert(dynamic_ok(self->test));
 
-  return filter_builder_push(b, dynamic(AST_FILTER_NOT, self));
+  return filter_builder_push(b, dynamic(type_filter_not, self));
 }
 
 int filter_build_and(FilterBuilder *b, Pool *pool)
@@ -146,7 +145,7 @@ int filter_build_and(FilterBuilder *b, Pool *pool)
   self->test_b = filter_builder_pop(b);
   assert(dynamic_ok(self->test_b));
 
-  return filter_builder_push(b, dynamic(AST_FILTER_AND, self));
+  return filter_builder_push(b, dynamic(type_filter_and, self));
 }
 
 int filter_build_or(FilterBuilder *b, Pool *pool)
@@ -158,5 +157,5 @@ int filter_build_or(FilterBuilder *b, Pool *pool)
   self->test_b = filter_builder_pop(b);
   assert(dynamic_ok(self->test_b));
 
-  return filter_builder_push(b, dynamic(AST_FILTER_OR, self));
+  return filter_builder_push(b, dynamic(type_filter_or, self));
 }

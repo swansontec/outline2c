@@ -37,7 +37,7 @@ int parse_code(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 
 #define WRITE_CODE \
   if (start_c != start) \
-    CHECK(or.code(or.data, dynamic(AST_CODE_TEXT, \
+    CHECK(or.code(or.data, dynamic(type_code_text, \
       ast_code_text_new(pool, string_init(start_c, start)))));
 
   start_block = in->cursor;
@@ -51,9 +51,9 @@ code:
   if (token == LEX_ESCAPE) goto escape;
   if (token == LEX_IDENTIFIER) {
     if (scope_get(scope, &out, string_init(start, in->cursor))) {
-      if (out.type == AST_MACRO) {
+      if (out.type == type_macro) {
         goto macro;
-      } else if (out.type == AST_OUTLINE_ITEM) {
+      } else if (out.type == type_outline_item) {
         goto variable;
       }
     }
@@ -98,7 +98,7 @@ variable:
   if (token == LEX_BANG) {
     start = in->cursor; token = lex(&in->cursor, in->data.end);
     if (token == LEX_IDENTIFIER) {
-      CHECK(or.code(or.data, dynamic(AST_LOOKUP,
+      CHECK(or.code(or.data, dynamic(type_lookup,
         ast_lookup_new(pool, out.p, string_init(start, in->cursor)))));
       start_c = in->cursor;
       start = in->cursor; token = lex(&in->cursor, in->data.end);
@@ -138,7 +138,7 @@ input:
   if (token == LEX_IDENTIFIER) {
     AstCodeText *s;
     CHECK(s = ast_code_text_new(pool, string_init(start, in->cursor)));
-    CHECK(list_builder_add(&inputs, dynamic(AST_CODE_TEXT, s)));
+    CHECK(list_builder_add(&inputs, dynamic(type_code_text, s)));
 
     /* Comma or closing parenthesis: */
     token = lex_next(&start, &in->cursor, in->data.end);
@@ -156,7 +156,7 @@ input:
   if (!self->code.cursor)
     return source_error(in, start, "A macro definition must end with a code block.");
 
-  CHECK(or.code(or.data, dynamic(AST_MACRO, self)));
+  CHECK(or.code(or.data, dynamic(type_macro, self)));
   return 1;
 }
 
@@ -199,7 +199,7 @@ input:
   if (list_length(self->inputs) != list_length(macro->inputs))
     return source_error(in, start, "Wrong number of arguments.");
 
-  CHECK(or.code(or.data, dynamic(AST_MACRO_CALL, self)));
+  CHECK(or.code(or.data, dynamic(type_macro_call, self)));
   return 1;
 }
 
@@ -326,7 +326,7 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   token = lex_next(&start, &in->cursor, in->data.end);
   while (token == LEX_IDENTIFIER) {
     if (string_size(last)) {
-      CHECK(list_builder_add(&tags, dynamic(AST_OUTLINE_TAG,
+      CHECK(list_builder_add(&tags, dynamic(type_outline_tag,
         ast_outline_tag_new(pool, last, 0))));
     }
     last = string_init(start, in->cursor);
@@ -345,7 +345,7 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
       /* Value: */
       CHECK(parse_code(pool, &block, &inner, out_list_builder(&code)));
 
-      CHECK(list_builder_add(&tags, dynamic(AST_OUTLINE_TAG,
+      CHECK(list_builder_add(&tags, dynamic(type_outline_tag,
         ast_outline_tag_new(pool, last, code.first))));
 
       last = string_null();
@@ -363,13 +363,13 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   if (token == LEX_BRACE_L) {
     in->cursor = start;
     CHECK(parse_outline(pool, in, scope, out_dynamic(&out)));
-    assert(out.type == AST_OUTLINE);
+    assert(out.type == type_outline);
     self->children = out.p;
   } else if (token != LEX_SEMICOLON) {
     return source_error(in, start, "An outline can only end with a semicolon or an opening brace.");
   }
 
-  CHECK(or.code(or.data, dynamic(AST_OUTLINE_ITEM, self)));
+  CHECK(or.code(or.data, dynamic(type_outline_item, self)));
   return 1;
 }
 
@@ -398,7 +398,7 @@ int parse_outline(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   }
   self->items = items.first;
 
-  CHECK(or.code(or.data, dynamic(AST_OUTLINE, self)));
+  CHECK(or.code(or.data, dynamic(type_outline, self)));
   return 1;
 }
 
@@ -458,7 +458,7 @@ outline:
   }
 
   self->items = items.first;
-  CHECK(or.code(or.data, dynamic(AST_OUTLINE, self)));
+  CHECK(or.code(or.data, dynamic(type_outline, self)));
   return 1;
 }
 
@@ -490,7 +490,7 @@ int parse_map_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   CHECK(parse_code(pool, &block, &inner, out_list_builder(&code)));
   self->code = code.first;
 
-  CHECK(or.code(or.data, dynamic(AST_MAP_LINE, self)));
+  CHECK(or.code(or.data, dynamic(type_map_line, self)));
   return 1;
 }
 
@@ -509,7 +509,7 @@ int parse_map(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   /* Item to look up: */
   start = in->cursor;
   CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
-  if (out.type != AST_OUTLINE_ITEM)
+  if (out.type != type_outline_item)
     return source_error(in, start, "Wrong type - expecting an outline item as a map parameter.");
   self->item = out.p;
 
@@ -527,7 +527,7 @@ int parse_map(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   }
   self->lines = lines.first;
 
-  CHECK(or.code(or.data, dynamic(AST_MAP, self)));
+  CHECK(or.code(or.data, dynamic(type_map, self)));
   return 1;
 }
 
@@ -599,7 +599,7 @@ modifier:
   if (!self->code.cursor)
     return source_error(in, start, "A \"for\" statement must end with a code block.");
 
-  CHECK(or.code(or.data, dynamic(AST_FOR, self)));
+  CHECK(or.code(or.data, dynamic(type_for, self)));
   return 1;
 }
 

@@ -134,19 +134,19 @@ typedef struct {
 
 AstOutlineTag *ast_to_outline_tag(Dynamic node)
 {
-  assert(node.type == AST_OUTLINE_TAG);
+  assert(node.type == type_outline_tag);
   return node.p;
 }
 
 AstOutlineItem *ast_to_outline_item(Dynamic node)
 {
-  assert(node.type == AST_OUTLINE_ITEM);
+  assert(node.type == type_outline_item);
   return node.p;
 }
 
 AstMapLine *ast_to_map_line(Dynamic node)
 {
-  assert(node.type == AST_MAP_LINE);
+  assert(node.type == type_map_line);
   return node.p;
 }
 
@@ -196,11 +196,11 @@ int test_filter(Dynamic test, AstOutlineItem *item);
 int can_test_filter(Dynamic value)
 {
   return
-    value.type == AST_FILTER_TAG ||
-    value.type == AST_FILTER_ANY ||
-    value.type == AST_FILTER_NOT ||
-    value.type == AST_FILTER_OR ||
-    value.type == AST_FILTER_AND;
+    value.type == type_filter_tag ||
+    value.type == type_filter_any ||
+    value.type == type_filter_not ||
+    value.type == type_filter_or ||
+    value.type == type_filter_and;
 }
 
 /**
@@ -210,8 +210,8 @@ ListNode *get_items(Dynamic node);
 int can_get_items(Dynamic value)
 {
   return
-    value.type == AST_OUTLINE_ITEM ||
-    value.type == AST_OUTLINE;
+    value.type == type_outline_item ||
+    value.type == type_outline;
 }
 
 /**
@@ -221,10 +221,10 @@ int generate(Pool *pool, FILE *out, Dynamic node);
 int can_generate(Dynamic value)
 {
   return
-    value.type == AST_LOOKUP ||
-    value.type == AST_MACRO_CALL ||
-    value.type == AST_OUTLINE_ITEM ||
-    value.type == AST_MAP ||
-    value.type == AST_FOR ||
-    value.type == AST_CODE_TEXT;
+    value.type == type_lookup ||
+    value.type == type_macro_call ||
+    value.type == type_outline_item ||
+    value.type == type_map ||
+    value.type == type_for ||
+    value.type == type_code_text;
 }

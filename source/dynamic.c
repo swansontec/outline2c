@@ -21,25 +21,25 @@
  */
 
 typedef enum {
-  TYPE_NONE = 0,
+  type_none = 0,
 
-  TYPE_KEYWORD,
+  type_keyword,
 
-  AST_LOOKUP,
-  AST_MACRO,
-  AST_MACRO_CALL,
-  AST_FILTER_TAG,
-  AST_FILTER_ANY,
-  AST_FILTER_NOT,
-  AST_FILTER_AND,
-  AST_FILTER_OR,
-  AST_OUTLINE_TAG,
-  AST_OUTLINE_ITEM,
-  AST_OUTLINE,
-  AST_MAP_LINE,
-  AST_MAP,
-  AST_FOR,
-  AST_CODE_TEXT
+  type_lookup,
+  type_macro,
+  type_macro_call,
+  type_filter_tag,
+  type_filter_any,
+  type_filter_not,
+  type_filter_and,
+  type_filter_or,
+  type_outline_tag,
+  type_outline_item,
+  type_outline,
+  type_map_line,
+  type_map,
+  type_for,
+  type_code_text
 } Type;
 
 typedef struct {
@@ -56,10 +56,10 @@ Dynamic dynamic_init(Type type, void *p)
 }
 
 #define dynamic_none() \
-  (dynamic_init(TYPE_NONE, 0))
+  (dynamic_init(type_none, 0))
 
 #define dynamic(type, p) \
   ((p) ? dynamic_init(type, p) : dynamic_none())
 
 #define dynamic_ok(self) \
-  ((self).type != TYPE_NONE)
+  ((self).type != type_none)

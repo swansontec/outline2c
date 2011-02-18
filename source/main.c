@@ -55,17 +55,17 @@ int main_context_init(Pool *pool, Source *in, Scope *scope, Options *opt)
   *scope = scope_init(0);
 
   /* Keywords: */
-  CHECK(scope_add(scope, pool, string_init_k("macro"), dynamic(TYPE_KEYWORD,
+  CHECK(scope_add(scope, pool, string_init_k("macro"), dynamic(type_keyword,
     keyword_new(pool, parse_macro))));
-  CHECK(scope_add(scope, pool, string_init_k("outline"), dynamic(TYPE_KEYWORD,
+  CHECK(scope_add(scope, pool, string_init_k("outline"), dynamic(type_keyword,
     keyword_new(pool, parse_outline))));
-  CHECK(scope_add(scope, pool, string_init_k("union"), dynamic(TYPE_KEYWORD,
+  CHECK(scope_add(scope, pool, string_init_k("union"), dynamic(type_keyword,
     keyword_new(pool, parse_union))));
-  CHECK(scope_add(scope, pool, string_init_k("map"), dynamic(TYPE_KEYWORD,
+  CHECK(scope_add(scope, pool, string_init_k("map"), dynamic(type_keyword,
     keyword_new(pool, parse_map))));
-  CHECK(scope_add(scope, pool, string_init_k("for"), dynamic(TYPE_KEYWORD,
+  CHECK(scope_add(scope, pool, string_init_k("for"), dynamic(type_keyword,
     keyword_new(pool, parse_for))));
-  CHECK(scope_add(scope, pool, string_init_k("include"), dynamic(TYPE_KEYWORD,
+  CHECK(scope_add(scope, pool, string_init_k("include"), dynamic(type_keyword,
     keyword_new(pool, parse_include))));
 
   return 1;
