@@ -240,6 +240,7 @@ int can_test_filter(Dynamic value)
 /**
  * The ability to behave as an outline
  */
+ListNode *get_items(Dynamic node);
 int can_get_items(Dynamic value)
 {
   return

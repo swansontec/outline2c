@@ -15,6 +15,23 @@
  */
 
 /**
+ * Extracts an AstOutlineItem list from an AST node
+ */
+ListNode *get_items(Dynamic node)
+{
+  if (node.type == AST_VARIABLE) {
+    AstVariable *v = node.p;
+    return v->value->children ? v->value->children->items : 0;
+  } else if (node.type == AST_OUTLINE) {
+    AstOutline *outline = node.p;
+    return outline->items;
+  } else {
+    assert(0);
+    return 0;
+  }
+}
+
+/**
  * Processes source code, writing the result to the output file.
  */
 int generate_code(FILE *out, ListNode *node)
@@ -166,53 +183,44 @@ int generate_map(FILE *out, AstMap *p)
   return 0;
 }
 
+int generate_for_item(FILE *out, AstFor *p, ListNode *item, int *need_comma)
+{
+  if (p->filter.p && !test_filter(p->filter, ast_to_outline_item(item->d)))
+    return 1;
+
+  if (p->list && *need_comma)
+    CHECK(file_putc(out, ','));
+  *need_comma = 1;
+
+  p->item->value = ast_to_outline_item(item->d);
+  CHECK(generate_code(out, p->code));
+  return 1;
+}
+
 /**
  * Performs code-generation for a for statement node
  */
 int generate_for(FILE *out, AstFor *p)
 {
-  AstOutline *outline = 0;
+  ListNode *items = get_items(p->outline);
   int need_comma = 0;
-
-  /* Find the outline list to process: */
-  if (p->outline.type == AST_VARIABLE) {
-    AstVariable *v = p->outline.p;
-    outline = v->value->children;
-  } else if (p->outline.type == AST_OUTLINE) {
-    outline = p->outline.p;
-  }
-  if (!outline)
-    return 1;
 
   /* Process the list: */
   if (p->reverse) {
     /* Warning: O(n^2) reversing algorithm */
     ListNode *item, *last = 0;
-    while (outline->items != last) {
-      item = outline->items;
+    while (items != last) {
+      item = items;
       while (item->next != last)
         item = item->next;
       last = item;
 
-      p->item->value = ast_to_outline_item(item->d);
-      if (!p->filter.p || test_filter(p->filter, p->item->value)) {
-        if (p->list && need_comma)
-          CHECK(file_putc(out, ','));
-        CHECK(generate_code(out, p->code));
-        need_comma = 1;
-      }
+      CHECK(generate_for_item(out, p, item, &need_comma));
     }
   } else {
     ListNode *item;
-    for (item = outline->items; item; item = item->next) {
-      p->item->value = ast_to_outline_item(item->d);
-      if (!p->filter.p || test_filter(p->filter, p->item->value)) {
-        if (p->list && need_comma)
-          CHECK(file_putc(out, ','));
-        CHECK(generate_code(out, p->code));
-        need_comma = 1;
-      }
-    }
+    for (item = items; item; item = item->next)
+      CHECK(generate_for_item(out, p, item, &need_comma));
   }
 
   return 1;
