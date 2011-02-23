@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-compile = gcc -g -std=c89 -pedantic -o $@ $<
+compile = gcc -g -std=c89 -pedantic -Wall -o $@ $<
 
 default: outline2c
 

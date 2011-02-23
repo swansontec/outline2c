@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 {
   Options opt = options_init();
   Pool pool = {0};
-  Source in = {0};
+  Source in = {{0}};
   Scope scope;
   ListBuilder code = list_builder_init(&pool);
 

@@ -59,7 +59,7 @@ typedef struct {
  * it should work fine on most real-life platforms. The base parameter is not
  * used in this version of the macro.
  */
-#define ALIGN(p, base, align) (char*)((uintptr_t)p + (align-1) & ~(align-1))
+#define ALIGN(p, base, align) ((char*)(((uintptr_t)(p) + ((align)-1)) & ~((align)-1)))
 #else
 /**
  * Aligns a pointer in a completely-portable way. This works because malloc
@@ -68,7 +68,7 @@ typedef struct {
  * from malloc, will either meet the requested alignment or fail in a way that
  * can't possibly matter, since malloc already covers the worst case.
  */
-#define ALIGN(p, base, align) base + (p - base + (align-1) & ~(align-1))
+#define ALIGN(p, base, align) ((base) + (((p) - (base) + ((align)-1)) & ~((align)-1)))
 #endif
 
 /* Discern the platform's alignment requirements: */
