@@ -20,55 +20,46 @@
  * types within the system and provides a typed-pointer structure.
  */
 
-#ifndef TYPE_H_INCLUDED
-#define TYPE_H_INCLUDED
+typedef enum {
+  type_none = 0,
 
-enum Type {
-  TYPE_KEYWORD,
+  type_keyword,
 
-  AST_CODE,
-  AST_CODE_TEXT,
-  AST_OUTLINE,
-  AST_OUTLINE_ITEM,
-  AST_OUTLINE_TAG,
-  AST_MAP,
-  AST_MAP_LINE,
-  AST_FOR,
-  AST_FILTER,
-  AST_FILTER_TAG,
-  AST_FILTER_ANY,
-  AST_FILTER_NOT,
-  AST_FILTER_AND,
-  AST_FILTER_OR,
-  AST_MACRO,
-  AST_MACRO_CALL,
-  AST_VARIABLE,
-  AST_LOOKUP,
+  type_lookup,
+  type_macro,
+  type_macro_call,
+  type_filter_tag,
+  type_filter_any,
+  type_filter_not,
+  type_filter_and,
+  type_filter_or,
+  type_outline_tag,
+  type_outline_item,
+  type_outline,
+  type_map_line,
+  type_map,
+  type_for,
+  type_code_text
+} Type;
 
-  TYPE_END
-};
-typedef enum Type Type;
-
-struct Dynamic {
+typedef struct {
   void *p;
   Type type;
-};
-typedef struct Dynamic Dynamic;
+} Dynamic;
 
-/**
- * All functions return 1 for success and 0 for failure. This macro checks a
- * return code and bails out if it indicates an error.
- */
-#define CHECK(r) do { if (!(r)) return 0; } while(0)
+Dynamic dynamic_init(Type type, void *p)
+{
+  Dynamic self;
+  self.p = p;
+  self.type = type;
+  return self;
+}
 
-/**
- * Verifies that a memory-allocating call succeeds, and prints an error message
- * otherwise.
- */
-#define CHECK_MEM(r) \
-  do { if (!(r)) { \
-    fprintf(stderr, "error: Out of memory at %s:%d\n", __FILE__, __LINE__); \
-    return 0; \
-  } } while(0)
+#define dynamic_none() \
+  (dynamic_init(type_none, 0))
 
-#endif
+#define dynamic(type, p) \
+  ((p) ? dynamic_init(type, p) : dynamic_none())
+
+#define dynamic_ok(self) \
+  ((self).type != type_none)

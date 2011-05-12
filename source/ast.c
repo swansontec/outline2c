@@ -14,122 +14,159 @@
  * limitations under the License.
  */
 
-#include "ast.h"
-#include <assert.h>
-#include <stdio.h>
+typedef struct AstOutlineItem AstOutlineItem;
 
-int ast_is_code_node(Type type)
-{
-  return
-    type == AST_CODE_TEXT ||
-    type == AST_MAP ||
-    type == AST_FOR ||
-    type == AST_MACRO_CALL ||
-    type == AST_VARIABLE ||
-    type == AST_LOOKUP;
-}
+/**
+ * A modifier on a symbol.
+ */
+typedef struct {
+  AstOutlineItem *item;
+  String name;
+} AstLookup;
 
-int ast_is_for_node(Type type)
-{
-  return
-    type == AST_OUTLINE ||
-    type == AST_VARIABLE;
-}
+/**
+ * A macro definition
+ */
+typedef struct {
+  ListNode *inputs; /* Real type is String packed into AstCodeText */
+  Scope *scope;
+  Source code;
+} AstMacro;
 
-int ast_is_filter_node(Type type)
-{
-  return
-    type == AST_FILTER_TAG ||
-    type == AST_FILTER_ANY ||
-    type == AST_FILTER_NOT ||
-    type == AST_FILTER_OR ||
-    type == AST_FILTER_AND;
-}
+/**
+ * A macro invocation
+ */
+typedef struct {
+  AstMacro *macro;
+  ListNode *inputs;
+} AstMacroCall;
 
-AstCodeNode ast_to_code_node(ListNode node)
-{
-  AstCodeNode temp;
-  assert(ast_is_code_node(node.type));
-  temp.p = node.p;
-  temp.type = node.type;
-  return temp;
-}
+/**
+ * Accepts an outline item if the given tag is present.
+ */
+typedef struct {
+  String tag;
+} AstFilterTag;
 
-AstForNode ast_to_for_node(Dynamic node)
-{
-  AstForNode temp;
-  assert(ast_is_for_node(node.type));
-  temp.p = node.p;
-  temp.type = node.type;
-  return temp;
-}
+/* AstFilterAny has no data */
 
-AstFilterNode ast_to_filter_node(Dynamic node)
-{
-  AstFilterNode temp;
-  assert(ast_is_filter_node(node.type));
-  temp.p = node.p;
-  temp.type = node.type;
-  return temp;
-}
+/**
+ * Accepts an outline item if the sub-conditions is false.
+ */
+typedef struct {
+  Dynamic test;
+} AstFilterNot;
 
-AstOutline *ast_to_outline(Dynamic node)
+/**
+ * Accepts an outline item if both sub-conditions are true.
+ */
+typedef struct {
+  Dynamic test_a;
+  Dynamic test_b;
+} AstFilterAnd;
+
+/**
+ * Accepts an outline item if either sub-conditions are true.
+ */
+typedef struct {
+  Dynamic test_a;
+  Dynamic test_b;
+} AstFilterOr;
+
+typedef struct AstOutline AstOutline;
+
+/**
+ * An individual word in an outline item.
+ */
+typedef struct {
+  String name;
+  ListNode *value;
+} AstOutlineTag;
+
+/**
+ * An individual item in an outline.
+ */
+struct AstOutlineItem {
+  ListNode *tags; /* Real type is AstOutlineTag */
+  String name;
+  AstOutline *children;
+};
+
+/**
+ * An outline.
+ */
+struct AstOutline {
+  ListNode *items; /* Real type is AstOutlineItem */
+};
+
+typedef struct {
+  Dynamic filter;
+  ListNode *code;
+} AstMapLine;
+
+/**
+ * A map statement
+ */
+typedef struct {
+  AstOutlineItem *item;
+  ListNode *lines; /* Real type is AstMapLine */
+} AstMap;
+
+/**
+ * A for statement.
+ */
+typedef struct {
+  String item;
+  Dynamic outline;
+  Dynamic filter;
+  int reverse;
+  int list;
+  Scope *scope;
+  Source code;
+} AstFor;
+
+/**
+ * A run of text in the host language.
+ */
+typedef struct {
+  String code;
+} AstCodeText;
+
+AstOutlineTag *ast_to_outline_tag(Dynamic node)
 {
-  assert(node.type == AST_OUTLINE);
+  assert(node.type == type_outline_tag);
   return node.p;
 }
 
-AstOutlineItem *ast_to_outline_item(ListNode node)
+AstOutlineItem *ast_to_outline_item(Dynamic node)
 {
-  assert(node.type == AST_OUTLINE_ITEM);
+  assert(node.type == type_outline_item);
   return node.p;
 }
 
-AstOutlineTag *ast_to_outline_tag(ListNode node)
+AstMapLine *ast_to_map_line(Dynamic node)
 {
-  assert(node.type == AST_OUTLINE_TAG);
+  assert(node.type == type_map_line);
   return node.p;
 }
 
-AstMap *ast_to_map(Dynamic node)
+AstLookup *ast_lookup_new(Pool *p, AstOutlineItem *item, String name)
 {
-  assert(node.type == AST_MAP);
-  return node.p;
-}
-
-AstMapLine *ast_to_map_line(ListNode node)
-{
-  assert(node.type == AST_MAP_LINE);
-  return node.p;
-}
-
-AstFilter *ast_to_filter(Dynamic node)
-{
-  assert(node.type == AST_FILTER);
-  return node.p;
-}
-
-AstVariable *ast_to_variable(ListNode node)
-{
-  assert(node.type == AST_VARIABLE);
-  return node.p;
-}
-
-AstCodeText *ast_code_text_new(Pool *p, String code)
-{
-  AstCodeText *self = pool_alloc(p, sizeof(AstCodeText));
+  AstLookup *self = pool_new(p, AstLookup);
   CHECK_MEM(self);
-  self->code = pool_string_copy(p, code);
+  self->item = item;
+  self->name = string_copy(p, name);
 
-  CHECK_MEM(string_size(self->code));
+  assert(self->item);
+  CHECK_MEM(string_size(self->name));
   return self;
 }
 
 AstOutlineTag *ast_outline_tag_new(Pool *p, String name, ListNode *value)
 {
-  AstOutlineTag *self = pool_alloc(p, sizeof(AstOutlineTag));
+  AstOutlineTag *self = pool_new(p, AstOutlineTag);
   CHECK_MEM(self);
-  self->name = pool_string_copy(p, name);
+  self->name = string_copy(p, name);
   self->value = value;
 
   CHECK_MEM(string_size(self->name));
@@ -137,25 +174,57 @@ AstOutlineTag *ast_outline_tag_new(Pool *p, String name, ListNode *value)
   return self;
 }
 
-AstVariable *ast_variable_new(Pool *p, String name)
+AstCodeText *ast_code_text_new(Pool *p, String code)
 {
-  AstVariable *self = pool_alloc(p, sizeof(AstVariable));
+  AstCodeText *self = pool_new(p, AstCodeText);
   CHECK_MEM(self);
-  self->name = pool_string_copy(p, name);
-  self->value = 0;
+  self->code = string_copy(p, code);
 
-  CHECK_MEM(string_size(self->name));
+  CHECK_MEM(string_size(self->code));
   return self;
 }
 
-AstLookup *ast_lookup_new(Pool *p, AstVariable *item, String name)
-{
-  AstLookup *self = pool_alloc(p, sizeof(AstLookup));
-  CHECK_MEM(self);
-  self->item = item;
-  self->name = pool_string_copy(p, name);
+/**
+ * The ability to appear in debug dumps
+ */
+void dump(Dynamic node, int indent);
 
-  assert(self->item);
-  CHECK_MEM(string_size(self->name));
-  return self;
+/**
+ * The ability to test against an outline item
+ */
+int test_filter(Dynamic test, AstOutlineItem *item);
+int can_test_filter(Dynamic value)
+{
+  return
+    value.type == type_filter_tag ||
+    value.type == type_filter_any ||
+    value.type == type_filter_not ||
+    value.type == type_filter_or ||
+    value.type == type_filter_and;
+}
+
+/**
+ * The ability to behave as an outline
+ */
+ListNode *get_items(Dynamic node);
+int can_get_items(Dynamic value)
+{
+  return
+    value.type == type_outline_item ||
+    value.type == type_outline;
+}
+
+/**
+ * The ability to generate output text
+ */
+int generate(Pool *pool, FILE *out, Dynamic node);
+int can_generate(Dynamic value)
+{
+  return
+    value.type == type_lookup ||
+    value.type == type_macro_call ||
+    value.type == type_outline_item ||
+    value.type == type_map ||
+    value.type == type_for ||
+    value.type == type_code_text;
 }

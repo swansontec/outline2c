@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-#include "lwl.h"
-#include "lexer.h"
-#include <stdio.h>
+typedef int (*KeywordFn)(Pool *pool, Source *in, Scope *scope, OutRoutine or);
 
-Keyword *keyword_new(Pool *p, int (*code)(Pool *pool, Source *in, Scope *scope, OutRoutine or))
+/**
+ * Represents an LWL keyword implemented in C
+ */
+typedef struct {
+  KeywordFn code;
+} Keyword;
+
+Keyword *keyword_new(Pool *p, KeywordFn code)
 {
-  Keyword *self = pool_alloc(p, sizeof(Keyword));
+  Keyword *self = pool_new(p, Keyword);
   CHECK_MEM(self);
   self->code = code;
 
@@ -28,7 +33,25 @@ Keyword *keyword_new(Pool *p, int (*code)(Pool *pool, Source *in, Scope *scope, 
   return self;
 }
 
-static int parse_statement(Pool *pool, Source *in, Scope *scope, OutRoutine or, int allow_assign)
+int lwl_parse_statement(Pool *pool, Source *in, Scope *scope, OutRoutine or, int allow_assign);
+
+/**
+ * Parses an LWL value. Assignment statements are not permitted.
+ */
+int lwl_parse_value(Pool *pool, Source *in, Scope *scope, OutRoutine or)
+{
+  return lwl_parse_statement(pool, in, scope, or, 0);
+}
+
+/**
+ * Parses a line of LWL code, which could be either an assignment or a value.
+ */
+int lwl_parse_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
+{
+  return lwl_parse_statement(pool, in, scope, or, 1);
+}
+
+int lwl_parse_statement(Pool *pool, Source *in, Scope *scope, OutRoutine or, int allow_assign)
 {
   char const *start;
   Token token;
@@ -38,43 +61,28 @@ static int parse_statement(Pool *pool, Source *in, Scope *scope, OutRoutine or, 
   /* Symbol: */
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token != LEX_IDENTIFIER)
-    return source_error(in, "Expecting a keyword or variable name here.");
+    return source_error(in, start, "Expecting a keyword or variable name here.");
   name = string_init(start, in->cursor);
 
   /* Equals sign? */
   if (allow_assign) {
     token = lex_next(&start, &in->cursor, in->data.end);
     if (token == LEX_EQUALS) {
-      CHECK(lwl_parse_value(pool, in, scope, dynamic_out(&out)));
-      if (out.type == TYPE_END)
-        return source_error(in, "Wrong type - this must be a value.");
-      CHECK(scope_add(scope, pool, name, out.type, out.p));
+      start = in->cursor;
+      CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
+      if (!dynamic_ok(out))
+        return source_error(in, start, "Wrong type - this must be a value.");
+      CHECK(scope_add(scope, pool, name, out));
       return 1;
     }
     in->cursor = start;
   }
 
   if (!scope_get(scope, &out, name))
-    return source_error(in, "Unknown variable or keyword.");
-  if (out.type == TYPE_KEYWORD)
+    return source_error(in, start, "Unknown variable or keyword.");
+  if (out.type == type_keyword)
     CHECK(((Keyword*)out.p)->code(pool, in, scope, or));
   else
-    CHECK(or.code(or.data, out.type, out.p));
+    CHECK(or.code(or.data, out));
   return 1;
-}
-
-/**
- * Parses an LWL value. Assignment statements are not permitted.
- */
-int lwl_parse_value(Pool *pool, Source *in, Scope *scope, OutRoutine or)
-{
-  return parse_statement(pool, in, scope, or, 0);
-}
-
-/**
- * Parses a line of LWL code, which could be either an assignment or a value.
- */
-int lwl_parse_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
-{
-  return parse_statement(pool, in, scope, or, 1);
 }

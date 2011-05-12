@@ -14,215 +14,31 @@
  * limitations under the License.
  */
 
-#include "generate.h"
-#include "filter.h"
-#include <assert.h>
-
-int generate_code_node(FILE *out, AstCodeNode node);
-int generate_map(FILE *out, AstMap *p);
-int generate_for(FILE *out, AstFor *p);
-int generate_macro_call(FILE *out, AstMacroCall *p);
-int generate_variable(FILE *out, AstVariable *p);
-int generate_lookup(FILE *out, AstLookup *p);
-int generate_lookup_tag(FILE *out, AstLookup *p);
-int generate_lookup_builtin(FILE *out, AstLookup *p);
-
-int generate_lower(FILE *out, String s);
-int generate_upper(FILE *out, String s);
-int generate_camel(FILE *out, String s);
-int generate_mixed(FILE *out, String s);
-
-String strip_symbol(String s);
-String scan_symbol(String s, char const *p);
-int write_leading(FILE *out, String s, String inner);
-int write_trailing(FILE *out, String s, String inner);
-int write_lower(FILE *out, String s);
-int write_upper(FILE *out, String s);
-int write_cap(FILE *out, String s);
-
-/* Writes bytes to a file, and returns 0 for failure. */
-#define file_write(file, p, end) (fwrite(p, 1, end - p, file) == end - p)
-#define file_putc(file, c) (fputc(c, file) != EOF)
-
 /**
- * Processes source code, writing the result to the output file.
+ * Extracts an AstOutlineItem list from an AST node
  */
-int generate_code(FILE *out, ListNode *node)
+ListNode *get_items(Dynamic node)
 {
-  for (; node; node = node->next)
-    CHECK(generate_code_node(out, ast_to_code_node(*node)));
-  return 1;
-}
-
-/**
- * Processes source code, writing the result to the output file.
- */
-int generate_code_node(FILE *out, AstCodeNode node)
-{
-  if (node.type == AST_CODE_TEXT) {
-    AstCodeText *p = node.p;
-    CHECK(file_write(out, p->code.p, p->code.end));
-  } else if (node.type == AST_MAP) {
-    CHECK(generate_map(out, node.p));
-  } else if (node.type == AST_FOR) {
-    CHECK(generate_for(out, node.p));
-  } else if (node.type == AST_MACRO_CALL) {
-    CHECK(generate_macro_call(out, node.p));
-  } else if (node.type == AST_VARIABLE) {
-    CHECK(generate_variable(out, node.p));
-  } else if (node.type == AST_LOOKUP) {
-    CHECK(generate_lookup(out, node.p));
+  if (node.type == type_outline_item) {
+    AstOutlineItem *item = node.p;
+    return item->children ? item->children->items : 0;
+  } else if (node.type == type_outline) {
+    AstOutline *outline = node.p;
+    return outline->items;
   } else {
     assert(0);
+    return 0;
   }
-  return 1;
 }
 
 /**
- * Performs code-generation for a map statement.
+ * Processes source code, writing the result to the output file.
  */
-int generate_map(FILE *out, AstMap *p)
+int generate_code(Pool *pool, FILE *out, ListNode *node)
 {
-  AstOutlineItem *item = p->item->value;
-  ListNode *line;
-  char *temp;
-
-  /* Match against the map: */
- for (line = p->lines; line; line = line->next) {
-   AstMapLine *l = ast_to_map_line(*line);
-   if (test_filter(l->filter, item)) {
-     CHECK(generate_code(out, l->code));
-     return 1;
-   }
- }
-
- /* Nothing matched: */
- temp = string_to_c(p->item->value->name);
- fprintf(stderr, "error: Could not match item \"%s\" against map.\n", temp);
- free(temp);
- return 0;
-}
-
-/**
- * Performs code-generation for a for statement node
- */
-int generate_for(FILE *out, AstFor *p)
-{
-  AstOutline *outline;
-  int need_comma = 0;
-
-  /* Find the outline list to process: */
-  if (p->outline.type == AST_OUTLINE) {
-    outline = p->outline.p;
-  } else {
-    AstVariable *v = p->outline.p;
-    outline = v->value->children;
-  }
-  if (!outline)
-    return 1;
-
-  /* Process the list: */
-  if (p->reverse) {
-    /* Warning: O(n^2) reversing algorithm */
-    ListNode *item, *last = 0;
-    while (outline->items != last) {
-      item = outline->items;
-      while (item->next != last)
-        item = item->next;
-      last = item;
-
-      p->item->value = ast_to_outline_item(*item);
-      if (!p->filter || test_filter(p->filter, p->item->value)) {
-        if (p->list && need_comma)
-          CHECK(file_putc(out, ','));
-        CHECK(generate_code(out, p->code));
-        need_comma = 1;
-      }
-    }
-  } else {
-    ListNode *item;
-    for (item = outline->items; item; item = item->next) {
-      p->item->value = ast_to_outline_item(*item);
-      if (!p->filter || test_filter(p->filter, p->item->value)) {
-        if (p->list && need_comma)
-          CHECK(file_putc(out, ','));
-        CHECK(generate_code(out, p->code));
-        need_comma = 1;
-      }
-    }
-  }
-
+  for (; node; node = node->next)
+    CHECK(generate(pool, out, node->d));
   return 1;
-}
-
-int generate_macro_call(FILE *out, AstMacroCall *p)
-{
-  ListNode *call_input;
-  ListNode *macro_input;
-  Pool pool;
-  CHECK_MEM(pool_init(&pool, 0x100));
-
-  /* Assign values to all inputs: */
-  macro_input = p->macro->inputs;
-  call_input = p->inputs;
-  while (macro_input && call_input) {
-    AstVariable *input = ast_to_variable(*macro_input);
-
-    if (call_input->type == AST_VARIABLE) {
-      AstVariable *value = call_input->p;
-      input->value = value->value;
-    } else if (call_input->type == AST_OUTLINE) {
-      AstOutlineItem *temp = pool_alloc(&pool, sizeof(AstOutlineItem));
-      temp->children = call_input->p;
-      temp->name = input->name;
-      temp->tags = 0;
-      input->value = temp;
-    } else {
-      assert(0);
-    }
-
-    macro_input = macro_input->next;
-    call_input = call_input->next;
-  }
-
-  CHECK(generate_code(out, p->macro->code));
-  pool_free(&pool);
-  return 1;
-}
-
-/**
- * Performs code-generation for a variable lookup
- */
-int generate_variable(FILE *out, AstVariable *p)
-{
-  AstOutlineItem *item = p->value;
-
-  CHECK(file_write(out, item->name.p, item->name.end));
-  return 1;
-}
-
-/**
- * Performs code-generation for a lookup node.
- */
-int generate_lookup(FILE *out, AstLookup *p)
-{
-  int rv;
-
-  /* If a tag satisfies the lookup, generate that: */
-  rv = generate_lookup_tag(out, p);
-  if (rv == 1) return 1;
-  if (rv == 0) return 0;
-
-  /* If that didn't work, try the built-in transforms: */
-  if (generate_lookup_builtin(out, p))
-    return 1;
-
-  {
-    char *temp = string_to_c(p->name);
-    fprintf(stderr, "Could not find a transform named %s.\n", temp);
-    free(temp);
-  }
-  return 0;
 }
 
 /**
@@ -230,15 +46,14 @@ int generate_lookup(FILE *out, AstLookup *p)
  * exists and has a value, the function emits the value and returns 1.
  * Otherwise, the function returns -1. Returns 0 for errors.
  */
-int generate_lookup_tag(FILE *out, AstLookup *p)
+int generate_lookup_tag(Pool *pool, FILE *out, AstLookup *p)
 {
-  AstOutlineItem *item = p->item->value;
   ListNode *tag;
 
-  for (tag = item->tags; tag; tag = tag->next) {
-    AstOutlineTag *t = ast_to_outline_tag(*tag);
+  for (tag = p->item->tags; tag; tag = tag->next) {
+    AstOutlineTag *t = ast_to_outline_tag(tag->d);
     if (t->value && string_equal(t->name, p->name)) {
-      CHECK(generate_code(out, t->value));
+      CHECK(generate_code(pool, out, t->value));
       return 1;
     }
   }
@@ -250,238 +65,168 @@ int generate_lookup_tag(FILE *out, AstLookup *p)
  * If the lookup name matches one of the built-in transformations, generate
  * that and return 1. Otherwise, return 0.
  */
-int generate_lookup_builtin(FILE *out, AstLookup *p)
+int generate_lookup_builtin(Pool *pool, FILE *out, AstLookup *p)
 {
-  AstOutlineItem *item = p->item->value;
-
-  if (string_equal(p->name, string_init_l("quote", 5))) {
+  if (string_equal(p->name, string_init_k("quote"))) {
     CHECK(file_putc(out, '"'));
-    CHECK(file_write(out, item->name.p, item->name.end));
+    CHECK(file_write(out, p->item->name.p, p->item->name.end));
     CHECK(file_putc(out, '"'));
     return 1;
-  } else if (string_equal(p->name, string_init_l("lower", 5))) {
-    return generate_lower(out, item->name);
-  } else if (string_equal(p->name, string_init_l("upper", 5))) {
-    return generate_upper(out, item->name);
-  } else if (string_equal(p->name, string_init_l("camel", 5))) {
-    return generate_camel(out, item->name);
-  } else if (string_equal(p->name, string_init_l("mixed", 5))) {
-    return generate_mixed(out, item->name);
+  } else if (string_equal(p->name, string_init_k("lower"))) {
+    return generate_lower(out, p->item->name);
+  } else if (string_equal(p->name, string_init_k("upper"))) {
+    return generate_upper(out, p->item->name);
+  } else if (string_equal(p->name, string_init_k("camel"))) {
+    return generate_camel(out, p->item->name);
+  } else if (string_equal(p->name, string_init_k("mixed"))) {
+    return generate_mixed(out, p->item->name);
   }
 
   return 0;
 }
 
 /**
- * Writes a string to the output file, converting it to lower_case
+ * Performs code-generation for a lookup node.
  */
-int generate_lower(FILE *out, String s)
+int generate_lookup(Pool *pool, FILE *out, AstLookup *p)
 {
-  String inner = strip_symbol(s);
-  String word = scan_symbol(inner, inner.p);
+  int rv;
 
-  write_leading(out, s, inner);
-  while (string_size(word)) {
-    write_lower(out, word);
-    word = scan_symbol(inner, word.end);
-    if (string_size(word))
-      CHECK(file_putc(out, '_'));
+  /* If a tag satisfies the lookup, generate that: */
+  rv = generate_lookup_tag(pool, out, p);
+  if (rv == 1) return 1;
+  if (rv == 0) return 0;
+
+  /* If that didn't work, try the built-in transforms: */
+  if (generate_lookup_builtin(pool, out, p))
+    return 1;
+
+  {
+    char *temp = string_to_c(p->name);
+    fprintf(stderr, "Could not find a transform named %s.\n", temp);
+    free(temp);
   }
-  write_trailing(out, s, inner);
+  return 0;
+}
 
+int generate_macro_call(Pool *pool, FILE *out, AstMacroCall *p)
+{
+  ListNode *call_input;
+  ListNode *macro_input;
+  Scope scope = scope_init(p->macro->scope);
+  ListBuilder code = list_builder_init(pool);
+
+  /* Assign values to all inputs: */
+  macro_input = p->macro->inputs;
+  call_input = p->inputs;
+  while (macro_input && call_input) {
+    AstCodeText *name = macro_input->d.p;
+    CHECK(scope_add(&scope, pool, name->code, call_input->d));
+
+    macro_input = macro_input->next;
+    call_input = call_input->next;
+  }
+
+  CHECK(parse_code(pool, &p->macro->code, &scope, out_list_builder(&code)));
+  CHECK(generate_code(pool, out, code.first));
+  return 1;
+}
+
+int generate_outline_item(Pool *pool, FILE *out, AstOutlineItem *p)
+{
+  CHECK(file_write(out, p->name.p, p->name.end));
   return 1;
 }
 
 /**
- * Writes a string to the output file, converting it to UPPER_CASE
+ * Performs code-generation for a map statement.
  */
-int generate_upper(FILE *out, String s)
+int generate_map(Pool *pool, FILE *out, AstMap *p)
 {
-  String inner = strip_symbol(s);
-  String word = scan_symbol(inner, inner.p);
+  ListNode *line;
+  char *temp;
 
-  write_leading(out, s, inner);
-  while (string_size(word)) {
-    write_upper(out, word);
-    word = scan_symbol(inner, word.end);
-    if (string_size(word))
-      CHECK(file_putc(out, '_'));
-  }
-  write_trailing(out, s, inner);
-
-  return 1;
-}
-
-/**
- * Writes a string to the output file, converting it to CamelCase
- */
-int generate_camel(FILE *out, String s)
-{
-  String inner = strip_symbol(s);
-  String word = scan_symbol(inner, inner.p);
-
-  write_leading(out, s, inner);
-  while (string_size(word)) {
-    write_cap(out, word);
-    word = scan_symbol(inner, word.end);
-  }
-  write_trailing(out, s, inner);
-
-  return 1;
-}
-
-/**
- * Writes a string to the output file, converting it to mixedCase
- */
-int generate_mixed(FILE *out, String s)
-{
-  String inner = strip_symbol(s);
-  String word = scan_symbol(inner, inner.p);
-
-  write_leading(out, s, inner);
-  if (string_size(word)) {
-    write_lower(out, word);
-    word = scan_symbol(inner, word.end);
-  }
-  while (string_size(word)) {
-    write_cap(out, word);
-    word = scan_symbol(inner, word.end);
-  }
-  write_trailing(out, s, inner);
-
-  return 1;
-}
-
-/**
- * Removes the leading and trailing underscores from an identifier.
- */
-String strip_symbol(String s)
-{
-  while (s.p < s.end && *s.p == '_')
-    ++s.p;
-  while (s.p < s.end && s.end[-1] == '_')
-    --s.end;
-  return s;
-}
-
-/**
- * Locates individual words within an indentifier. The identifier must have its
- * leading and trailing underscores stripped off before being passed to this
- * function. As always, the only valid symbols within an indentifier are
- * [_a-zA-Z0-9]
- * @param s the input string to break into words
- * @param p a pointer into string s, which marks the first character to begin
- * scanning at.
- * @return the next located word, or a null string upon reaching the end of the
- * input
- */
-String scan_symbol(String s, char const *p)
-{
-  char const *start;
-
-  /* Trim underscores between words: */
-  while (p < s.end && *p == '_')
-    ++p;
-  if (p == s.end)
-    return string_null();
-  start = p;
-
-  /* Numbers? */
-  if ('0' <= *p && *p <= '9') {
-    do {
-      ++p;
-    } while (p < s.end && '0' <= *p && *p <= '9');
-    return string_init(start, p);
-  }
-
-  /* Lower-case letters? */
-  if ('a' <= *p && *p <= 'z') {
-    do {
-      ++p;
-    } while (p < s.end && 'a' <= *p && *p <= 'z');
-    return string_init(start, p);
-  }
-
-  /* Upper-case letters? */
-  if ('A' <= *p && *p <= 'Z') {
-    do {
-      ++p;
-    } while (p < s.end && 'A' <= *p && *p <= 'Z');
-    /* Did the last upper-case letter start a lower-case word? */
-    if (p < s.end && 'a' <= *p && *p <= 'z') {
-      --p;
-      if (p == start) {
-        do {
-          ++p;
-        } while (p < s.end && 'a' <= *p && *p <= 'z');
-      }
+  /* Match against the map: */
+  for (line = p->lines; line; line = line->next) {
+    AstMapLine *l = ast_to_map_line(line->d);
+    if (test_filter(l->filter, p->item)) {
+      CHECK(generate_code(pool, out, l->code));
+      return 1;
     }
-    return string_init(start, p);
   }
 
-  /* Anything else is a bug */
+  /* Nothing matched: */
+  temp = string_to_c(p->item->name);
+  fprintf(stderr, "error: Could not match item \"%s\" against map.\n", temp);
+  free(temp);
+  return 0;
+}
+
+int generate_for_item(Pool *pool, FILE *out, AstFor *p, ListNode *item, int *need_comma)
+{
+  Scope scope = scope_init(p->scope);
+  ListBuilder code = list_builder_init(pool);
+
+  if (dynamic_ok(p->filter) &&
+    !test_filter(p->filter, ast_to_outline_item(item->d)))
+    return 1;
+
+  if (p->list && *need_comma)
+    CHECK(file_putc(out, ','));
+  *need_comma = 1;
+
+  CHECK(scope_add(&scope, pool, p->item, item->d));
+  CHECK(parse_code(pool, &p->code, &scope, out_list_builder(&code)));
+  CHECK(generate_code(pool, out, code.first));
+  return 1;
+}
+
+/**
+ * Performs code-generation for a for statement node
+ */
+int generate_for(Pool *pool, FILE *out, AstFor *p)
+{
+  ListNode *items = get_items(p->outline);
+  int need_comma = 0;
+
+  /* Process the list: */
+  if (p->reverse) {
+    /* Warning: O(n^2) reversing algorithm */
+    ListNode *item, *last = 0;
+    while (items != last) {
+      item = items;
+      while (item->next != last)
+        item = item->next;
+      last = item;
+
+      CHECK(generate_for_item(pool, out, p, item, &need_comma));
+    }
+  } else {
+    ListNode *item;
+    for (item = items; item; item = item->next)
+      CHECK(generate_for_item(pool, out, p, item, &need_comma));
+  }
+
+  return 1;
+}
+
+int generate_code_text(Pool *pool, FILE *out, AstCodeText *p)
+{
+  CHECK(file_write(out, p->code.p, p->code.end));
+  return 1;
+}
+
+/**
+ * Processes source code, writing the result to the output file.
+ */
+int generate(Pool *pool, FILE *out, Dynamic node)
+{
+  if(node.type == type_lookup)      return generate_lookup(pool, out, node.p);
+  if(node.type == type_macro_call)  return generate_macro_call(pool, out, node.p);
+  if(node.type == type_outline_item)return generate_outline_item(pool, out, node.p);
+  if(node.type == type_map)         return generate_map(pool, out, node.p);
+  if(node.type == type_for)         return generate_for(pool, out, node.p);
+  if(node.type == type_code_text)   return generate_code_text(pool, out, node.p);
   assert(0);
-  return string_null();
-}
-
-/**
- * Writes leading underscores to a file, if any.
- * @param s the entire string, including leading and trailing underscores.
- * @param inner the inner portion of the string after underscores have been
- * stripped.
- * @return 0 for failure
- */
-int write_leading(FILE *out, String s, String inner)
-{
-  if (s.p != inner.p)
-    return file_write(out, s.p, inner.p);
-  return 1;
-}
-
-int write_trailing(FILE *out, String s, String inner)
-{
-  if (inner.end != s.end)
-    return file_write(out, inner.end, s.end);
-  return 1;
-}
-
-/**
- * Writes a word to a file in lower case.
- */
-int write_lower(FILE *out, String s)
-{
-  char const *p;
-  for (p = s.p; p != s.end; ++p) {
-    char c = 'A' <= *p && *p <= 'Z' ? *p - 'A' + 'a' : *p;
-    CHECK(file_putc(out, c));
-  }
-  return 1;
-}
-
-/**
- * Writes a word to a file in UPPER case.
- */
-int write_upper(FILE *out, String s)
-{
-  char const *p;
-  for (p = s.p; p != s.end; ++p) {
-    char c = 'a' <= *p && *p <= 'z' ? *p - 'a' + 'A' : *p;
-    CHECK(file_putc(out, c));
-  }
-  return 1;
-}
-
-/**
- * Writes a word to a file in Capitalized case.
- */
-int write_cap(FILE *out, String s)
-{
-  char const *p;
-  for (p = s.p; p != s.end; ++p) {
-    char c = (p == s.p) ?
-      ('a' <= *p && *p <= 'z' ? *p - 'a' + 'A' : *p) :
-      ('A' <= *p && *p <= 'Z' ? *p - 'A' + 'a' : *p) ;
-    CHECK(file_putc(out, c));
-  }
-  return 1;
+  return 0;
 }

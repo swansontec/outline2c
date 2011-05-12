@@ -14,17 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef PARSER_H_INCLUDED
-#define PARSER_H_INCLUDED
+/**
+ * All functions return 1 for success and 0 for failure. This macro checks a
+ * return code and bails out if it indicates an error.
+ */
+#define CHECK(r) do { if (!(r)) return 0; } while(0)
 
-#include "context.h"
-
-int parse_code(Pool *pool, Source *in, Scope *scope, OutRoutine or, int scoped);
-int parse_include(Pool *pool, Source *in, Scope *scope, OutRoutine or);
-int parse_outline(Pool *pool, Source *in, Scope *scope, OutRoutine or);
-int parse_union(Pool *pool, Source *in, Scope *scope, OutRoutine or);
-int parse_map(Pool *pool, Source *in, Scope *scope, OutRoutine or);
-int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or);
-int parse_macro(Pool *pool, Source *in, Scope *scope, OutRoutine or);
-
-#endif
+/**
+ * Verifies that a memory-allocating call succeeds, and prints an error message
+ * otherwise.
+ */
+#define CHECK_MEM(r) do { \
+  if (!(r)) { \
+    fprintf(stderr, "error: Out of memory at %s:%d\n", __FILE__, __LINE__); \
+    return 0; \
+  } \
+} while(0)

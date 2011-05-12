@@ -14,10 +14,19 @@
  * limitations under the License.
  */
 
-#include "string.h"
-#include <string.h>
-#include <malloc.h>
-#include <stdio.h>
+/**
+ * A string without a null terminator. The structure consists of a pointer to
+ * the beginning of the string, p, and a pointer one-past the end of the
+ * string, end. This scheme makes it possible divide a longer string into
+ * smaller pieces without making copies. It also makes it trivial to find a
+ * string's length.
+ */
+typedef struct {
+  char const *p;
+  char const *end;
+} String;
+
+#define string_size(s) ((s).end - (s).p)
 
 String string_init(char const *p, char const *end)
 {
@@ -35,17 +44,19 @@ String string_init_l(char const *p, size_t size)
   return s;
 }
 
-String string_null()
-{
-  String s = {0, 0};
-  return s;
-}
+#define string_init_k(k) string_init_l(k, sizeof(k) - 1)
 
-String string_from_c(char const *p)
+String string_init_c(char const *p)
 {
   String s;
   s.p = p;
   s.end = p + strlen(p);
+  return s;
+}
+
+String string_null()
+{
+  String s = {0, 0};
   return s;
 }
 
@@ -101,15 +112,31 @@ size_t string_rmatch(String s1, String s2)
 }
 
 /**
+ * Copies a string
+ */
+String string_copy(Pool *pool, String string)
+{
+  size_t size;
+  char *start;
+  if (!string_size(string)) return string_null();
+
+  size  = string_size(string);
+  start = pool_alloc(pool, size, 1);
+  if (!start) return string_null();
+  memcpy(start, string.p, size);
+  return string_init_l(start, size);
+}
+
+/**
  * Concatenates one string onto another
  */
-String string_merge(String a, String b)
+String string_merge(Pool *pool, String a, String b)
 {
   String s;
   char const *in;
   char *out;
 
-  out = malloc(string_size(a) + string_size(b));
+  out = pool_alloc(pool, string_size(a) + string_size(b), 1);
   if (!out)
     return string_null();
 
@@ -121,58 +148,4 @@ String string_merge(String a, String b)
     *out++ = *in;
 
   return s;
-}
-
-/**
- * Opens a file, storing cleanup data and content pointers in the File
- * structure. The content pointers will be NULL if the function fails.
- * @return 0 for failure
- */
-String string_load(String file)
-{
-  char *c_name = 0;
-  FILE *fp = 0;
-  long size;
-  char *data = 0;
-
-  c_name = string_to_c(file);
-  if (!c_name) goto error;
-
-  fp = fopen(c_name, "rb");
-  if (!fp) goto error;
-
-  if (fseek(fp, 0, SEEK_END))
-    goto error;
-
-  size = ftell(fp);
-  if (size == -1L) goto error;
-
-  if (fseek(fp, 0, SEEK_SET))
-    goto error;
-
-  data = malloc(size + 1);
-  if (!data) goto error;
-
-  if (fread(data, 1, size, fp) != size)
-    goto error;
-
-  free(c_name);
-  fclose(fp);
-  data[size] = 0;
-  return string_init(data, data + size);
-
-error:
-  if (c_name) free(c_name);
-  if (fp)     fclose(fp);
-  if (data)   free(data);
-  return string_null();
-}
-
-/**
- * Frees the memory allocated by string_merge or string_load
- */
-void string_free(String data)
-{
-  if (data.p)
-    free((char *)data.p);
 }

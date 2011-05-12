@@ -14,8 +14,16 @@
  * limitations under the License.
  */
 
-#include "list.h"
-#include <stdio.h>
+/**
+ * An element within a list. Not all lists are dynamically-typed, but having
+ * a single dynamically-typed node struct saves the trouble of creating ad-hoc
+ * node structs for those cases.
+ */
+typedef struct ListNode ListNode;
+struct ListNode {
+  ListNode *next;
+  Dynamic d;
+};
 
 /**
  * Counts the nodes in a list.
@@ -27,6 +35,17 @@ int list_length(ListNode *first)
     ++i;
   return i;
 }
+
+/**
+ * This structure automates the process of building a linked list. The `first`
+ * element remembers the first element in the list, and the `last` element
+ * makes it possible to quickly insert new elements on the end.
+ */
+typedef struct {
+  ListNode *first;
+  ListNode *last;
+  Pool *pool;
+} ListBuilder;
 
 /**
  * Initializes a new ListBuilder structure.
@@ -43,14 +62,13 @@ ListBuilder list_builder_init(Pool *pool)
 /**
  * Adds an item to the end of a list.
  */
-int list_builder_add(ListBuilder *b, Type type, void *p)
+int list_builder_add(ListBuilder *b, Dynamic value)
 {
-  ListNode *node = pool_alloc(b->pool, sizeof(ListNode));
+  ListNode *node = pool_new(b->pool, ListNode);
   CHECK_MEM(node);
   node->next = 0;
-  node->p = p;
-  node->type = type;
-  if (!node->p) return 0;
+  node->d = value;
+  if (!dynamic_ok(node->d)) return 0;
 
   if (!b->first) {
     b->first = node;
@@ -61,17 +79,4 @@ int list_builder_add(ListBuilder *b, Type type, void *p)
   }
 
   return 1;
-}
-
-static int list_out_fn(void *data, Type type, void *p)
-{
-  return list_builder_add(data, type, p);
-}
-
-OutRoutine list_builder_out(ListBuilder *b)
-{
-  OutRoutine self;
-  self.code = list_out_fn;
-  self.data = b;
-  return self;
 }

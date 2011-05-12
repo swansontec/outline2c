@@ -14,42 +14,12 @@
  * limitations under the License.
  */
 
-#include "filter.h"
-#include <assert.h>
-#include <stdio.h>
-
-int test_filter_node(AstFilterNode test, AstOutlineItem *item);
-int test_filter_tag(AstFilterTag *test, AstOutlineItem *item);
-int test_filter_not(AstFilterNot *test, AstOutlineItem *item);
-int test_filter_and(AstFilterAnd *test, AstOutlineItem *item);
-int test_filter_or(AstFilterOr *test, AstOutlineItem *item);
-
-/**
- * Determines whether an outline item satisfies a particular filter expression.
- */
-int test_filter(AstFilter *test, AstOutlineItem *item)
-{
-  return test_filter_node(test->test, item);
-}
-
-int test_filter_node(AstFilterNode test, AstOutlineItem *item)
-{
-  switch (test.type) {
-  case AST_FILTER_TAG: return test_filter_tag(test.p, item);
-  case AST_FILTER_ANY: return 1;
-  case AST_FILTER_NOT: return test_filter_not(test.p, item);
-  case AST_FILTER_AND: return test_filter_and(test.p, item);
-  case AST_FILTER_OR:  return test_filter_or(test.p, item);
-  default: assert(0); return 0;
-  }
-}
-
 int test_filter_tag(AstFilterTag *test, AstOutlineItem *item)
 {
   ListNode *tag;
 
   for (tag = item->tags; tag; tag = tag->next) {
-    if (string_equal(ast_to_outline_tag(*tag)->name, test->tag))
+    if (string_equal(ast_to_outline_tag(tag->d)->name, test->tag))
       return 1;
   }
 
@@ -58,27 +28,46 @@ int test_filter_tag(AstFilterTag *test, AstOutlineItem *item)
 
 int test_filter_not(AstFilterNot *test, AstOutlineItem *item)
 {
-  return !test_filter_node(test->test, item);
+  return !test_filter(test->test, item);
 }
 
 int test_filter_and(AstFilterAnd *test, AstOutlineItem *item)
 {
   return
-    test_filter_node(test->test_a, item) &&
-    test_filter_node(test->test_b, item);
+    test_filter(test->test_a, item) &&
+    test_filter(test->test_b, item);
 }
 
 int test_filter_or(AstFilterOr *test, AstOutlineItem *item)
 {
   return
-    test_filter_node(test->test_a, item) ||
-    test_filter_node(test->test_b, item);
+    test_filter(test->test_a, item) ||
+    test_filter(test->test_b, item);
 }
 
 /**
- * Initializes the AST-building stack.
- * @return 0 for failure
+ * Determines whether an outline item satisfies a particular filter expression.
  */
+int test_filter(Dynamic test, AstOutlineItem *item)
+{
+  if (test.type == type_filter_tag) return test_filter_tag(test.p, item);
+  if (test.type == type_filter_any) return 1;
+  if (test.type == type_filter_not) return test_filter_not(test.p, item);
+  if (test.type == type_filter_and) return test_filter_and(test.p, item);
+  if (test.type == type_filter_or)  return test_filter_or(test.p, item);
+  assert(0);
+  return 0;
+}
+
+/**
+ * A stack for building filters using Dijkstra's shunting-yard algorithm
+ */
+typedef struct {
+  Dynamic *stack;
+  size_t stack_size;
+  size_t stack_top;
+} FilterBuilder;
+
 int filter_builder_init(FilterBuilder *b)
 {
   b->stack_size = 32;
@@ -94,15 +83,11 @@ void filter_builder_free(FilterBuilder *b)
 }
 
 /**
- * Pushes an node onto the stack.
- * @return 0 for failure
+ * Pushes a node onto the stack.
  */
-static int filter_builder_push(FilterBuilder *b, Type type, void *p)
+static int filter_builder_push(FilterBuilder *b, Dynamic node)
 {
-  Dynamic node;
-  node.p = p;
-  node.type = type;
-  if (!node.p) return 0;
+  if (!dynamic_ok(node)) return 0;
 
   /* Grow, if needed: */
   if (b->stack_size <= b->stack_top) {
@@ -128,52 +113,49 @@ Dynamic filter_builder_pop(FilterBuilder *b)
  */
 int filter_build_tag(FilterBuilder *b, Pool *pool, String tag)
 {
-  AstFilterTag *self = pool_alloc(pool, sizeof(AstFilterTag));
+  AstFilterTag *self = pool_new(pool, AstFilterTag);
   CHECK_MEM(self);
-  self->tag = pool_string_copy(pool, tag);
+  self->tag = string_copy(pool, tag);
   CHECK_MEM(string_size(self->tag));
 
-  return filter_builder_push(b, AST_FILTER_TAG, self);
+  return filter_builder_push(b, dynamic(type_filter_tag, self));
 }
 
 int filter_build_any(FilterBuilder *b, Pool *pool)
 {
-  AstFilterAny *self = pool_alloc(pool, sizeof(AstFilterAny));
-  CHECK_MEM(self);
-
-  return filter_builder_push(b, AST_FILTER_ANY, self);
+  return filter_builder_push(b, dynamic_init(type_filter_any, 0));
 }
 
 int filter_build_not(FilterBuilder *b, Pool *pool)
 {
-  AstFilterNot *self = pool_alloc(pool, sizeof(AstFilterNot));
+  AstFilterNot *self = pool_new(pool, AstFilterNot);
   CHECK_MEM(self);
-  self->test = ast_to_filter_node(filter_builder_pop(b));
-  assert(self->test.p);
+  self->test = filter_builder_pop(b);
+  assert(dynamic_ok(self->test));
 
-  return filter_builder_push(b, AST_FILTER_NOT, self);
+  return filter_builder_push(b, dynamic(type_filter_not, self));
 }
 
 int filter_build_and(FilterBuilder *b, Pool *pool)
 {
-  AstFilterAnd *self = pool_alloc(pool, sizeof(AstFilterAnd));
+  AstFilterAnd *self = pool_new(pool, AstFilterAnd);
   CHECK_MEM(self);
-  self->test_a = ast_to_filter_node(filter_builder_pop(b));
-  assert(self->test_a.p);
-  self->test_b = ast_to_filter_node(filter_builder_pop(b));
-  assert(self->test_b.p);
+  self->test_a = filter_builder_pop(b);
+  assert(dynamic_ok(self->test_a));
+  self->test_b = filter_builder_pop(b);
+  assert(dynamic_ok(self->test_b));
 
-  return filter_builder_push(b, AST_FILTER_AND, self);
+  return filter_builder_push(b, dynamic(type_filter_and, self));
 }
 
 int filter_build_or(FilterBuilder *b, Pool *pool)
 {
-  AstFilterOr *self = pool_alloc(pool, sizeof(AstFilterOr));
+  AstFilterOr *self = pool_new(pool, AstFilterOr);
   CHECK_MEM(self);
-  self->test_a = ast_to_filter_node(filter_builder_pop(b));
-  assert(self->test_a.p);
-  self->test_b = ast_to_filter_node(filter_builder_pop(b));
-  assert(self->test_b.p);
+  self->test_a = filter_builder_pop(b);
+  assert(dynamic_ok(self->test_a));
+  self->test_b = filter_builder_pop(b);
+  assert(dynamic_ok(self->test_b));
 
-  return filter_builder_push(b, AST_FILTER_OR, self);
+  return filter_builder_push(b, dynamic(type_filter_or, self));
 }

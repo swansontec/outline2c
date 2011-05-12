@@ -215,5 +215,3 @@ Invoking a macro is pretty straightforward:
 This is equivalent to entering the following code directly:
 
     \ol for i in outline_a { item_b }
-
-Macros only accept outlines and outline items as parameters.

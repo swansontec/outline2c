@@ -14,87 +14,40 @@
 # limitations under the License.
 #
 
-CC = gcc
-CFLAGS = -g -std=c89 -pedantic
+compile = gcc -g -std=c89 -pedantic -o $@ $<
 
-objects = \
- ast.o \
- context.o \
- debug.o \
- filter.o \
- generate.o \
- lexer.o \
- list.o \
- lwl.o \
- main.o \
- parser.o \
- pool.o \
- string.o
+default: outline2c
 
-# Inter-header dependencies:
-ast_h           = ../source/ast.h $(list_h)
-context_h       = ../source/context.h $(type_h) $(pool_h)
-debug_h         = ../source/debug.h $(ast_h)
-filter_h        = ../source/filter.h $(ast_h)
-generate_h      = ../source/generate.h $(ast_h)
-lexer_h         = ../source/lexer.h
-list_h          = ../source/list.h $(context_h)
-lwl_h           = ../source/lwl.h $(context_h)
-parser_h        = ../source/parser.h $(context_h)
-pool_h          = ../source/pool.h $(string_h)
-string_h        = ../source/string.h
-type_h          = ../source/type.h
-
-all: outline2c
-
-ast.o: ../source/ast.c $(ast_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/ast.c
-
-context.o: ../source/context.c $(context_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/context.c
-
-debug.o: ../source/debug.c $(debug_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/debug.c
-
-filter.o: ../source/filter.c $(filter_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/filter.c
-
-generate.o: ../source/generate.c $(generate_h) $(filter_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/generate.c
-
-lexer.o: ../source/lexer.c $(lexer_h) $(string_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/lexer.c
-
-list.o: ../source/list.c $(list_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/list.c
-
-lwl.o: ../source/lwl.c $(lwl_h) $(lexer_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/lwl.c
-
-main.o: ../source/main.c $(lwl_h) $(parser_h) $(debug_h) $(generate_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/main.c
-
-parser.o: ../source/parser.c $(parser_h) $(filter_h) $(lwl_h) $(lexer_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/parser.c
-
-pool.o: ../source/pool.c $(pool_h) $(string_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/pool.c
-
-string.o: ../source/string.c $(string_h)
-	$(CC) $(CFLAGS) -o $@ -c ../source/string.c
-
-outline2c: $(objects)
-	gcc -g -o $@ $(objects)
-
-clean: 
-	rm -f $(objects) outline2c
-
-install: outline2c
-	cp outline2c /usr/bin/outline2c
+outline2c: ../source/outline2c.c \
+	../source/ast.c \
+	../source/case.c \
+	../source/check.c \
+	../source/dump.c \
+	../source/dynamic.c \
+	../source/filter.c \
+	../source/generate.c \
+	../source/lex.c \
+	../source/list.c \
+	../source/lwl.c \
+	../source/main.c \
+	../source/options.c \
+	../source/out.c \
+	../source/parse.c \
+	../source/pool.c \
+	../source/scope.c \
+	../source/source.c \
+	../source/string.c \
+	; $(compile)
 
 test: outline2c
-	./outline2c  ../build-gcc/test.c.ol
+	./outline2c ../build-gcc/test.c.ol
 	diff test.c.ref test.c
 
 run: outline2c
 	./outline2c -d test.c.ol
+
+install: outline2c
+	cp outline2c /usr/local/bin/
+
+clean:
+	rm -f outline2c

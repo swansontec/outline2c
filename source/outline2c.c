@@ -13,16 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/*
- * Routines to display the contents of the AST for debugging purposes. The
- * indent parameter sets the indentation level for the printout.
- */
 
-#ifndef DEBUG_H_INCLUDED
-#define DEBUG_H_INCLUDED
+#include <assert.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "ast.h"
+#include "pool.c"
+#include "string.c"
+#include "source.c"
+#include "check.c"
+#include "lex.c"
 
-void dump_code(ListNode *node, int indent);
+#include "dynamic.c"
+#include "list.c"
+#include "out.c"
+#include "scope.c"
 
-#endif
+#include "lwl.c"
+#include "ast.c"
+#include "filter.c"
+#include "parse.c"
+#include "dump.c"
+#include "case.c"
+#include "generate.c"
+
+#include "options.c"
+#include "main.c"

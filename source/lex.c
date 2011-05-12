@@ -14,21 +14,57 @@
  * limitations under the License.
  */
 
-#include "lexer.h"
-#include "string.h"
+/**
+ * Possible token types.
+ */
+typedef enum {
+  LEX_ERROR_END = -100, /* Unexpected end-of-file */
+  LEX_ERROR,            /* Unrecognized character sequence */
 
-#define IS_SPACE(c) \
-  c == ' '  || c == '\t' || \
-  c == '\r' || c == '\n'
+  LEX_END = 0,          /* Normal end-of-file */
 
-#define IS_ALPHA(c) \
+  LEX_WHITESPACE,       /* Spaces, & tabs */
+  LEX_NEWLINE,          /* Newlines */
+  LEX_COMMENT,          /* Both types of comment */
+  LEX_STRING,           /* C-style double-quoted string */
+  LEX_CHAR,             /* C-style single-quoted character */
+  LEX_NUMBER,           /* C-style integer */
+  LEX_IDENTIFIER,       /* [_a-zA-Z][_a-zA-Z0-9]* */
+  LEX_ESCAPE,           /* \ol */
+  LEX_PASTE,            /* \\ */
+
+  LEX_BANG,             /* ! */
+  LEX_AMP,              /* & */
+  LEX_PAREN_L,          /* ( */
+  LEX_PAREN_R,          /* ) */
+  LEX_STAR,             /* * */
+  LEX_COMMA,            /* , */
+  LEX_DOT,              /* . */
+  LEX_SLASH,            /* / */
+  LEX_SEMICOLON,        /* ; */
+  LEX_LT,               /* < */
+  LEX_EQUALS,           /* = */
+  LEX_GT,               /* > */
+  LEX_BACKSLASH,        /* \ */
+  LEX_BRACE_L,          /* { */
+  LEX_PIPE,             /* | */
+  LEX_BRACE_R           /* } */
+} Token;
+
+#define IS_SPACE(c) ( \
+  c == ' ' || c == '\t')
+
+#define IS_NEWLINE(c) ( \
+  c == '\n' || c == '\f' || c == '\r')
+
+#define IS_ALPHA(c) ( \
   'a' <= c && c <= 'z' || \
-  'A' <= c && c <= 'Z' || c == '_'
+  'A' <= c && c <= 'Z' || c == '_')
 
-#define IS_ALPHANUM(c) \
+#define IS_ALPHANUM(c) ( \
   '0' <= c && c <= '9' || \
   'a' <= c && c <= 'z' || \
-  'A' <= c && c <= 'Z' || c == '_'
+  'A' <= c && c <= 'Z' || c == '_')
 
 /**
  * Identifies the next token in the input stream. When the fuction starts, the
@@ -48,6 +84,15 @@ Token lex(char const **p, char const *end)
       ++*p;
     } while (*p < end && IS_SPACE(**p));
     return LEX_WHITESPACE;
+  /* Newline: */
+  } else if (**p == '\n' || **p == '\f') {
+    ++*p;
+    return LEX_NEWLINE;
+  } else if (**p == '\r') {
+    ++*p;
+    if (*p < end && **p == '\n')
+      ++*p;
+    return LEX_NEWLINE;
   /* Comments: */
   } else if (**p == '/') {
     ++*p;
@@ -56,9 +101,7 @@ Token lex(char const **p, char const *end)
     if (**p == '/') {
       do {
         ++*p;
-        if (end <= *p) return LEX_COMMENT;
-      } while (**p != '\n');
-      ++*p;
+      } while (*p < end && !IS_NEWLINE(**p));
       return LEX_COMMENT;
     /* C style comments: */
     } else if (**p == '*') {
@@ -118,17 +161,6 @@ Token lex(char const **p, char const *end)
       ++*p;
     } while (*p < end && IS_ALPHANUM(**p));
     return LEX_IDENTIFIER;
-  /* Escape codes: */
-  } else if (**p == '@') {
-    String token;
-    token.p = *p;
-    do {
-      ++*p;
-    } while (*p < end && IS_ALPHANUM(**p));
-    token.end = *p;
-    if (string_equal(token, string_init_l("@o2c", 4)))
-      return LEX_ESCAPE_O2C;
-    return LEX_ESCAPE;
   /* Token-pasting: */
   } else if (**p == '\\') {
     ++*p;
@@ -138,12 +170,13 @@ Token lex(char const **p, char const *end)
       return LEX_PASTE;
     } else if (**p == 'o') {
       ++*p;
-      if (end <= *p) return LEX_ESCAPE;
-      if (**p == 'l') {
+      if (*p < end && **p == 'l') {
         ++*p;
-        return LEX_ESCAPE_O2C;
+        return LEX_ESCAPE;
+      } else {
+        --*p;
+        return LEX_BACKSLASH;
       }
-      return LEX_ESCAPE;
     }
     return LEX_BACKSLASH;
   /* Symbols: */
@@ -178,6 +211,40 @@ Token lex_next(char const **start, char const **p, char const *end)
   Token token;
   do {
     *start = *p; token = lex(p, end);
-  } while (token == LEX_WHITESPACE || token == LEX_COMMENT);
+  } while (
+    token == LEX_WHITESPACE ||
+    token == LEX_NEWLINE ||
+    token == LEX_COMMENT);
   return token;
+}
+
+/**
+ * Determines the extent of a block. This function looks for matching braces,
+ * ignoring braces inside quotes, comments and so forth. Returns an all-null
+ * Source structure response to an error.
+ */
+Source lex_block(Source *in)
+{
+  char const *start;
+  Token token;
+  Source out = *in;
+  Source null = {0};
+  int depth = 1;
+
+  /* Find the opening brace: */
+  token = lex_next(&start, &in->cursor, in->data.end);
+  if (token != LEX_BRACE_L)
+    return null;
+  out.cursor = in->cursor;
+
+  /* Find the ending brace: */
+  do {
+    start = in->cursor; token = lex(&in->cursor, in->data.end);
+    if (token == LEX_BRACE_L) ++depth;
+    if (token == LEX_BRACE_R) --depth;
+  } while (token != LEX_END && depth);
+  if (token == LEX_END)
+    return null;
+  out.data.end = start;
+  return out;
 }

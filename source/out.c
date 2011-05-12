@@ -14,41 +14,6 @@
  * limitations under the License.
  */
 
-#ifndef CONTEXT_H_INCLUDED
-#define CONTEXT_H_INCLUDED
-
-#include "type.h"
-#include "pool.h"
-
-typedef struct Source Source;
-typedef struct Scope Scope;
-typedef struct Symbol Symbol;
-typedef struct OutRoutine OutRoutine;
-
-/**
- * A stream of input text feeding the parser
- */
-struct Source {
-  String filename;
-  String data;
-  char const *cursor;
-};
-
-int source_error(Source *in, char const *message);
-
-/**
- * One level in the symbol table. This implmentation uses a linked list for
- * now, which is simple but not too efficient.
- */
-struct Scope {
-  Scope *outer;
-  Symbol *first;
-};
-
-Scope scope_init(Scope *outer);
-int scope_add(Scope *scope, Pool *pool, String name, Type type, void *p);
-int scope_get(Scope *scope, Dynamic *out, String name);
-
 /**
  * Accepts an output value. Parser functions only use their return value to
  * indicate success or failure. To output data, such as AST nodes, they call
@@ -56,11 +21,43 @@ int scope_get(Scope *scope, Dynamic *out, String name);
  * parser function to produce multiple output items, which is not possible
  * with ordinary return values.
  */
-struct OutRoutine {
-  int (*code)(void *data, Type type, void *p);
+typedef struct {
+  int (*code)(void *data, Dynamic value);
   void *data;
-};
+} OutRoutine;
 
-OutRoutine dynamic_out(Dynamic *out);
+static int out_dynamic_fn(void *data, Dynamic value)
+{
+  Dynamic *out = data;
+  if (dynamic_ok(*out)) return 0;
+  if (!dynamic_ok(value)) return 0;
+  *out = value;
+  return 1;
+}
 
-#endif
+/**
+ * Produces an output routine which captures a single return value in a
+ * Dynamic variable. Attempting to return more than one value will produce
+ * an error in the output routine.
+ */
+OutRoutine out_dynamic(Dynamic *out)
+{
+  OutRoutine self;
+  self.code = out_dynamic_fn;
+  self.data = out;
+  *out = dynamic_none();
+  return self;
+}
+
+static int out_list_fn(void *data, Dynamic value)
+{
+  return list_builder_add(data, value);
+}
+
+OutRoutine out_list_builder(ListBuilder *b)
+{
+  OutRoutine self;
+  self.code = out_list_fn;
+  self.data = b;
+  return self;
+}
