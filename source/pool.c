@@ -37,14 +37,13 @@
  * To determine how much free space is available in the current block, use the
  * pool_unused function.
  *
- * Most pool_ functions have an pool_aligned_ alternative. These alternatives
- * take an explicit alignment parameter. The alignment must be a power of two,
- * and should be smaller than malloc's native allignment. If the allignment is
- * larger, malloc's native alignment will be used instead and a small amount of
- * memory might be wasted.
+ * Most pool_ functions take an explicit alignment parameter. The alignment
+ * must be a power of two, and should be smaller than malloc's native
+ * alignment. If the alignment is larger, malloc's native alignment will be
+ * used instead and a small amount of memory might be wasted.
  *
- * The other functions use a default alignment suitable for any normal C data
- * type.
+ * These functions instantly abort the entire program when they encounter an
+ * out-of-memory error.
  */
 typedef struct {
   char *block;  /* The current block. */
@@ -85,12 +84,11 @@ typedef struct {
 /**
  * Helper function to add new blocks to the pool. This function does not modify
  * the pool if it fails.
- * @return 0 for failure
  */
-static int pool_grow(Pool *p, size_t size)
+static void pool_grow(Pool *p, size_t size)
 {
   char *block = malloc(size);
-  if (!block) return 0;
+  CHECK_MEM(block);
 
   /* The first element in each block is a pointer to previous block: */
   *(char**)block = p->block;
@@ -99,21 +97,19 @@ static int pool_grow(Pool *p, size_t size)
   p->block = block;
   p->next  = block + sizeof(char*);
   p->end   = block + size;
-  return 1;
 }
 
 /**
  * Initializes a memory pool, allocating an initial block of the given size.
  * Each future block will have the same size as the initial block, so choose
  * wisely.
- * @return 0 for failure
  */
-int pool_init(Pool *p, size_t size)
+void pool_init(Pool *p, size_t size)
 {
   p->block = 0;
   p->next = 0;
   p->end = 0;
-  return pool_grow(p, size);
+  pool_grow(p, size);
 }
 
 /**
@@ -138,7 +134,7 @@ void *pool_alloc_sys(Pool *p, size_t size, size_t align)
 {
   size_t padding = sizeof(char*) < align ? align : sizeof(char*);
   char *block = malloc(padding + size);
-  if (!block) return 0;
+  CHECK_MEM(block);
 
   /* Add the block to the list of stuff to free: */
   *(char**)block = *(char**)p->block;
@@ -163,7 +159,7 @@ void *pool_alloc(Pool *p, size_t size, size_t align)
       return pool_alloc_sys(p, size, align);
 
     /* Grow the pool: */
-    if (!pool_grow(p, block_size)) return 0;
+    pool_grow(p, block_size);
     start = ALIGN(p->next, p->block, align);
     end = start + size;
   }

@@ -49,7 +49,7 @@ int parse_value(Pool *pool, Source *in, Scope *scope, OutRoutine or, int allow_a
       CHECK(parse_value(pool, in, scope, out_dynamic(&out), 0));
       if (!dynamic_ok(out))
         return source_error(in, start, "Wrong type - this must be a value.");
-      CHECK(scope_add(scope, pool, name, out));
+      scope_add(scope, pool, name, out);
       return 1;
     }
     in->cursor = start;
@@ -164,7 +164,6 @@ int parse_macro(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   Token token;
   ListBuilder inputs = list_builder_init(pool);
   AstMacro *self = pool_new(pool, AstMacro);
-  CHECK_MEM(self);
 
   /* Opening parenthesis: */
   token = lex_next(&start, &in->cursor, in->data.end);
@@ -175,9 +174,8 @@ input:
   /* Argument? */
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token == LEX_IDENTIFIER) {
-    AstCodeText *s;
-    CHECK(s = ast_code_text_new(pool, string_init(start, in->cursor)));
-    CHECK(list_builder_add(&inputs, dynamic(type_code_text, s)));
+    list_builder_add(&inputs, dynamic(type_code_text,
+      ast_code_text_new(pool, string_init(start, in->cursor))));
 
     /* Comma or closing parenthesis: */
     token = lex_next(&start, &in->cursor, in->data.end);
@@ -209,7 +207,6 @@ int parse_macro_call(Pool *pool, Source *in, Scope *scope, OutRoutine or, AstMac
   Dynamic out;
   ListBuilder inputs = list_builder_init(pool);
   AstMacroCall *self = pool_new(pool, AstMacroCall);
-  CHECK_MEM(self);
 
   self->macro = macro;
 
@@ -224,7 +221,7 @@ input:
   if (token == LEX_IDENTIFIER) {
     in->cursor = start;
     CHECK(parse_value(pool, in, scope, out_dynamic(&out), 0));
-    CHECK(list_builder_add(&inputs, out));
+    list_builder_add(&inputs, out);
 
     /* Comma or closing parenthesis: */
     token = lex_next(&start, &in->cursor, in->data.end);
@@ -254,16 +251,16 @@ int parse_filter(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   enum operators { NOT, AND, OR, LPAREN } stack[32];
   int top = 0;
 
-  CHECK(filter_builder_init(&fb));
+  filter_builder_init(&fb);
 
 want_term:
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token == LEX_IDENTIFIER) {
-    CHECK(filter_build_tag(&fb, pool, string_init(start, in->cursor)));
+    filter_build_tag(&fb, pool, string_init(start, in->cursor));
     goto want_operator;
 
   } else if (token == LEX_STAR) {
-    CHECK(filter_build_any(&fb, pool));
+    filter_build_any(&fb, pool);
     goto want_operator;
 
   } else if (token == LEX_BANG) {
@@ -283,9 +280,9 @@ want_operator:
   if (token == LEX_AMP) {
     for (; top && stack[top-1] <= AND; --top) {
       if (stack[top-1] == NOT) {
-        CHECK(filter_build_not(&fb, pool));
+        filter_build_not(&fb, pool);
       } else if (stack[top-1] == AND) {
-        CHECK(filter_build_and(&fb, pool));
+        filter_build_and(&fb, pool);
       }
     }
     stack[top++] = AND;
@@ -294,11 +291,11 @@ want_operator:
   } else if (token == LEX_PIPE) {
     for (; top && stack[top-1] <= OR; --top) {
       if (stack[top-1] == NOT) {
-        CHECK(filter_build_not(&fb, pool));
+        filter_build_not(&fb, pool);
       } else if (stack[top-1] == AND) {
-        CHECK(filter_build_and(&fb, pool));
+        filter_build_and(&fb, pool);
       } else if (stack[top-1] == OR) {
-        CHECK(filter_build_or(&fb, pool));
+        filter_build_or(&fb, pool);
       }
     }
     stack[top++] = OR;
@@ -307,11 +304,11 @@ want_operator:
   } else if (token == LEX_PAREN_R) {
     for (; top && stack[top-1] < LPAREN; --top) {
       if (stack[top-1] == NOT) {
-        CHECK(filter_build_not(&fb, pool));
+        filter_build_not(&fb, pool);
       } else if (stack[top-1] == AND) {
-        CHECK(filter_build_and(&fb, pool));
+        filter_build_and(&fb, pool);
       } else if (stack[top-1] == OR) {
-        CHECK(filter_build_or(&fb, pool));
+        filter_build_or(&fb, pool);
       }
     }
     if (!top)
@@ -330,11 +327,11 @@ want_operator:
 done:
   for (; top; --top) {
     if (stack[top-1] == NOT) {
-      CHECK(filter_build_not(&fb, pool));
+      filter_build_not(&fb, pool);
     } else if (stack[top-1] == AND) {
-      CHECK(filter_build_and(&fb, pool));
+      filter_build_and(&fb, pool);
     } else if (stack[top-1] == OR) {
-      CHECK(filter_build_or(&fb, pool));
+      filter_build_or(&fb, pool);
     } else if (stack[top-1] == LPAREN) {
       return source_error(in, start, "No maching closing parenthesis.");
     }
@@ -359,14 +356,13 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   String last = string_null();
   ListBuilder tags = list_builder_init(pool);
   AstOutlineItem *self = pool_new(pool, AstOutlineItem);
-  CHECK_MEM(self);
 
   /* Handle the words making up the item: */
   token = lex_next(&start, &in->cursor, in->data.end);
   while (token == LEX_IDENTIFIER) {
     if (string_size(last)) {
-      CHECK(list_builder_add(&tags, dynamic(type_outline_tag,
-        ast_outline_tag_new(pool, last, 0))));
+      list_builder_add(&tags, dynamic(type_outline_tag,
+        ast_outline_tag_new(pool, last, 0)));
     }
     last = string_init(start, in->cursor);
     token = lex_next(&start, &in->cursor, in->data.end);
@@ -384,8 +380,8 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
       /* Value: */
       CHECK(parse_code(pool, &block, &inner, out_list_builder(&code)));
 
-      CHECK(list_builder_add(&tags, dynamic(type_outline_tag,
-        ast_outline_tag_new(pool, last, code.first))));
+      list_builder_add(&tags, dynamic(type_outline_tag,
+        ast_outline_tag_new(pool, last, code.first)));
 
       last = string_null();
       token = lex_next(&start, &in->cursor, in->data.end);
@@ -395,7 +391,6 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
     return source_error(in, start, "An outline item must have a name.");
   self->tags = tags.first;
   self->name = string_copy(pool, last);
-  CHECK_MEM(string_size(self->name));
 
   /* Is there a sub-outline? */
   self->children = 0;
@@ -421,7 +416,6 @@ int parse_outline(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   Token token;
   ListBuilder items = list_builder_init(pool);
   AstOutline *self = pool_new(pool, AstOutline);
-  CHECK_MEM(self);
 
   /* Opening brace: */
   token = lex_next(&start, &in->cursor, in->data.end);
@@ -454,7 +448,6 @@ int parse_union(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   ListBuilder items = list_builder_init(pool);
   ListNode *item;
   AstOutline *self = pool_new(pool, AstOutline);
-  CHECK_MEM(self);
 
   /* Opening brace: */
   token = lex_next(&start, &in->cursor, in->data.end);
@@ -487,7 +480,7 @@ outline:
   /* Process items: */
   for (item = items_in; item; item = item->next)
     if (!dynamic_ok(filter) || test_filter(filter, ast_to_outline_item(item->d)))
-      CHECK(list_builder_add(&items, item->d));
+      list_builder_add(&items, item->d);
 
   /* Another outline? */
   if (token == LEX_COMMA) {
@@ -512,7 +505,6 @@ int parse_map_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   Source block;
   ListBuilder code = list_builder_init(pool);
   AstMapLine *self = pool_new(pool, AstMapLine);
-  CHECK_MEM(self);
 
   /* Filter: */
   CHECK(parse_filter(pool, in, scope, out_dynamic(&out)));
@@ -543,7 +535,6 @@ int parse_map(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   Dynamic out;
   ListBuilder lines = list_builder_init(pool);
   AstMap *self = pool_new(pool, AstMap);
-  CHECK_MEM(self);
 
   /* Item to look up: */
   start = in->cursor;
@@ -579,7 +570,6 @@ int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   Token token;
   Dynamic out;
   AstFor *self = pool_new(pool, AstFor);
-  CHECK_MEM(self);
 
   /* Variable name: */
   token = lex_next(&start, &in->cursor, in->data.end);

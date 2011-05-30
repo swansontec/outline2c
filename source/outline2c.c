@@ -20,10 +20,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "check.c"
 #include "pool.c"
 #include "string.c"
 #include "source.c"
-#include "check.c"
 #include "lex.c"
 
 #include "dynamic.c"

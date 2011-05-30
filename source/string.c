@@ -67,6 +67,7 @@ String string_null()
 char *string_to_c(String s)
 {
   char *p = malloc(string_size(s) + 1);
+  CHECK_MEM(p);
   memcpy(p, s.p, s.end - s.p);
   p[s.end - s.p] = 0;
   return p;
@@ -122,7 +123,6 @@ String string_copy(Pool *pool, String string)
 
   size  = string_size(string);
   start = pool_alloc(pool, size, 1);
-  if (!start) return string_null();
   memcpy(start, string.p, size);
   return string_init_l(start, size);
 }
@@ -137,9 +137,6 @@ String string_merge(Pool *pool, String a, String b)
   char *out;
 
   out = pool_alloc(pool, string_size(a) + string_size(b), 1);
-  if (!out)
-    return string_null();
-
   s = string_init_l(out, string_size(a) + string_size(b));
 
   for (in = a.p; in < a.end; ++in)

@@ -69,7 +69,6 @@ int source_load(Source *self, Pool *pool, String filename)
   char *data;
 
   c_name = string_to_c(filename);
-  if (!c_name) goto error;
 
   fp = fopen(c_name, "rb");
   if (!fp) goto error;
@@ -84,7 +83,6 @@ int source_load(Source *self, Pool *pool, String filename)
     goto error;
 
   data = pool_alloc(pool, size + 1, 1);
-  if (!data) goto error;
 
   if (fread(data, 1, size, fp) != size)
     goto error;

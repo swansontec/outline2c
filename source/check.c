@@ -27,6 +27,6 @@
 #define CHECK_MEM(r) do { \
   if (!(r)) { \
     fprintf(stderr, "error: Out of memory at %s:%d\n", __FILE__, __LINE__); \
-    return 0; \
+    abort(); \
   } \
 } while(0)

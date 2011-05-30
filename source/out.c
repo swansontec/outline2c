@@ -51,7 +51,8 @@ OutRoutine out_dynamic(Dynamic *out)
 
 static int out_list_fn(void *data, Dynamic value)
 {
-  return list_builder_add(data, value);
+  list_builder_add(data, value);
+  return 1;
 }
 
 OutRoutine out_list_builder(ListBuilder *b)

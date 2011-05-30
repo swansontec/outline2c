@@ -47,7 +47,7 @@ typedef struct {
   Type type;
 } Dynamic;
 
-Dynamic dynamic_init(Type type, void *p)
+Dynamic dynamic(Type type, void *p)
 {
   Dynamic self;
   self.p = p;
@@ -56,10 +56,7 @@ Dynamic dynamic_init(Type type, void *p)
 }
 
 #define dynamic_none() \
-  (dynamic_init(type_none, 0))
-
-#define dynamic(type, p) \
-  ((p) ? dynamic_init(type, p) : dynamic_none())
+  (dynamic(0, 0))
 
 #define dynamic_ok(self) \
   ((self).type != type_none)

@@ -121,7 +121,7 @@ int generate_macro_call(Pool *pool, FILE *out, AstMacroCall *p)
   call_input = p->inputs;
   while (macro_input && call_input) {
     AstCodeText *name = macro_input->d.p;
-    CHECK(scope_add(&scope, pool, name->code, call_input->d));
+    scope_add(&scope, pool, name->code, call_input->d);
 
     macro_input = macro_input->next;
     call_input = call_input->next;
@@ -175,7 +175,7 @@ int generate_for_item(Pool *pool, FILE *out, AstFor *p, ListNode *item, int *nee
     CHECK(file_putc(out, ','));
   *need_comma = 1;
 
-  CHECK(scope_add(&scope, pool, p->item, item->d));
+  scope_add(&scope, pool, p->item, item->d);
   CHECK(parse_code(pool, &p->code, &scope, out_list_builder(&code)));
   CHECK(generate_code(pool, out, code.first));
   return 1;

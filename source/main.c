@@ -23,7 +23,6 @@ int main_generate(Pool *pool, ListNode *code, Options *opt)
   FILE *file_out;
 
   s = string_to_c(opt->name_out);
-  CHECK_MEM(s);
   file_out = fopen(s, "wb");
   if (!file_out) {
     fprintf(stderr, "error: Could not open output file \"%s\"\n", s);
@@ -41,7 +40,7 @@ int main_generate(Pool *pool, ListNode *code, Options *opt)
 int main_context_init(Pool *pool, Source *in, Scope *scope, Options *opt)
 {
   /* Pool: */
-  CHECK_MEM(pool_init(pool, 0x10000)); /* 64K block size */
+  pool_init(pool, 0x10000); /* 64K block size */
 
   /* Input stream: */
   if (!source_load(in, pool, opt->name_in)) {
@@ -55,18 +54,18 @@ int main_context_init(Pool *pool, Source *in, Scope *scope, Options *opt)
   *scope = scope_init(0);
 
   /* Keywords: */
-  CHECK(scope_add(scope, pool, string_init_k("macro"), dynamic(type_keyword,
-    keyword_new(pool, parse_macro))));
-  CHECK(scope_add(scope, pool, string_init_k("outline"), dynamic(type_keyword,
-    keyword_new(pool, parse_outline))));
-  CHECK(scope_add(scope, pool, string_init_k("union"), dynamic(type_keyword,
-    keyword_new(pool, parse_union))));
-  CHECK(scope_add(scope, pool, string_init_k("map"), dynamic(type_keyword,
-    keyword_new(pool, parse_map))));
-  CHECK(scope_add(scope, pool, string_init_k("for"), dynamic(type_keyword,
-    keyword_new(pool, parse_for))));
-  CHECK(scope_add(scope, pool, string_init_k("include"), dynamic(type_keyword,
-    keyword_new(pool, parse_include))));
+  scope_add(scope, pool, string_init_k("macro"), dynamic(type_keyword,
+    keyword_new(pool, parse_macro)));
+  scope_add(scope, pool, string_init_k("outline"), dynamic(type_keyword,
+    keyword_new(pool, parse_outline)));
+  scope_add(scope, pool, string_init_k("union"), dynamic(type_keyword,
+    keyword_new(pool, parse_union)));
+  scope_add(scope, pool, string_init_k("map"), dynamic(type_keyword,
+    keyword_new(pool, parse_map)));
+  scope_add(scope, pool, string_init_k("for"), dynamic(type_keyword,
+    keyword_new(pool, parse_for)));
+  scope_add(scope, pool, string_init_k("include"), dynamic(type_keyword,
+    keyword_new(pool, parse_include)));
 
   return 1;
 }
