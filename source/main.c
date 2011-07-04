@@ -39,9 +39,6 @@ int main_generate(Pool *pool, ListNode *code, Options *opt)
 
 int main_context_init(Pool *pool, Source *in, Scope *scope, Options *opt)
 {
-  /* Pool: */
-  pool_init(pool, 0x10000); /* 64K block size */
-
   /* Input stream: */
   if (!source_load(in, pool, opt->name_in)) {
     fprintf(stderr, "error: Could not open source file \"");
@@ -70,18 +67,13 @@ int main_context_init(Pool *pool, Source *in, Scope *scope, Options *opt)
   return 1;
 }
 
-void main_context_free(Source *in, Pool *pool)
-{
-  pool_free(pool);
-}
-
 /**
  * Program entry point. Constructs and launches the main program object.
  */
 int main(int argc, char *argv[])
 {
   Options opt = options_init();
-  Pool pool = {0};
+  Pool pool = pool_init(0x10000); /* 64K block size */
   Source in = {{0}};
   Scope scope;
   ListBuilder code = list_builder_init(&pool);
@@ -111,10 +103,10 @@ int main(int argc, char *argv[])
   }
   if (!main_generate(&pool, code.first, &opt)) goto error;
 
-  main_context_free(&in, &pool);
+  pool_free(&pool);
   return 0;
 
 error:
-  main_context_free(&in, &pool);
+  pool_free(&pool);
   return 1;
 }

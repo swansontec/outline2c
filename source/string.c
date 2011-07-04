@@ -67,7 +67,7 @@ String string_null()
 char *string_to_c(String s)
 {
   char *p = malloc(string_size(s) + 1);
-  CHECK_MEM(p);
+  CHECK_MEMORY(p);
   memcpy(p, s.p, s.end - s.p);
   p[s.end - s.p] = 0;
   return p;

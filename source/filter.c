@@ -72,7 +72,7 @@ void filter_builder_init(FilterBuilder *b)
 {
   b->stack_size = 32;
   b->stack = malloc(b->stack_size*sizeof(Dynamic));
-  CHECK_MEM(b->stack);
+  CHECK_MEMORY(b->stack);
   b->stack_top = 0;
 }
 
@@ -90,7 +90,7 @@ static void filter_builder_push(FilterBuilder *b, Dynamic node)
   if (b->stack_size <= b->stack_top) {
     size_t new_size = 2*b->stack_size;
     Dynamic *new_stack = realloc(b->stack, new_size*sizeof(Dynamic));
-    CHECK_MEM(new_stack);
+    CHECK_MEMORY(new_stack);
     b->stack_size = new_size;
     b->stack = new_stack;
   }
