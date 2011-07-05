@@ -101,7 +101,8 @@ int generate_lookup(Pool *pool, FILE *out, AstLookup *p)
   if (generate_lookup_builtin(pool, out, p))
     return 1;
 
-  fprintf(stderr, "Could not find a transform named %s.\n",
+  source_location(stderr, p->name.p);
+  fprintf(stderr, "error: Could not find a transform named \"%s\".\n",
     string_copy(pool, p->name).p);
   return 0;
 }

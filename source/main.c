@@ -32,36 +32,6 @@ int main_generate(Pool *pool, ListNode *code, Options *opt)
   return 1;
 }
 
-int main_context_init(Pool *pool, Source *in, Scope *scope, Options *opt)
-{
-  /* Input stream: */
-  if (!source_load(in, pool, opt->name_in)) {
-    fprintf(stderr, "error: Could not open source file \"");
-    fwrite(opt->name_in.p, string_size(opt->name_in), 1, stderr);
-    fprintf(stderr, "\"\n");
-    return 0;
-  }
-
-  /* Scope: */
-  *scope = scope_init(0);
-
-  /* Keywords: */
-  scope_add(scope, pool, string_from_k("macro"), dynamic(type_keyword,
-    keyword_new(pool, parse_macro)));
-  scope_add(scope, pool, string_from_k("outline"), dynamic(type_keyword,
-    keyword_new(pool, parse_outline)));
-  scope_add(scope, pool, string_from_k("union"), dynamic(type_keyword,
-    keyword_new(pool, parse_union)));
-  scope_add(scope, pool, string_from_k("map"), dynamic(type_keyword,
-    keyword_new(pool, parse_map)));
-  scope_add(scope, pool, string_from_k("for"), dynamic(type_keyword,
-    keyword_new(pool, parse_for)));
-  scope_add(scope, pool, string_from_k("include"), dynamic(type_keyword,
-    keyword_new(pool, parse_include)));
-
-  return 1;
-}
-
 /**
  * Program entry point. Constructs and launches the main program object.
  */
@@ -69,8 +39,8 @@ int main(int argc, char *argv[])
 {
   Options opt = options_init();
   Pool pool = pool_init(0x10000); /* 64K block size */
-  Source in = {{0}};
-  Scope scope;
+  Source *in;
+  Scope scope = scope_init(0);
   ListBuilder code = list_builder_init(&pool);
 
   /* Read the options: */
@@ -88,9 +58,29 @@ int main(int argc, char *argv[])
     opt.name_out = string(opt.name_in.p, opt.name_in.end - 3);
   }
 
+  /* Input stream: */
+  in = source_load(&pool, opt.name_in);
+  if (!in) {
+    fprintf(stderr, "error: Could not open source file \"%s\"\n", opt.name_in.p);
+    goto error;
+  }
+
+  /* Keywords: */
+  scope_add(&scope, &pool, string_from_k("macro"), dynamic(type_keyword,
+    keyword_new(&pool, parse_macro)));
+  scope_add(&scope, &pool, string_from_k("outline"), dynamic(type_keyword,
+    keyword_new(&pool, parse_outline)));
+  scope_add(&scope, &pool, string_from_k("union"), dynamic(type_keyword,
+    keyword_new(&pool, parse_union)));
+  scope_add(&scope, &pool, string_from_k("map"), dynamic(type_keyword,
+    keyword_new(&pool, parse_map)));
+  scope_add(&scope, &pool, string_from_k("for"), dynamic(type_keyword,
+    keyword_new(&pool, parse_for)));
+  scope_add(&scope, &pool, string_from_k("include"), dynamic(type_keyword,
+    keyword_new(&pool, parse_include)));
+
   /* Do outline2c stuff: */
-  if (!main_context_init(&pool, &in, &scope, &opt)) goto error;
-  if (!parse_code(&pool, &in, &scope, out_list_builder(&code))) goto error;
+  if (!parse_code(&pool, in, &scope, out_list_builder(&code))) goto error;
   if (opt.debug) {
     printf("--- AST: ---\n");
     dump_code(code.first, 0);
@@ -98,6 +88,7 @@ int main(int argc, char *argv[])
   }
   if (!main_generate(&pool, code.first, &opt)) goto error;
 
+  /* Clean up: */
   pool_free(&pool);
   return 0;
 
