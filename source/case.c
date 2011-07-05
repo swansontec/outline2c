@@ -57,7 +57,7 @@ String scan_symbol(String s, char const *p)
     do {
       ++p;
     } while (p < s.end && '0' <= *p && *p <= '9');
-    return string_init(start, p);
+    return string(start, p);
   }
 
   /* Lower-case letters? */
@@ -65,7 +65,7 @@ String scan_symbol(String s, char const *p)
     do {
       ++p;
     } while (p < s.end && 'a' <= *p && *p <= 'z');
-    return string_init(start, p);
+    return string(start, p);
   }
 
   /* Upper-case letters? */
@@ -82,7 +82,7 @@ String scan_symbol(String s, char const *p)
         } while (p < s.end && 'a' <= *p && *p <= 'z');
       }
     }
-    return string_init(start, p);
+    return string(start, p);
   }
 
   /* Anything else is a bug */

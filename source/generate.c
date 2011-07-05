@@ -67,18 +67,18 @@ int generate_lookup_tag(Pool *pool, FILE *out, AstLookup *p)
  */
 int generate_lookup_builtin(Pool *pool, FILE *out, AstLookup *p)
 {
-  if (string_equal(p->name, string_init_k("quote"))) {
+  if (string_equal(p->name, string_from_k("quote"))) {
     CHECK(file_putc(out, '"'));
     CHECK(file_write(out, p->item->name.p, p->item->name.end));
     CHECK(file_putc(out, '"'));
     return 1;
-  } else if (string_equal(p->name, string_init_k("lower"))) {
+  } else if (string_equal(p->name, string_from_k("lower"))) {
     return generate_lower(out, p->item->name);
-  } else if (string_equal(p->name, string_init_k("upper"))) {
+  } else if (string_equal(p->name, string_from_k("upper"))) {
     return generate_upper(out, p->item->name);
-  } else if (string_equal(p->name, string_init_k("camel"))) {
+  } else if (string_equal(p->name, string_from_k("camel"))) {
     return generate_camel(out, p->item->name);
-  } else if (string_equal(p->name, string_init_k("mixed"))) {
+  } else if (string_equal(p->name, string_from_k("mixed"))) {
     return generate_mixed(out, p->item->name);
   }
 
@@ -101,11 +101,8 @@ int generate_lookup(Pool *pool, FILE *out, AstLookup *p)
   if (generate_lookup_builtin(pool, out, p))
     return 1;
 
-  {
-    char *temp = string_to_c(p->name);
-    fprintf(stderr, "Could not find a transform named %s.\n", temp);
-    free(temp);
-  }
+  fprintf(stderr, "Could not find a transform named %s.\n",
+    string_copy(pool, p->name).p);
   return 0;
 }
 
@@ -144,7 +141,6 @@ int generate_outline_item(Pool *pool, FILE *out, AstOutlineItem *p)
 int generate_map(Pool *pool, FILE *out, AstMap *p)
 {
   ListNode *line;
-  char *temp;
 
   /* Match against the map: */
   for (line = p->lines; line; line = line->next) {
@@ -156,9 +152,8 @@ int generate_map(Pool *pool, FILE *out, AstMap *p)
   }
 
   /* Nothing matched: */
-  temp = string_to_c(p->item->name);
-  fprintf(stderr, "error: Could not match item \"%s\" against map.\n", temp);
-  free(temp);
+  fprintf(stderr, "error: Could not match item \"%s\" against map.\n",
+    string_copy(pool, p->item->name).p);
   return 0;
 }
 

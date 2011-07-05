@@ -63,15 +63,14 @@ typedef struct {
  */
 int source_load(Source *self, Pool *pool, String filename)
 {
-  char *c_name = 0;
   FILE *fp = 0;
   long size;
   char *data;
 
-  c_name = string_to_c(filename);
+  filename = string_copy(pool, filename);
 
-  fp = fopen(c_name, "rb");
-  if (!fp) goto error;
+  fp = fopen(filename.p, "rb");
+  if (!fp) return 0;
 
   if (fseek(fp, 0, SEEK_END))
     goto error;
@@ -89,16 +88,14 @@ int source_load(Source *self, Pool *pool, String filename)
   data[size] = 0;
 
   self->filename = filename;
-  self->data = string_init(data, data + size);
+  self->data = string(data, data + size);
   self->cursor = self->data.p;
 
-  free(c_name);
   fclose(fp);
   return 1;
 
 error:
-  if (c_name) free(c_name);
-  if (fp)     fclose(fp);
+  fclose(fp);
   return 0;
 }
 

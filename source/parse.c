@@ -39,7 +39,7 @@ int parse_value(Pool *pool, Source *in, Scope *scope, OutRoutine or, int allow_a
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token != LEX_IDENTIFIER)
     return source_error(in, start, "Expecting a keyword or variable name here.");
-  name = string_init(start, in->cursor);
+  name = string(start, in->cursor);
 
   /* Equals sign? */
   if (allow_assign) {
@@ -77,7 +77,7 @@ int parse_code(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 #define WRITE_CODE \
   if (start_c != start) \
     CHECK(or.code(or.data, dynamic(type_code_text, \
-      ast_code_text_new(pool, string_init(start_c, start)))));
+      ast_code_text_new(pool, string(start_c, start)))));
 
   start_block = in->cursor;
   start_c = in->cursor;
@@ -89,7 +89,7 @@ code:
   if (token == LEX_PASTE) goto paste;
   if (token == LEX_ESCAPE) goto escape;
   if (token == LEX_IDENTIFIER) {
-    if (scope_get(scope, &out, string_init(start, in->cursor))) {
+    if (scope_get(scope, &out, string(start, in->cursor))) {
       if (out.type == type_macro) {
         goto macro;
       } else if (out.type == type_outline_item) {
@@ -138,7 +138,7 @@ variable:
     start = in->cursor; token = lex(&in->cursor, in->data.end);
     if (token == LEX_IDENTIFIER) {
       CHECK(or.code(or.data, dynamic(type_lookup,
-        ast_lookup_new(pool, out.p, string_init(start, in->cursor)))));
+        ast_lookup_new(pool, out.p, string(start, in->cursor)))));
       start_c = in->cursor;
       start = in->cursor; token = lex(&in->cursor, in->data.end);
     } else {
@@ -175,7 +175,7 @@ input:
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token == LEX_IDENTIFIER) {
     list_builder_add(&inputs, dynamic(type_code_text,
-      ast_code_text_new(pool, string_init(start, in->cursor))));
+      ast_code_text_new(pool, string(start, in->cursor))));
 
     /* Comma or closing parenthesis: */
     token = lex_next(&start, &in->cursor, in->data.end);
@@ -256,7 +256,7 @@ int parse_filter(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 want_term:
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token == LEX_IDENTIFIER) {
-    filter_build_tag(&fb, pool, string_init(start, in->cursor));
+    filter_build_tag(&fb, pool, string(start, in->cursor));
     goto want_operator;
 
   } else if (token == LEX_STAR) {
@@ -364,7 +364,7 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
       list_builder_add(&tags, dynamic(type_outline_tag,
         ast_outline_tag_new(pool, last, 0)));
     }
-    last = string_init(start, in->cursor);
+    last = string(start, in->cursor);
     token = lex_next(&start, &in->cursor, in->data.end);
     if (token == LEX_EQUALS) {
       Scope inner = scope_init(scope);
@@ -465,7 +465,7 @@ outline:
   /* Map? */
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token == LEX_IDENTIFIER) {
-    if (!string_equal(string_init(start, in->cursor), string_init_k("with")))
+    if (!string_equal(string(start, in->cursor), string_from_k("with")))
       return source_error(in, start, "Only the \"with\" modifier is allowed here.");
 
     /* Filter: */
@@ -575,12 +575,12 @@ int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token != LEX_IDENTIFIER)
     return source_error(in, start, "Expecting a new symbol name here.");
-  self->item = string_init(start, in->cursor);
+  self->item = string(start, in->cursor);
 
   /* "in" keyword: */
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token != LEX_IDENTIFIER ||
-    !string_equal(string_init(start, in->cursor), string_init_k("in")))
+    !string_equal(string(start, in->cursor), string_from_k("in")))
     return source_error(in, start, "Expecting the \"in\" keyword here.");
 
   /* Outline name: */
@@ -598,22 +598,22 @@ int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 modifier:
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token == LEX_IDENTIFIER) {
-    String s = string_init(start, in->cursor);
+    String s = string(start, in->cursor);
 
     /* "with" modifier: */
-    if (string_equal(s, string_init_k("with"))) {
+    if (string_equal(s, string_from_k("with"))) {
       CHECK(parse_filter(pool, in, scope, out_dynamic(&out)));
       assert(can_test_filter(out));
       self->filter = out;
       goto modifier;
 
     /* "reverse" modifier: */
-    } else if (string_equal(s, string_init_k("reverse"))) {
+    } else if (string_equal(s, string_from_k("reverse"))) {
       self->reverse = 1;
       goto modifier;
 
     /* "list" modifier: */
-    } else if (string_equal(s, string_init_k("list"))) {
+    } else if (string_equal(s, string_from_k("list"))) {
       self->list = 1;
       goto modifier;
     } else {
@@ -654,9 +654,9 @@ int parse_include(Pool *pool, Source *in, Scope *scope, OutRoutine or)
   for (p = in->filename.p; p < in->filename.end; ++p)
     if (*p == '\\' || *p == '/')
       base_end = p + 1;
-  filename = string_merge(pool,
-    string_init(in->filename.p, base_end),
-    string_init(start + 1, in->cursor - 1));
+  filename = string_cat(pool,
+    string(in->filename.p, base_end),
+    string(start + 1, in->cursor - 1));
 
   /* Process the file's contents: */
   if (!source_load(&source, pool, filename))

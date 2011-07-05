@@ -19,17 +19,12 @@
  */
 int main_generate(Pool *pool, ListNode *code, Options *opt)
 {
-  char *s;
-  FILE *file_out;
-
-  s = string_to_c(opt->name_out);
-  file_out = fopen(s, "wb");
+  String filename = string_copy(pool, opt->name_out);
+  FILE *file_out = fopen(filename.p, "wb");
   if (!file_out) {
-    fprintf(stderr, "error: Could not open output file \"%s\"\n", s);
-    free(s);
+    fprintf(stderr, "error: Could not open output file \"%s\"\n", filename.p);
     return 1;
   }
-  free(s);
 
   CHECK(generate_code(pool, file_out, code));
 
@@ -51,17 +46,17 @@ int main_context_init(Pool *pool, Source *in, Scope *scope, Options *opt)
   *scope = scope_init(0);
 
   /* Keywords: */
-  scope_add(scope, pool, string_init_k("macro"), dynamic(type_keyword,
+  scope_add(scope, pool, string_from_k("macro"), dynamic(type_keyword,
     keyword_new(pool, parse_macro)));
-  scope_add(scope, pool, string_init_k("outline"), dynamic(type_keyword,
+  scope_add(scope, pool, string_from_k("outline"), dynamic(type_keyword,
     keyword_new(pool, parse_outline)));
-  scope_add(scope, pool, string_init_k("union"), dynamic(type_keyword,
+  scope_add(scope, pool, string_from_k("union"), dynamic(type_keyword,
     keyword_new(pool, parse_union)));
-  scope_add(scope, pool, string_init_k("map"), dynamic(type_keyword,
+  scope_add(scope, pool, string_from_k("map"), dynamic(type_keyword,
     keyword_new(pool, parse_map)));
-  scope_add(scope, pool, string_init_k("for"), dynamic(type_keyword,
+  scope_add(scope, pool, string_from_k("for"), dynamic(type_keyword,
     keyword_new(pool, parse_for)));
-  scope_add(scope, pool, string_init_k("include"), dynamic(type_keyword,
+  scope_add(scope, pool, string_from_k("include"), dynamic(type_keyword,
     keyword_new(pool, parse_include)));
 
   return 1;
@@ -86,11 +81,11 @@ int main(int argc, char *argv[])
 
   /* Determine output file name: */
   if (!string_size(opt.name_out)) {
-    if (string_rmatch(opt.name_in, string_init_k(".ol")) != 3) {
+    if (string_rmatch(opt.name_in, string_from_k(".ol")) != 3) {
       fprintf(stderr, "error: If no output file is specified, the input file name must end with \".ol\".\n");
       return 1;
     }
-    opt.name_out = string_init(opt.name_in.p, opt.name_in.end - 3);
+    opt.name_out = string(opt.name_in.p, opt.name_in.end - 3);
   }
 
   /* Do outline2c stuff: */

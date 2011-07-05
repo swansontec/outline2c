@@ -26,51 +26,45 @@ typedef struct {
   char const *end;
 } String;
 
-#define string_size(s) ((s).end - (s).p)
-
-String string_init(char const *p, char const *end)
+String string(char const *p, char const *end)
 {
-  String s;
-  s.p = p;
-  s.end = end;
-  return s;
+  String self;
+  self.p = p;
+  self.end = end;
+  return self;
 }
 
-String string_init_l(char const *p, size_t size)
-{
-  String s;
-  s.p = p;
-  s.end = p + size;
-  return s;
-}
+#define string_null()    string(0, 0)
+#define string_from_c(c) string((c), (c) + strlen(c))
+#define string_from_k(k) string((k), (k) + sizeof(k) - 1)
 
-#define string_init_k(k) string_init_l(k, sizeof(k) - 1)
+#define string_size(self) ((self).end - (self).p)
 
-String string_init_c(char const *p)
+/**
+ * Copies the string. The new string is silently null-terminated, and can be
+ * passed to C functions.
+ */
+String string_copy(Pool *pool, String self)
 {
-  String s;
-  s.p = p;
-  s.end = p + strlen(p);
-  return s;
-}
-
-String string_null()
-{
-  String s = {0, 0};
-  return s;
+  size_t size = string_size(self);
+  char *out = (char*)pool_alloc(pool, size + 1, 1);
+  memcpy(out, self.p, size);
+  out[size] = 0;
+  return string(out, out + size);
 }
 
 /**
- * Copies the string and null-terminates it, forming a C-style string. The
- * caller must free() the memory when it is done using it.
+ * Concatenates one string onto another. The new string is silently null-
+ * terminated, and can be passed to C functions.
  */
-char *string_to_c(String s)
+String string_cat(Pool *pool, String s1, String s2)
 {
-  char *p = malloc(string_size(s) + 1);
-  CHECK_MEMORY(p);
-  memcpy(p, s.p, s.end - s.p);
-  p[s.end - s.p] = 0;
-  return p;
+  size_t size = string_size(s1) + string_size(s2);
+  char *out = (char*)pool_alloc(pool, size + 1, 1);
+  memcpy(out, s1.p, string_size(s1));
+  memcpy(out + string_size(s1), s2.p, string_size(s2));
+  out[size] = 0;
+  return string(out, out + size);
 }
 
 /**
@@ -110,39 +104,4 @@ size_t string_rmatch(String s1, String s2)
     --p1; --p2;
   }
   return s1.end - p1;
-}
-
-/**
- * Copies a string
- */
-String string_copy(Pool *pool, String string)
-{
-  size_t size;
-  char *start;
-  if (!string_size(string)) return string_null();
-
-  size  = string_size(string);
-  start = pool_alloc(pool, size, 1);
-  memcpy(start, string.p, size);
-  return string_init_l(start, size);
-}
-
-/**
- * Concatenates one string onto another
- */
-String string_merge(Pool *pool, String a, String b)
-{
-  String s;
-  char const *in;
-  char *out;
-
-  out = pool_alloc(pool, string_size(a) + string_size(b), 1);
-  s = string_init_l(out, string_size(a) + string_size(b));
-
-  for (in = a.p; in < a.end; ++in)
-    *out++ = *in;
-  for (in = b.p; in < b.end; ++in)
-    *out++ = *in;
-
-  return s;
 }
