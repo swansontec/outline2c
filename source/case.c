@@ -31,9 +31,9 @@ String strip_symbol(String s)
 }
 
 /**
- * Locates individual words within an indentifier. The identifier must have its
+ * Locates individual words within an identifier. The identifier must have its
  * leading and trailing underscores stripped off before being passed to this
- * function. As always, the only valid symbols within an indentifier are
+ * function. As always, the only valid symbols within an identifier are
  * [_a-zA-Z0-9]
  * @param s the input string to break into words
  * @param p a pointer into string s, which marks the first character to begin
