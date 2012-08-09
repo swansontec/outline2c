@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/*
+/**
  * Holds command-line options
  */
 typedef struct {
@@ -64,5 +64,17 @@ int options_parse(Options *self, int argc, char *argv[])
     }
     ++arg;
   }
+
+  if (!string_size(self->name_in))
+    return 0;
+
   return 1;
+}
+
+/**
+ * Prints program usage information. The name parameter should be argv[0].
+ */
+void options_usage(char *name)
+{
+  fprintf(stderr, "Usage: %s [-d] [-o output-file] <input-file>\n", name);
 }

@@ -37,23 +37,23 @@ int main_generate(Pool *pool, ListNode *code, Options *opt)
  */
 int main(int argc, char *argv[])
 {
-  Options opt = options_init();
   Pool pool = pool_init(0x10000); /* 64K block size */
+  Options opt = options_init();
   Source *in;
   Scope scope = scope_init(0);
   ListBuilder code = list_builder_init(&pool);
 
   /* Read the options: */
   if (!options_parse(&opt, argc, argv)) {
-    fprintf(stderr, "Usage: %s [-d] [-o output-file] <input-file>\n", argv[0]);
-    return 1;
+    options_usage(argv[0]);
+    goto error;
   }
 
   /* Determine output file name: */
   if (!string_size(opt.name_out)) {
     if (string_rmatch(opt.name_in, string_from_k(".ol")) != 3) {
       fprintf(stderr, "error: If no output file is specified, the input file name must end with \".ol\".\n");
-      return 1;
+      goto error;
     }
     opt.name_out = string(opt.name_in.p, opt.name_in.end - 3);
   }
