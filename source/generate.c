@@ -111,7 +111,7 @@ int generate_macro_call(Pool *pool, FILE *out, AstMacroCall *p)
 {
   ListNode *call_input;
   ListNode *macro_input;
-  Scope scope = scope_init(p->macro->scope);
+  Scope *scope = scope_new(pool, p->macro->scope);
   ListBuilder code = list_builder_init(pool);
 
   /* Assign values to all inputs: */
@@ -119,13 +119,13 @@ int generate_macro_call(Pool *pool, FILE *out, AstMacroCall *p)
   call_input = p->inputs;
   while (macro_input && call_input) {
     AstCodeText *name = macro_input->d.p;
-    scope_add(&scope, pool, name->code, call_input->d);
+    scope_add(scope, pool, name->code, call_input->d);
 
     macro_input = macro_input->next;
     call_input = call_input->next;
   }
 
-  CHECK(parse_code(pool, &p->macro->code, &scope, out_list_builder(&code)));
+  CHECK(parse_code(pool, &p->macro->code, scope, out_list_builder(&code)));
   CHECK(generate_code(pool, out, code.first));
   return 1;
 }
@@ -160,7 +160,7 @@ int generate_map(Pool *pool, FILE *out, AstMap *p)
 
 int generate_for_item(Pool *pool, FILE *out, AstFor *p, ListNode *item, int *need_comma)
 {
-  Scope scope = scope_init(p->scope);
+  Scope *scope = scope_new(pool, p->scope);
   ListBuilder code = list_builder_init(pool);
 
   if (dynamic_ok(p->filter) &&
@@ -171,8 +171,8 @@ int generate_for_item(Pool *pool, FILE *out, AstFor *p, ListNode *item, int *nee
     CHECK(file_putc(out, ','));
   *need_comma = 1;
 
-  scope_add(&scope, pool, p->item, item->d);
-  CHECK(parse_code(pool, &p->code, &scope, out_list_builder(&code)));
+  scope_add(scope, pool, p->item, item->d);
+  CHECK(parse_code(pool, &p->code, scope, out_list_builder(&code)));
   CHECK(generate_code(pool, out, code.first));
   return 1;
 }

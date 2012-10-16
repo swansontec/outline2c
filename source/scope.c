@@ -37,11 +37,11 @@ struct Scope {
   Symbol *first;
 };
 
-Scope scope_init(Scope *outer)
+Scope *scope_new(Pool *pool, Scope *outer)
 {
-  Scope self;
-  self.outer = outer;
-  self.first = 0;
+  Scope *self = pool_new(pool, Scope);
+  self->outer = outer;
+  self->first = 0;
   return self;
 }
 

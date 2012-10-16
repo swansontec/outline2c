@@ -367,7 +367,7 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
     last = string(start, in->cursor);
     token = lex_next(&start, &in->cursor, in->data.end);
     if (token == LEX_EQUALS) {
-      Scope inner = scope_init(scope);
+      Scope *inner = scope_new(pool, scope);
       Source block;
       ListBuilder code = list_builder_init(pool);
 
@@ -378,7 +378,7 @@ int parse_outline_item(Pool *pool, Source *in, Scope *scope, OutRoutine or)
         return source_error(start, "A tag's value must be a code block.");
 
       /* Value: */
-      CHECK(parse_code(pool, &block, &inner, out_list_builder(&code)));
+      CHECK(parse_code(pool, &block, inner, out_list_builder(&code)));
 
       list_builder_add(&tags, dynamic(type_outline_tag,
         ast_outline_tag_new(pool, last, code.first)));
@@ -501,7 +501,7 @@ int parse_map_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 {
   char const *start;
   Dynamic out;
-  Scope inner = scope_init(scope);
+  Scope *inner = scope_new(pool, scope);
   Source block;
   ListBuilder code = list_builder_init(pool);
   AstMapLine *self = pool_new(pool, AstMapLine);
@@ -518,7 +518,7 @@ int parse_map_line(Pool *pool, Source *in, Scope *scope, OutRoutine or)
     return source_error(start, "A line within a \"map\" statement must end with a code block.");
 
   /* Code: */
-  CHECK(parse_code(pool, &block, &inner, out_list_builder(&code)));
+  CHECK(parse_code(pool, &block, inner, out_list_builder(&code)));
   self->code = code.first;
 
   CHECK(or.code(or.data, dynamic(type_map_line, self)));

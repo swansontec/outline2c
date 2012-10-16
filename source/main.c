@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
   Pool pool = pool_init(0x10000); /* 64K block size */
   Options opt = options_init();
   Source *in;
-  Scope scope = scope_init(0);
+  Scope *scope = scope_new(&pool, 0);
   ListBuilder code = list_builder_init(&pool);
 
   /* Read the options: */
@@ -66,21 +66,21 @@ int main(int argc, char *argv[])
   }
 
   /* Keywords: */
-  scope_add(&scope, &pool, string_from_k("macro"), dynamic(type_keyword,
+  scope_add(scope, &pool, string_from_k("macro"), dynamic(type_keyword,
     keyword_new(&pool, parse_macro)));
-  scope_add(&scope, &pool, string_from_k("outline"), dynamic(type_keyword,
+  scope_add(scope, &pool, string_from_k("outline"), dynamic(type_keyword,
     keyword_new(&pool, parse_outline)));
-  scope_add(&scope, &pool, string_from_k("union"), dynamic(type_keyword,
+  scope_add(scope, &pool, string_from_k("union"), dynamic(type_keyword,
     keyword_new(&pool, parse_union)));
-  scope_add(&scope, &pool, string_from_k("map"), dynamic(type_keyword,
+  scope_add(scope, &pool, string_from_k("map"), dynamic(type_keyword,
     keyword_new(&pool, parse_map)));
-  scope_add(&scope, &pool, string_from_k("for"), dynamic(type_keyword,
+  scope_add(scope, &pool, string_from_k("for"), dynamic(type_keyword,
     keyword_new(&pool, parse_for)));
-  scope_add(&scope, &pool, string_from_k("include"), dynamic(type_keyword,
+  scope_add(scope, &pool, string_from_k("include"), dynamic(type_keyword,
     keyword_new(&pool, parse_include)));
 
   /* Do outline2c stuff: */
-  if (!parse_code(&pool, in, &scope, out_list_builder(&code))) goto error;
+  if (!parse_code(&pool, in, scope, out_list_builder(&code))) goto error;
   if (opt.debug) {
     printf("--- AST: ---\n");
     dump_code(code.first, 0);
