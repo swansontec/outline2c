@@ -95,7 +95,6 @@
     <ClInclude Include="..\source\generate.c" />
     <ClInclude Include="..\source\lex.c" />
     <ClInclude Include="..\source\list.c" />
-    <ClInclude Include="..\source\lwl.c" />
     <ClInclude Include="..\source\main.c" />
     <ClInclude Include="..\source\options.c" />
     <ClInclude Include="..\source\out.c" />

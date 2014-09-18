@@ -26,6 +26,45 @@
 int parse_macro_call(Pool *pool, Source *in, Scope *scope, OutRoutine or, AstMacro *macro);
 
 /**
+ * Parses an outline2c expression.
+ */
+int parse_value(Pool *pool, Source *in, Scope *scope, OutRoutine or, int allow_assign)
+{
+  char const *start;
+  Token token;
+  Dynamic out;
+  String name;
+
+  /* Symbol: */
+  token = lex_next(&start, &in->cursor, in->data.end);
+  if (token != LEX_IDENTIFIER)
+    return source_error(in, start, "Expecting a keyword or variable name here.");
+  name = string_init(start, in->cursor);
+
+  /* Equals sign? */
+  if (allow_assign) {
+    token = lex_next(&start, &in->cursor, in->data.end);
+    if (token == LEX_EQUALS) {
+      start = in->cursor;
+      CHECK(parse_value(pool, in, scope, out_dynamic(&out), 0));
+      if (!dynamic_ok(out))
+        return source_error(in, start, "Wrong type - this must be a value.");
+      CHECK(scope_add(scope, pool, name, out));
+      return 1;
+    }
+    in->cursor = start;
+  }
+
+  if (!scope_get(scope, &out, name))
+    return source_error(in, start, "Unknown variable or keyword.");
+  if (out.type == type_keyword)
+    CHECK(((Keyword*)out.p)->code(pool, in, scope, or));
+  else
+    CHECK(or.code(or.data, out));
+  return 1;
+}
+
+/**
  * Parses a block of code in the host language, looking for escape sequences
  * and replacement symbols.
  */
@@ -73,7 +112,7 @@ escape:
   WRITE_CODE
 
   /* "\ol" escape sequences: */
-  CHECK(lwl_parse_line(pool, in, scope, or));
+  CHECK(parse_value(pool, in, scope, or, 1));
 
   start_c = in->cursor;
   start = in->cursor; token = lex(&in->cursor, in->data.end);
@@ -184,7 +223,7 @@ input:
   token = lex_next(&start, &in->cursor, in->data.end);
   if (token == LEX_IDENTIFIER) {
     in->cursor = start;
-    CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
+    CHECK(parse_value(pool, in, scope, out_dynamic(&out), 0));
     CHECK(list_builder_add(&inputs, out));
 
     /* Comma or closing parenthesis: */
@@ -425,7 +464,7 @@ int parse_union(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 outline:
   /* Outline: */
   start = in->cursor;
-  CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
+  CHECK(parse_value(pool, in, scope, out_dynamic(&out), 0));
   if (!can_get_items(out))
     return source_error(in, start, "Wrong type - the union statement expects an outline.\n");
   items_in = get_items(out);
@@ -508,7 +547,7 @@ int parse_map(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 
   /* Item to look up: */
   start = in->cursor;
-  CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
+  CHECK(parse_value(pool, in, scope, out_dynamic(&out), 0));
   if (out.type != type_outline_item)
     return source_error(in, start, "Wrong type - expecting an outline item as a map parameter.");
   self->item = out.p;
@@ -556,7 +595,7 @@ int parse_for(Pool *pool, Source *in, Scope *scope, OutRoutine or)
 
   /* Outline name: */
   start = in->cursor;
-  CHECK(lwl_parse_value(pool, in, scope, out_dynamic(&out)));
+  CHECK(parse_value(pool, in, scope, out_dynamic(&out), 0));
   if (!can_get_items(out))
     return source_error(in, start, "Wrong type - the for statement expects an outline.\n");
   self->outline = out;

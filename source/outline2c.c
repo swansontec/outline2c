@@ -31,7 +31,6 @@
 #include "out.c"
 #include "scope.c"
 
-#include "lwl.c"
 #include "ast.c"
 #include "filter.c"
 #include "parse.c"

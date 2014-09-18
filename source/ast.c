@@ -16,6 +16,15 @@
 
 typedef struct AstOutlineItem AstOutlineItem;
 
+typedef int (*KeywordFn)(Pool *pool, Source *in, Scope *scope, OutRoutine or);
+
+/**
+ * An outline2c keyword.
+ */
+typedef struct {
+  KeywordFn code;
+} Keyword;
+
 /**
  * A modifier on a symbol.
  */
@@ -148,6 +157,16 @@ AstMapLine *ast_to_map_line(Dynamic node)
 {
   assert(node.type == type_map_line);
   return node.p;
+}
+
+Keyword *keyword_new(Pool *p, KeywordFn code)
+{
+  Keyword *self = pool_new(p, Keyword);
+  CHECK_MEM(self);
+  self->code = code;
+
+  if (!self->code) return 0;
+  return self;
 }
 
 AstLookup *ast_lookup_new(Pool *p, AstOutlineItem *item, String name)
