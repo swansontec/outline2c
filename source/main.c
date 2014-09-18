@@ -108,6 +108,7 @@ int main(int argc, char *argv[])
   if (opt.debug) {
     printf("--- AST: ---\n");
     dump_code(code.first, 0);
+    printf("\n");
   }
   if (!main_generate(&pool, code.first, &opt)) goto error;
 
