@@ -215,3 +215,12 @@ Invoking a macro is pretty straightforward:
 This is equivalent to entering the following code directly:
 
     \ol for i in outline_a { item_b }
+
+Including other files
+---------------------
+
+The `include` keyword pulls in the definitions from another outline2c source file:
+
+    \ol include "macros.ol"
+
+Unlike the C preprocessor, this does not insert the file's contents into the output; it just pulls out outline2c definitions and makes them available.
