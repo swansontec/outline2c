@@ -62,13 +62,11 @@ ListBuilder list_builder_init(Pool *pool)
 /**
  * Adds an item to the end of a list.
  */
-int list_builder_add(ListBuilder *b, Dynamic value)
+void list_builder_add(ListBuilder *b, Dynamic value)
 {
   ListNode *node = pool_new(b->pool, ListNode);
-  CHECK_MEM(node);
   node->next = 0;
   node->d = value;
-  if (!dynamic_ok(node->d)) return 0;
 
   if (!b->first) {
     b->first = node;
@@ -77,6 +75,4 @@ int list_builder_add(ListBuilder *b, Dynamic value)
     b->last->next = node;
     b->last = node;
   }
-
-  return 1;
 }

@@ -20,7 +20,7 @@
  * freed at once.
  *
  * The memory pool works by allocating a large block of memory up-front. Then,
- * each time it recieves an allocation request, it returns a portion of the
+ * each time it receives an allocation request, it returns a portion of the
  * block. When the block becomes full, the pool allocates another block and
  * continues in the same way. The only record-keeping is a pointer to the
  * remaining free space in the current block, plus a list of used blocks for
@@ -34,17 +34,13 @@
  * request to come from malloc rather than the the pool, use the pool_alloc_sys
  * function. The memory will be freed when the pool itself is freed, as usual.
  *
- * To determine how much free space is available in the current block, use the
- * pool_unused function.
+ * Most pool_ functions take an explicit alignment parameter. The alignment
+ * must be a power of two, and should be smaller than malloc's native
+ * alignment. If the alignment is larger, malloc's native alignment will be
+ * used instead and a small amount of memory might be wasted.
  *
- * Most pool_ functions have an pool_aligned_ alternative. These alternatives
- * take an explicit alignment parameter. The alignment must be a power of two,
- * and should be smaller than malloc's native allignment. If the allignment is
- * larger, malloc's native alignment will be used instead and a small amount of
- * memory might be wasted.
- *
- * The other functions use a default alignment suitable for any normal C data
- * type.
+ * These functions instantly abort the entire program when they encounter an
+ * out-of-memory error.
  */
 typedef struct {
   char *block;  /* The current block. */
@@ -59,74 +55,74 @@ typedef struct {
  * it should work fine on most real-life platforms. The base parameter is not
  * used in this version of the macro.
  */
-#define ALIGN(p, base, align) (char*)((uintptr_t)p + (align-1) & ~(align-1))
+#define ALIGN(p, base, align) ((char*)(((uintptr_t)(p) + ((align)-1)) & ~((align)-1)))
 #else
 /**
  * Aligns a pointer in a completely-portable way. This works because malloc
  * returns pointers meeting the platform's worst-case alignment requirements.
- * Basing the allignment calculation on the block's base address, which comes
+ * Basing the alignment calculation on the block's base address, which comes
  * from malloc, will either meet the requested alignment or fail in a way that
  * can't possibly matter, since malloc already covers the worst case.
  */
-#define ALIGN(p, base, align) base + (p - base + (align-1) & ~(align-1))
+#define ALIGN(p, base, align) ((base) + (((p) - (base) + ((align)-1)) & ~((align)-1)))
 #endif
 
-/* Discern the platform's alignment requirements: */
-typedef struct {
-  char x;
-  union {
-    void *vp; Pool *pp;
-    char c; short s; int i; long l;
-    float f; double d; long double ld;
-  } data;
-} AlignTest;
-#define DEFAULT_ALIGN offsetof(AlignTest, data)
+/**
+ * Calculates a data type's alignment.
+ */
+#define alignof(type) offsetof(struct { char c; type data; }, data)
 
 /**
- * Helper function to add new blocks to the pool. This function does not modify
- * the pool if it fails.
- * @return 0 for failure
+ * Verifies that a memory-allocating call succeeds, and aborts the program
+ * otherwise.
  */
-static int pool_grow(Pool *p, size_t size)
+#define CHECK_MEMORY(p) do { \
+  if (!(p)) { \
+    fprintf(stderr, "error: Out of memory at %s:%d\n", __FILE__, __LINE__); \
+    abort(); \
+  } \
+} while(0)
+
+/**
+ * Helper function to add new blocks to the pool.
+ */
+void pool_grow(Pool *self, size_t size)
 {
-  char *block = malloc(size);
-  if (!block) return 0;
+  char *block = (char*)malloc(size);
+  CHECK_MEMORY(block);
 
   /* The first element in each block is a pointer to previous block: */
-  *(char**)block = p->block;
+  *(char**)block = self->block;
 
   /* Place the new block in the pool: */
-  p->block = block;
-  p->next  = block + sizeof(char*);
-  p->end   = block + size;
-  return 1;
+  self->block = block;
+  self->next  = block + sizeof(char*);
+  self->end   = block + size;
 }
 
 /**
  * Initializes a memory pool, allocating an initial block of the given size.
  * Each future block will have the same size as the initial block, so choose
  * wisely.
- * @return 0 for failure
  */
-int pool_init(Pool *p, size_t size)
+Pool pool_init(size_t size)
 {
-  p->block = 0;
-  p->next = 0;
-  p->end = 0;
-  return pool_grow(p, size);
+  Pool self = {0, 0, 0};
+  pool_grow(&self, size);
+  return self;
 }
 
 /**
- * Frees all memory in the pool. The pool becomes un-initialized after this
- * call, requiring another call to pool_init.
+ * Frees all memory in the pool. The pool is no longer usable after calling
+ * this function.
  */
-void pool_free(Pool *p)
+void pool_free(Pool *self)
 {
-  char *block = p->block;
+  char *block = self->block;
   while (block) {
-    char *temp = *(char**)block;
+    char *next = *(char**)block;
     free(block);
-    block = temp;
+    block = next;
   }
 }
 
@@ -134,15 +130,15 @@ void pool_free(Pool *p)
  * Allocates memory using malloc and adds the result to the pool's list of
  * blocks to free.
  */
-void *pool_alloc_sys(Pool *p, size_t size, size_t align)
+void *pool_alloc_sys(Pool *self, size_t size, size_t align)
 {
   size_t padding = sizeof(char*) < align ? align : sizeof(char*);
-  char *block = malloc(padding + size);
-  if (!block) return 0;
+  char *block = (char*)malloc(padding + size);
+  CHECK_MEMORY(block);
 
   /* Add the block to the list of stuff to free: */
-  *(char**)block = *(char**)p->block;
-  *(char**)p->block = block;
+  *(char**)block = *(char**)self->block;
+  *(char**)self->block = block;
 
   return block + padding;
 }
@@ -150,38 +146,27 @@ void *pool_alloc_sys(Pool *p, size_t size, size_t align)
 /**
  * Allocates memory from the pool.
  */
-void *pool_alloc(Pool *p, size_t size, size_t align)
+void *pool_alloc(Pool *self, size_t size, size_t align)
 {
-  char *start = ALIGN(p->next, p->block, align);
+  char *start = ALIGN(self->next, self->block, align);
   char *end = start + size;
 
   /* Is the request too large? The 2nd test checks for overflow. */
-  if (p->end < end || !start) {
-    size_t block_size = p->end - p->block;
+  if (self->end < end || !start) {
+    size_t block_size = self->end - self->block;
     /* Use malloc for large blocks: */
     if (block_size < 64*size)
-      return pool_alloc_sys(p, size, align);
+      return pool_alloc_sys(self, size, align);
 
     /* Grow the pool: */
-    if (!pool_grow(p, block_size)) return 0;
-    start = ALIGN(p->next, p->block, align);
+    pool_grow(self, block_size);
+    start = ALIGN(self->next, self->block, align);
     end = start + size;
   }
 
-  p->next = end;
+  self->next = end;
   return start;
 }
 
-#define pool_new(pool, type) \
-  ((type*)pool_alloc(pool, sizeof(type), DEFAULT_ALIGN))
-
-/**
- * Returns the remaining free space in the current block.
- */
-size_t pool_unused(Pool *p, size_t align)
-{
-  char *start = ALIGN(p->next, p->block, align);
-  if (p->end < start || !start)
-    return 0;
-  return p->end - start;
-}
+#define pool_new(self, type) \
+  ((type*)pool_alloc(self, sizeof(type), alignof(type)))

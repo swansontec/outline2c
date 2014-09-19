@@ -15,7 +15,7 @@
  */
 
 /**
- * Possible token types.
+ * Possible token types
  */
 typedef enum {
   LEX_ERROR_END = -100, /* Unexpected end-of-file */
@@ -58,16 +58,16 @@ typedef enum {
   c == '\n' || c == '\f' || c == '\r')
 
 #define IS_ALPHA(c) ( \
-  'a' <= c && c <= 'z' || \
-  'A' <= c && c <= 'Z' || c == '_')
+  ('a' <= c && c <= 'z') || \
+  ('A' <= c && c <= 'Z') || c == '_')
 
 #define IS_ALPHANUM(c) ( \
-  '0' <= c && c <= '9' || \
-  'a' <= c && c <= 'z' || \
-  'A' <= c && c <= 'Z' || c == '_')
+  ('0' <= c && c <= '9') || \
+  ('a' <= c && c <= 'z') || \
+  ('A' <= c && c <= 'Z') || c == '_')
 
 /**
- * Identifies the next token in the input stream. When the fuction starts, the
+ * Identifies the next token in the input stream. When the function starts, the
  * cursor points to the beginning of the token to identify. When the function
  * returns, the cursor points to the beginning of the next token, one character
  * past the end of the current token. The return value is an enum indicating
@@ -228,7 +228,7 @@ Source lex_block(Source *in)
   char const *start;
   Token token;
   Source out = *in;
-  Source null = {0};
+  Source null = {{0}};
   int depth = 1;
 
   /* Find the opening brace: */

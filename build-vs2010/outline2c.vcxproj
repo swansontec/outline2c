@@ -66,7 +66,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
@@ -95,7 +95,6 @@
     <ClInclude Include="..\source\generate.c" />
     <ClInclude Include="..\source\lex.c" />
     <ClInclude Include="..\source\list.c" />
-    <ClInclude Include="..\source\lwl.c" />
     <ClInclude Include="..\source\main.c" />
     <ClInclude Include="..\source\options.c" />
     <ClInclude Include="..\source\out.c" />

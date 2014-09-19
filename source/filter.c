@@ -68,13 +68,12 @@ typedef struct {
   size_t stack_top;
 } FilterBuilder;
 
-int filter_builder_init(FilterBuilder *b)
+void filter_builder_init(FilterBuilder *b)
 {
   b->stack_size = 32;
   b->stack = malloc(b->stack_size*sizeof(Dynamic));
-  CHECK_MEM(b->stack);
+  CHECK_MEMORY(b->stack);
   b->stack_top = 0;
-  return 1;
 }
 
 void filter_builder_free(FilterBuilder *b)
@@ -85,21 +84,18 @@ void filter_builder_free(FilterBuilder *b)
 /**
  * Pushes a node onto the stack.
  */
-static int filter_builder_push(FilterBuilder *b, Dynamic node)
+static void filter_builder_push(FilterBuilder *b, Dynamic node)
 {
-  if (!dynamic_ok(node)) return 0;
-
   /* Grow, if needed: */
   if (b->stack_size <= b->stack_top) {
     size_t new_size = 2*b->stack_size;
     Dynamic *new_stack = realloc(b->stack, new_size*sizeof(Dynamic));
-    CHECK_MEM(new_stack);
+    CHECK_MEMORY(new_stack);
     b->stack_size = new_size;
     b->stack = new_stack;
   }
   b->stack[b->stack_top] = node;
   ++b->stack_top;
-  return 1;
 }
 
 Dynamic filter_builder_pop(FilterBuilder *b)
@@ -111,51 +107,46 @@ Dynamic filter_builder_pop(FilterBuilder *b)
 /*
  * Functions for assembling a filter.
  */
-int filter_build_tag(FilterBuilder *b, Pool *pool, String tag)
+void filter_build_tag(FilterBuilder *b, Pool *pool, String tag)
 {
   AstFilterTag *self = pool_new(pool, AstFilterTag);
-  CHECK_MEM(self);
   self->tag = string_copy(pool, tag);
-  CHECK_MEM(string_size(self->tag));
 
-  return filter_builder_push(b, dynamic(type_filter_tag, self));
+  filter_builder_push(b, dynamic(type_filter_tag, self));
 }
 
-int filter_build_any(FilterBuilder *b, Pool *pool)
+void filter_build_any(FilterBuilder *b, Pool *pool)
 {
-  return filter_builder_push(b, dynamic_init(type_filter_any, 0));
+  filter_builder_push(b, dynamic(type_filter_any, 0));
 }
 
-int filter_build_not(FilterBuilder *b, Pool *pool)
+void filter_build_not(FilterBuilder *b, Pool *pool)
 {
   AstFilterNot *self = pool_new(pool, AstFilterNot);
-  CHECK_MEM(self);
   self->test = filter_builder_pop(b);
   assert(dynamic_ok(self->test));
 
-  return filter_builder_push(b, dynamic(type_filter_not, self));
+  filter_builder_push(b, dynamic(type_filter_not, self));
 }
 
-int filter_build_and(FilterBuilder *b, Pool *pool)
+void filter_build_and(FilterBuilder *b, Pool *pool)
 {
   AstFilterAnd *self = pool_new(pool, AstFilterAnd);
-  CHECK_MEM(self);
   self->test_a = filter_builder_pop(b);
   assert(dynamic_ok(self->test_a));
   self->test_b = filter_builder_pop(b);
   assert(dynamic_ok(self->test_b));
 
-  return filter_builder_push(b, dynamic(type_filter_and, self));
+  filter_builder_push(b, dynamic(type_filter_and, self));
 }
 
-int filter_build_or(FilterBuilder *b, Pool *pool)
+void filter_build_or(FilterBuilder *b, Pool *pool)
 {
   AstFilterOr *self = pool_new(pool, AstFilterOr);
-  CHECK_MEM(self);
   self->test_a = filter_builder_pop(b);
   assert(dynamic_ok(self->test_a));
   self->test_b = filter_builder_pop(b);
   assert(dynamic_ok(self->test_b));
 
-  return filter_builder_push(b, dynamic(type_filter_or, self));
+  filter_builder_push(b, dynamic(type_filter_or, self));
 }

@@ -14,30 +14,13 @@
 # limitations under the License.
 #
 
-compile = gcc -g -std=c89 -pedantic -o $@ $<
+CFLAGS = -g -ansi -pedantic -Wall
 
 default: outline2c
 
-outline2c: ../source/outline2c.c \
-	../source/ast.c \
-	../source/case.c \
-	../source/check.c \
-	../source/dump.c \
-	../source/dynamic.c \
-	../source/filter.c \
-	../source/generate.c \
-	../source/lex.c \
-	../source/list.c \
-	../source/lwl.c \
-	../source/main.c \
-	../source/options.c \
-	../source/out.c \
-	../source/parse.c \
-	../source/pool.c \
-	../source/scope.c \
-	../source/source.c \
-	../source/string.c \
-	; $(compile)
+-include outline2c.d
+outline2c: ../source/outline2c.c
+	$(CC) $(CFLAGS) -MMD -o $@ $<
 
 test: outline2c
 	./outline2c ../build-gcc/test.c.ol
@@ -50,4 +33,6 @@ install: outline2c
 	cp outline2c /usr/local/bin/
 
 clean:
+	rm -f *.d
 	rm -f outline2c
+	rm -f test.c

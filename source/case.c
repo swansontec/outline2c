@@ -31,9 +31,9 @@ String strip_symbol(String s)
 }
 
 /**
- * Locates individual words within an indentifier. The identifier must have its
+ * Locates individual words within an identifier. The identifier must have its
  * leading and trailing underscores stripped off before being passed to this
- * function. As always, the only valid symbols within an indentifier are
+ * function. As always, the only valid symbols within an identifier are
  * [_a-zA-Z0-9]
  * @param s the input string to break into words
  * @param p a pointer into string s, which marks the first character to begin
@@ -57,7 +57,7 @@ String scan_symbol(String s, char const *p)
     do {
       ++p;
     } while (p < s.end && '0' <= *p && *p <= '9');
-    return string_init(start, p);
+    return string(start, p);
   }
 
   /* Lower-case letters? */
@@ -65,7 +65,7 @@ String scan_symbol(String s, char const *p)
     do {
       ++p;
     } while (p < s.end && 'a' <= *p && *p <= 'z');
-    return string_init(start, p);
+    return string(start, p);
   }
 
   /* Upper-case letters? */
@@ -82,7 +82,7 @@ String scan_symbol(String s, char const *p)
         } while (p < s.end && 'a' <= *p && *p <= 'z');
       }
     }
-    return string_init(start, p);
+    return string(start, p);
   }
 
   /* Anything else is a bug */

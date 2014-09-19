@@ -15,64 +15,35 @@
  */
 
 /**
- * Holds line and column information
+ * A source file
  */
-typedef struct {
-  unsigned line;
-  unsigned column;
-} Location;
-
-/**
- * Obtains line and column numbers given a pointer into a file. This is not
- * fast, but printing errors is hardly a bottleneck. This routine counts from
- * 0, but most text editors start from 1. It might make sense to add 1 to the
- * returned values.
- */
-Location location_init(char const *start, char const *location)
-{
-  Location self;
-  char const *p;
-
-  self.line = 0;
-  self.column = 0;
-  for (p = start; p < location; ++p) {
-    if (*p == '\n') {
-      ++self.line;
-      self.column = 0;
-    } else if (*p == '\t') {
-      self.column += 8;
-      self.column -= self.column % 8;
-    } else {
-      ++self.column;
-    }
-  }
-  return self;
-}
-
-/**
- * A stream of input text feeding the parser
- */
-typedef struct {
+typedef struct Source {
   String filename;
   String data;
   char const *cursor;
+  struct Source *next;
 } Source;
+
+/**
+ * A global linked list of Source structures. This makes it possible to find
+ * line and column information in any file using only a character pointer.
+ */
+Source *source_list = 0;
 
 /**
  * Loads a file into a Source structure
  */
-int source_load(Source *self, Pool *pool, String filename)
+Source *source_load(Pool *pool, String filename)
 {
-  char *c_name = 0;
   FILE *fp = 0;
   long size;
   char *data;
+  Source *self;
 
-  c_name = string_to_c(filename);
-  if (!c_name) goto error;
+  filename = string_copy(pool, filename);
 
-  fp = fopen(c_name, "rb");
-  if (!fp) goto error;
+  fp = fopen(filename.p, "rb");
+  if (!fp) return 0;
 
   if (fseek(fp, 0, SEEK_END))
     goto error;
@@ -83,34 +54,65 @@ int source_load(Source *self, Pool *pool, String filename)
   if (fseek(fp, 0, SEEK_SET))
     goto error;
 
-  data = pool_alloc(pool, size + 1, 1);
-  if (!data) goto error;
+  data = (char*)pool_alloc(pool, size + 1, 1);
 
   if (fread(data, 1, size, fp) != size)
     goto error;
   data[size] = 0;
 
+  self = pool_new(pool, Source);
   self->filename = filename;
-  self->data = string_init(data, data + size);
+  self->data = string(data, data + size);
   self->cursor = self->data.p;
+  self->next = source_list;
+  source_list = self;
 
-  free(c_name);
   fclose(fp);
-  return 1;
+  return self;
 
 error:
-  if (c_name) free(c_name);
-  if (fp)     fclose(fp);
+  fclose(fp);
   return 0;
 }
 
 /**
- * Prints an error message related to current cursor location
+ * Formats and prints a source location
  */
-int source_error(Source *self, char const *location, char const *message)
+int source_location(FILE *stream, char const *location)
 {
-  Location l = location_init(self->data.p, location);
-  fwrite(self->filename.p, string_size(self->filename), 1, stderr);
-  fprintf(stderr, ":%d:%d: error: %s\n", l.line + 1, l.column + 1, message);
+  unsigned line;
+  unsigned column;
+  char const *p;
+
+  Source *self = source_list;
+  while (self && (location < self->data.p || self->data.end < location))
+    self = self->next;
+  if (!self)
+    return 0;
+
+  line = 0;
+  column = 0;
+  for (p = self->data.p; p < location; ++p) {
+    if (*p == '\n') {
+      ++line;
+      column = 0;
+    } else if (*p == '\t') {
+      column += 8;
+      column -= column % 8;
+    } else {
+      ++column;
+    }
+  }
+
+  return 0 < fprintf(stream, "%s:%d:%d: ", self->filename.p, line + 1, column + 1);
+}
+
+/**
+ * Prints an error message related to a source file
+ */
+int source_error(char const *location, char const *message)
+{
+  source_location(stderr, location);
+  fprintf(stderr, "%s\n", message);
   return 0;
 }

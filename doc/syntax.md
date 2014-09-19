@@ -32,9 +32,9 @@ Renaming items
 
 It often makes sense to modify an item's name before writing it to the output. Outline2c provides a few ways to do this.
 
-The `\\\\` operator concatenates text onto the beginning or end of an item name:
+The `\\` operator concatenates text onto the beginning or end of an item name:
 
-    \ol for food in breakfast { int have_\\\\food; }
+    \ol for food in breakfast { int have_\\food; }
 
 This example places the prefix "have_" on the beginning of each item name, producing the output:
 
@@ -59,7 +59,7 @@ This example produces:
 Concatenation and transformation can be combined. For example:
 
     \ol for food in breakfast {
-    #define WANT_\\\\food!upper}
+    #define WANT_\\food!upper}
 
 Generates:
 
@@ -215,3 +215,12 @@ Invoking a macro is pretty straightforward:
 This is equivalent to entering the following code directly:
 
     \ol for i in outline_a { item_b }
+
+Including other files
+---------------------
+
+The `include` keyword pulls in the definitions from another outline2c source file:
+
+    \ol include "macros.ol"
+
+Unlike the C preprocessor, this does not insert the file's contents into the output; it just pulls out outline2c definitions and makes them available.

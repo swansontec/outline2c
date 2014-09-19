@@ -36,7 +36,7 @@ This example produces something like:
 
 The same outline could be again and again to generate the settings GUI, command-line options parser, config-file reader, and so forth. Adding a setting would normally involve editing all these locations, but with outline2c it only involves a one-line change.
 
-Full documentation is in the `doc/syntax.markdown` file.
+Full documentation is in the [doc/syntax.md](doc/syntax.md) file.
 
 Building outline2c
 ==================

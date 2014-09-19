@@ -70,7 +70,7 @@ void dump_macro_call(AstMacroCall *p)
   }
 
   printf(") {");
-  dump_text(string_init(p->macro->code.cursor, p->macro->code.data.end));
+  dump_text(string(p->macro->code.cursor, p->macro->code.data.end));
   printf("}");
 }
 
@@ -213,7 +213,7 @@ void dump_for(AstFor *p)
     printf(" list");
 
   printf(" {");
-  dump_text(string_init(p->code.cursor, p->code.data.end));
+  dump_text(string(p->code.cursor, p->code.data.end));
   printf("}");
 }
 

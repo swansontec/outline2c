@@ -16,6 +16,15 @@
 
 typedef struct AstOutlineItem AstOutlineItem;
 
+typedef int (*KeywordFn)(Pool *pool, Source *in, Scope *scope, OutRoutine or);
+
+/**
+ * An outline2c keyword.
+ */
+typedef struct {
+  KeywordFn code;
+} Keyword;
+
 /**
  * A modifier on a symbol.
  */
@@ -150,37 +159,37 @@ AstMapLine *ast_to_map_line(Dynamic node)
   return node.p;
 }
 
+Keyword *keyword_new(Pool *p, KeywordFn code)
+{
+  Keyword *self = pool_new(p, Keyword);
+  self->code = code;
+
+  if (!self->code) return 0;
+  return self;
+}
+
 AstLookup *ast_lookup_new(Pool *p, AstOutlineItem *item, String name)
 {
   AstLookup *self = pool_new(p, AstLookup);
-  CHECK_MEM(self);
   self->item = item;
   self->name = string_copy(p, name);
 
   assert(self->item);
-  CHECK_MEM(string_size(self->name));
   return self;
 }
 
 AstOutlineTag *ast_outline_tag_new(Pool *p, String name, ListNode *value)
 {
   AstOutlineTag *self = pool_new(p, AstOutlineTag);
-  CHECK_MEM(self);
   self->name = string_copy(p, name);
-  self->value = value;
-
-  CHECK_MEM(string_size(self->name));
-  /* value may be NULL */
+  self->value = value; /* value may be NULL */
   return self;
 }
 
 AstCodeText *ast_code_text_new(Pool *p, String code)
 {
   AstCodeText *self = pool_new(p, AstCodeText);
-  CHECK_MEM(self);
   self->code = string_copy(p, code);
-
-  CHECK_MEM(string_size(self->code));
   return self;
 }
 

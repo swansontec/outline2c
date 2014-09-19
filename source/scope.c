@@ -28,7 +28,7 @@ struct Symbol {
 };
 
 /**
- * One level in the symbol table. This implmentation uses a linked list for
+ * One level in the symbol table. This implementation uses a linked list for
  * now, which is simple but not too efficient.
  */
 typedef struct Scope Scope;
@@ -37,33 +37,29 @@ struct Scope {
   Symbol *first;
 };
 
-Scope scope_init(Scope *outer)
+Scope *scope_new(Pool *pool, Scope *outer)
 {
-  Scope self;
-  self.outer = outer;
-  self.first = 0;
+  Scope *self = pool_new(pool, Scope);
+  self->outer = outer;
+  self->first = 0;
   return self;
 }
 
 /**
  * Adds a symbol to the current scope.
- * @return 0 for failure.
  */
-int scope_add(Scope *scope, Pool *pool, String name, Dynamic value)
+void scope_add(Scope *scope, Pool *pool, String name, Dynamic value)
 {
   Symbol *sym = pool_new(pool, Symbol);
-  CHECK_MEM(sym);
   sym->name = string_copy(pool, name);
-  CHECK_MEM(string_size(sym->name));
   sym->value = value;
   sym->next = scope->first;
   scope->first = sym;
-  return 1;
 }
 
 /**
  * Searches for a symbol to the current scope. Places the symbol's value, if
- * found, into ctx->out.
+ * found, into *out.
  * @return 0 if the symbol does not exist.
  */
 int scope_get(Scope *s, Dynamic *out, String name)

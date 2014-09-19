@@ -19,14 +19,3 @@
  * return code and bails out if it indicates an error.
  */
 #define CHECK(r) do { if (!(r)) return 0; } while(0)
-
-/**
- * Verifies that a memory-allocating call succeeds, and prints an error message
- * otherwise.
- */
-#define CHECK_MEM(r) do { \
-  if (!(r)) { \
-    fprintf(stderr, "error: Out of memory at %s:%d\n", __FILE__, __LINE__); \
-    return 0; \
-  } \
-} while(0)
